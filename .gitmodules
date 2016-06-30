@@ -19,3 +19,6 @@
 [submodule "libs/curl"]
 	path = libs/curl
 	url = https://github.com/Paxxi/curl
+[submodule "libs/fribidi"]
+	path = libs/fribidi
+	url = https://github.com/Paxxi/fribidi
