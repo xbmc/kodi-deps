@@ -7,3 +7,9 @@
 [submodule "libs/yajl"]
 	path = libs/yajl
 	url = https://github.com/Paxxi/yajl
+[submodule "libs/libmicrohttpd"]
+	path = libs/libmicrohttpd
+	url = https://github.com/Paxxi/libmicrohttpd
+[submodule "libs/taglib"]
+	path = libs/taglib
+	url = https://github.com/Paxxi/taglib
