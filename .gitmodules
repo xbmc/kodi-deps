@@ -16,3 +16,6 @@
 [submodule "libs/openssl"]
 	path = libs/openssl
 	url = https://github.com/Paxxi/openssl
+[submodule "libs/curl"]
+	path = libs/curl
+	url = https://github.com/Paxxi/curl
