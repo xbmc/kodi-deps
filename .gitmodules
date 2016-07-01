@@ -25,3 +25,6 @@
 [submodule "libs/fontconfig"]
 	path = libs/fontconfig
 	url = https://github.com/Paxxi/fontconfig
+[submodule "libs/libiconv"]
+	path = libs/libiconv
+	url = https://github.com/Paxxi/libiconv
