@@ -28,3 +28,6 @@
 [submodule "libs/libiconv"]
 	path = libs/libiconv
 	url = https://github.com/Paxxi/libiconv
+[submodule "libs/libbluray"]
+	path = libs/libbluray
+	url = https://github.com/Paxxi/libbluray
