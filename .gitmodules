@@ -31,3 +31,6 @@
 [submodule "libs/libbluray"]
 	path = libs/libbluray
 	url = https://github.com/Paxxi/libbluray
+[submodule "libs/freetype2"]
+	path = libs/freetype2
+	url = https://github.com/Paxxi/freetype2
