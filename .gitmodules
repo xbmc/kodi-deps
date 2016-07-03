@@ -34,6 +34,6 @@
 [submodule "libs/freetype2"]
 	path = libs/freetype2
 	url = https://github.com/Paxxi/freetype2
-[submodule "libs\\libass"]
-	path = libs\\libass
+[submodule "libs/libass"]
+	path = libs/libass
 	url = https://github.com/Paxxi/libass
