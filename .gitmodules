@@ -40,3 +40,6 @@
 [submodule "libs/crossguid"]
 	path = libs/crossguid
 	url = https://github.com/Paxxi/crossguid
+[submodule "libs/lzo2"]
+	path = libs/lzo2
+	url = https://github.com/Paxxi/lzo2
