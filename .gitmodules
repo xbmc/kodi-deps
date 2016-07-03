@@ -37,3 +37,6 @@
 [submodule "libs/libass"]
 	path = libs/libass
 	url = https://github.com/Paxxi/libass
+[submodule "libs/crossguid"]
+	path = libs/crossguid
+	url = https://github.com/Paxxi/crossguid
