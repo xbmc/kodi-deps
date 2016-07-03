@@ -43,3 +43,6 @@
 [submodule "libs/lzo2"]
 	path = libs/lzo2
 	url = https://github.com/Paxxi/lzo2
+[submodule "libs/sqlite"]
+	path = libs/sqlite
+	url = https://github.com/Paxxi/sqlite
