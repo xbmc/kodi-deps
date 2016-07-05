@@ -46,3 +46,6 @@
 [submodule "libs/sqlite"]
 	path = libs/sqlite
 	url = https://github.com/Paxxi/sqlite
+[submodule "libs/pcre"]
+	path = libs/pcre
+	url = https://github.com/Paxxi/pcre
