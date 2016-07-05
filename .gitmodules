@@ -49,3 +49,6 @@
 [submodule "libs/pcre"]
 	path = libs/pcre
 	url = https://github.com/Paxxi/pcre
+[submodule "libs/libxml2"]
+	path = libs/libxml2
+	url = https://github.com/Paxxi/libxml2
