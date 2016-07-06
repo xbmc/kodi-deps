@@ -55,3 +55,6 @@
 [submodule "libs/libxslt"]
 	path = libs/libxslt
 	url = https://github.com/Paxxi/libxslt
+[submodule "libs/libssh"]
+	path = libs/libssh
+	url = https://github.com/Paxxi/libssh
