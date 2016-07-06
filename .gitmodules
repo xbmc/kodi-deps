@@ -52,3 +52,6 @@
 [submodule "libs/libxml2"]
 	path = libs/libxml2
 	url = https://github.com/Paxxi/libxml2
+[submodule "libs/libxslt"]
+	path = libs/libxslt
+	url = https://github.com/Paxxi/libxslt
