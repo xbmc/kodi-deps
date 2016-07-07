@@ -58,3 +58,9 @@
 [submodule "libs/libssh"]
 	path = libs/libssh
 	url = https://github.com/Paxxi/libssh
+[submodule "libs/python"]
+	path = libs/python
+	url = https://github.com/Paxxi/python
+[submodule "libs/pillow"]
+	path = libs/pillow
+	url = https://github.com/Paxxi/Pillow
