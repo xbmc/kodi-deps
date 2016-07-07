@@ -64,3 +64,9 @@
 [submodule "libs/pillow"]
 	path = libs/pillow
 	url = https://github.com/Paxxi/Pillow
+[submodule "libs/mDNSReponder"]
+	path = libs/mDNSReponder
+	url = https://github.com/Paxxi/mDNSResponder
+[submodule "libs/mDNSResponder"]
+	path = libs/mDNSResponder
+	url = https://github.com/Paxxi/mDNSResponder
