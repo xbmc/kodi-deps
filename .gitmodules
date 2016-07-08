@@ -82,3 +82,9 @@
 [submodule "libs/libnfs"]
 	path = libs/libnfs
 	url = https://github.com/Paxxi/libnfs
+[submodule "libs/libplist"]
+	path = libs/libplist
+	url = https://github.com/Paxxi/libplist
+[submodule "libs/shairplay"]
+	path = libs/shairplay
+	url = https://github.com/Paxxi/shairplay
