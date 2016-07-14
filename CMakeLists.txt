@@ -22,8 +22,12 @@ add_subdirectory(libs/pcre)
 #depends on zlib
 # add_subdirectory(libs/openssl)
 
+#depends on iconv
+add_subdirectory(libs/libxml2)
+add_subdirectory(libs/libxslt)
+
 #depends on openssl
-add_subdirectory(libs/curl)
+# add_subdirectory(libs/curl)
 
 #depends on openssl
 add_subdirectory(libs/libssh)
