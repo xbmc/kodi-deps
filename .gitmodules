@@ -88,3 +88,18 @@
 [submodule "libs/shairplay"]
 	path = libs/shairplay
 	url = https://github.com/Paxxi/shairplay
+[submodule "libs/expat"]
+	path = libs/expat
+	url = https://github.com/Paxxi/expat
+[submodule "libs/libcdio"]
+	path = libs/libcdio
+	url = https://github.com/Paxxi/libcdio
+[submodule "libs/libdvdnav"]
+	path = libs/libdvdnav
+	url = https://github.com/Paxxi/libdvdnav
+[submodule "libs/libdvdcss"]
+	path = libs/libdvdcss
+	url = https://github.com/Paxxi/libdvdcss
+[submodule "libs/libdvdread"]
+	path = libs/libdvdread
+	url = https://github.com/Paxxi/libdvdread
