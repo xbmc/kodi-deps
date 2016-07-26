@@ -103,3 +103,6 @@
 [submodule "libs/libdvdread"]
 	path = libs/libdvdread
 	url = https://github.com/Paxxi/libdvdread
+[submodule "libs/EasyHook"]
+	path = libs/EasyHook
+	url = https://github.com/Paxxi/EasyHook
