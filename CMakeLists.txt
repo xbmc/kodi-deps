@@ -5,17 +5,20 @@ project(kodi-deps)
 set(BUILD_TOOLS OFF)
 set(BUILD_EXAMPLES OFF)
 set(BUILD_TESTS OFF)
+set(BUILD_TEST OFF)
+
+message(${CMAKE_SIZEOF_VOID_P})
 
 #These have no dependencies so add these first
 add_subdirectory(libs/zlib)
 add_subdirectory(libs/crossguid)
 add_subdirectory(libs/tinyxml)
 add_subdirectory(libs/libiconv)
-add_subdirectory(libs/lzo2)
+# add_subdirectory(libs/lzo2)
 add_subdirectory(libs/sqlite)
 add_subdirectory(libs/yajl)
-add_subdirectory(libs/taglib)
-add_subdirectory(libs/pcre)
+# add_subdirectory(libs/taglib)
+# add_subdirectory(libs/pcre)
 # add_subdirectory(libs/python)
 
 
@@ -30,7 +33,7 @@ add_subdirectory(libs/libxslt)
 # add_subdirectory(libs/curl)
 
 #depends on openssl
-add_subdirectory(libs/libssh)
+# add_subdirectory(libs/libssh)
 
 add_subdirectory(libs/fribidi)
 add_subdirectory(libs/freetype2)

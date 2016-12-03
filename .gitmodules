@@ -106,3 +106,6 @@
 [submodule "libs/EasyHook"]
 	path = libs/EasyHook
 	url = https://github.com/Paxxi/EasyHook
+[submodule "libs/mysql-connector-c"]
+	path = libs/mysql-connector-c
+	url = https://github.com/Paxxi/mysql-connector-c
