@@ -6,6 +6,7 @@ set(BUILD_TOOLS OFF)
 set(BUILD_EXAMPLES OFF)
 set(BUILD_TESTS OFF)
 set(BUILD_TEST OFF)
+set(UNIFIED_BUILD ON)
 
 message(${CMAKE_SIZEOF_VOID_P})
 
@@ -35,8 +36,10 @@ add_subdirectory(libs/libxslt)
 #depends on openssl
 # add_subdirectory(libs/libssh)
 
+set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(libs/fribidi)
 add_subdirectory(libs/freetype2)
 
+set(BUILD_SHARED_LIBS ON)
 add_subdirectory(libs/libass)
 # add_subdirectory()
