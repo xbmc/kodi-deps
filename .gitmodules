@@ -118,3 +118,12 @@
 [submodule "libs/xz"]
 	path = libs/xz
 	url = https://github.com/Paxxi/xz
+[submodule "libs/libwebp"]
+	path = libs/libwebp
+	url = https://github.com/Paxxi/libwebp
+[submodule "libs/libpng"]
+	path = libs/libpng
+	url = https://github.com/Paxxi/libpng
+[submodule "libs/giflib"]
+	path = libs/giflib
+	url = https://github.com/Paxxi/giflib
