@@ -106,3 +106,15 @@
 [submodule "libs/mysql-connector-c"]
 	path = libs/mysql-connector-c
 	url = https://github.com/Paxxi/mysql-connector-c
+[submodule "libs/openjpeg"]
+	path = libs/openjpeg
+	url = https://github.com/Paxxi/openjpeg
+[submodule "libs/Little-CMS"]
+	path = libs/Little-CMS
+	url = https://github.com/Paxxi/Little-CMS
+[submodule "libs/libtiff"]
+	path = libs/libtiff
+	url = https://github.com/Paxxi/libtiff
+[submodule "libs/xz"]
+	path = libs/xz
+	url = https://github.com/Paxxi/xz
