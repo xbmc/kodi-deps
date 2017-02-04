@@ -127,3 +127,15 @@
 [submodule "libs/giflib"]
 	path = libs/giflib
 	url = https://github.com/Paxxi/giflib
+[submodule "libs/odb"]
+	path = libs/odb
+	url = https://github.com/Paxxi/odb
+[submodule "libs/libodb"]
+	path = libs/libodb
+	url = https://github.com/Paxxi/libodb
+[submodule "libs/libodb-mysql"]
+	path = libs/libodb-mysql
+	url = https://github.com/Paxxi/libodb-mysql
+[submodule "libs/libodb-sqlite"]
+	path = libs/libodb-sqlite
+	url = https://github.com/Paxxi/libodb-sqlite
