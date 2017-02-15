@@ -1,0 +1,59 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -46,12 +46,8 @@
+ option(ENABLE_STATIC "Build static LZO library." ON)
+ option(ENABLE_SHARED "Build shared LZO library." OFF)
+ 
+-if(NOT CMAKE_BUILD_TYPE)
+-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+-endif()
+-if(NOT CMAKE_INSTALL_PREFIX)
+-    set(CMAKE_INSTALL_PREFIX "/usr/local" CACHE PATH "" FORCE)
+-endif()
++option(BUILD_TEST "Build test" OFF)
++option(BUILD_EXAMPLES "Build examples" OFF)
+ 
+ #
+ # targets
+@@ -66,7 +61,12 @@
+ endif()
+ if(ENABLE_STATIC)
+     add_library(lzo_static STATIC ${lzo_SOURCES})
+-    set_target_properties(lzo_static PROPERTIES OUTPUT_NAME lzo2)
++    set_target_properties(lzo_static PROPERTIES OUTPUT_NAME lzo2 OUTPUT_NAME_DEBUG lzo2d)
++    if(MSVC)
++        set_target_properties(lzo_static PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME lzo2 COMPILE_PDB_NAME_DEBUG lzo2d)
++        install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/lzo2.pdb DESTINATION lib CONFIGURATIONS RelWithDebInfo)
++        install(FILES ${PROJECT_BINARY_DIR}/Debug/lzo2d.pdb DESTINATION lib CONFIGURATIONS Debug)
++    endif()
+ endif()
+ if(ENABLE_SHARED)
+     add_library(lzo_shared SHARED ${lzo_SOURCES})
+@@ -84,8 +85,11 @@
+     endif()
+ endmacro()
+ # main test driver
++if(BUILD_TESTS)
+ lzo_add_executable(lzotest  lzotest/lzotest.c)
++endif(BUILD_TESTS)
+ # examples
++if(BUILD_EXAMPLES)
+ lzo_add_executable(dict     examples/dict.c)
+ lzo_add_executable(lzopack  examples/lzopack.c)
+ lzo_add_executable(overlap  examples/overlap.c)
+@@ -99,9 +103,10 @@
+     lzo_add_executable(promote  tests/promote.c)
+     lzo_add_executable(sizes    tests/sizes.c)
+ endif()
++endif(BUILD_EXAMPLES)
+ 
+ # miniLZO
+-if(1)
++if(BUILD_TESTS)
+     add_executable(testmini minilzo/testmini.c minilzo/minilzo.c)
+     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/lzo) # needed for "lzoconf.h"
+ endif()
+--- /dev/null
++++ b/cmake/lzo2-config.cmake
+@@ -0,0 +1 @@
++include(${CMAKE_CURRENT_LIST_DIR}/lzo2.cmake)

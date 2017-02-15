@@ -132,3 +132,12 @@ ExternalProject_Add(libyajl
 		-DBUILD_EXAMPLE:BOOL=OFF
 		-DBUILD_TEST:BOOL=OFF
 )
+
+ExternalProject_Add(lzo2
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL http://www.oberhumer.com/opensource/lzo/download/lzo-2.09.tar.gz
+	URL_HASH SHA256=f294a7ced313063c057c504257f437c8335c41bfeed23531ee4e6a2b87bcb34c
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
