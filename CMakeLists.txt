@@ -169,3 +169,12 @@ ExternalProject_Add(sqlite
 	CMAKE_ARGS
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+
+ExternalProject_Add(taglib
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL http://taglib.org/releases/taglib-1.11.1.tar.gz
+	URL_HASH SHA256=b6d1a5a610aae6ff39d93de5efd0fdc787aa9e9dc1e7026fa4c961b26563526b
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)

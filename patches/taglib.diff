@@ -1,0 +1,89 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -58,6 +58,11 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+ endif()
+ 
++if(MSVC)
++  set(CMAKE_DEBUG_POSTFIX "d")
++  add_compile_options("$<$<CONFIG:Debug>:-D_ITERATOR_DEBUG_LEVEL=0>")
++endif()
++
+ if(MSVC AND ENABLE_STATIC_RUNTIME)
+   foreach(flag_var CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+     string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+--- a/taglib/CMakeLists.txt
++++ b/taglib/CMakeLists.txt
+@@ -344,6 +344,12 @@
+ 
+ add_library(tag ${tag_LIB_SRCS} ${tag_HDRS})
+ 
++if(MSVC)
++  set_target_properties(tag PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME tag COMPILE_PDB_NAME_DEBUG tagd)
++  install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/tag.pdb DESTINATION lib CONFIGURATIONS RelWithDebInfo)
++  install(FILES ${PROJECT_BINARY_DIR}/Debug/tagd.pdb DESTINATION lib CONFIGURATIONS Debug)
++endif(MSVC)
++
+ if(ZLIB_FOUND)
+   target_link_libraries(tag ${ZLIB_LIBRARIES})
+ endif()
+--- a/taglib/mpeg/mpegfile.cpp
++++ b/taglib/mpeg/mpegfile.cpp
+@@ -488,28 +488,41 @@ long MPEG::File::findID3v2()
+   const ByteVector headerID = ID3v2::Header::fileIdentifier();
+ 
+   seek(0);
++  if(readBlock(headerID.size()) == headerID)
++    return 0;
+ 
+-  const ByteVector data = readBlock(headerID.size());
+-  if(data.size() < headerID.size())
++  Header firstHeader(this, 0, true);
++  if(firstHeader.isValid())
+     return -1;
+ 
+-  if(data == headerID)
+-    return 0;
++  // Look for an ID3v2 tag until reaching the first valid MPEG frame.
+ 
+-  if(firstSyncByte(data[0]) && secondSynchByte(data[1]))
+-    return -1;
++  char frameSyncBytes[2] = {};
++  char tagHeaderBytes[4] = {};
++  long position = 0;
+ 
+-  // Look for the entire file, if neither an MEPG frame or ID3v2 tag was found
+-  // at the beginning of the file.
+-  // We don't care about the inefficiency of the code, since this is a seldom case.
++  while(true) {
++    seek(position);
++    const ByteVector buffer = readBlock(bufferSize());
++    if(buffer.isEmpty())
++      return -1;
+ 
+-  const long tagOffset = find(headerID);
+-  if(tagOffset < 0)
+-    return -1;
++    for(unsigned int i = 0; i < buffer.size(); ++i) {
++      frameSyncBytes[0] = frameSyncBytes[1];
++      frameSyncBytes[1] = buffer[i];
++      if(firstSyncByte(frameSyncBytes[0]) && secondSynchByte(frameSyncBytes[1])) {
++        Header header(this, position + i - 1, true);
++        if(header.isValid())
++          return -1;
++      }
+ 
+-  const long frameOffset = firstFrameOffset();
+-  if(frameOffset < tagOffset)
+-    return -1;
++      tagHeaderBytes[0] = tagHeaderBytes[1];
++      tagHeaderBytes[1] = tagHeaderBytes[2];
++      tagHeaderBytes[2] = buffer[i];
++      if(headerID == tagHeaderBytes)
++        return position + i - 2;
++    }
+ 
+-  return tagOffset;
++    position += bufferSize();
++  }
+ }
