@@ -71,3 +71,13 @@ ExternalProject_Add(crossguid
 	CMAKE_ARGS
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+
+ExternalProject_Add(easyhook
+	DOWNLOAD_NAME easyhook-2.7.6035.0.tar.gz
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://github.com/EasyHook/EasyHook/archive/v2.7.6035.0.tar.gz
+	URL_HASH SHA256=db5dafbc08ccd181dc8f2e11a7adf63b3e90b6bea974c326ce15fc4ba70d96b4
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
