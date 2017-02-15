@@ -81,3 +81,12 @@ ExternalProject_Add(easyhook
 	CMAKE_ARGS
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+
+ExternalProject_Add(freetype
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://download.savannah.gnu.org/releases/freetype/freetype-2.7.1.tar.gz
+	URL_HASH SHA256=162ef25aa64480b1189cdb261228e6c5c44f212aac4b4621e28cf2157efb59f5
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)

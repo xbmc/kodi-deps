@@ -1,0 +1,221 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -159,10 +159,12 @@
+ set(PROJECT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
+ set(SHARED_LIBRARY_VERSION ${VERSION_MAJOR}.${VERSION_MINOR})
+ 
+-
+-# Compiler definitions for building the library
+-add_definitions(-DFT2_BUILD_LIBRARY)
+-
++include(CMakePackageConfigHelpers)
++write_basic_package_version_file(
++  ${CMAKE_CURRENT_BINARY_DIR}/freetype-config-version.cmake
++  VERSION ${PROJECT_VERSION}
++  COMPATIBILITY AnyNewerVersion
++)
+ 
+ # Find dependencies
+ foreach (d ZLIB BZip2 PNG HarfBuzz)
+@@ -317,6 +319,7 @@
+ 
+ if (WIN32)
+   set(BASE_SRCS ${BASE_SRCS} builds/windows/ftdebug.c)
++  set(BASE_SRCS ${BASE_SRCS} src/base/win32_compat.c)
+ elseif (WINCE)
+   set(BASE_SRCS ${BASE_SRCS} builds/wince/ftdebug.c)
+ else ()
+@@ -339,6 +342,11 @@
+   ${PRIVATE_HEADERS}
+   ${BASE_SRCS}
+ )
++# Compiler definitions for building the library
++target_compile_definitions(freetype
++  PRIVATE FT2_BUILD_LIBRARY
++)
++
+ 
+ 
+ if (BUILD_SHARED_LIBS)
+@@ -364,7 +372,7 @@
+ 
+ if (NOT CMAKE_VERSION VERSION_LESS 2.8.12)
+   target_include_directories(freetype
+-    PUBLIC $<INSTALL_INTERFACE:include/freetype2>)
++    PUBLIC $<INSTALL_INTERFACE:include>)
+ endif ()
+ 
+ if (CMAKE_VERSION VERSION_LESS 2.8.12)
+@@ -374,7 +382,7 @@
+ endif ()
+ 
+ if (ZLIB_FOUND)
+-  target_link_libraries(freetype ${MAYBE_PRIVATE} ${ZLIB_LIBRARIES})
++  target_link_libraries(freetype PUBLIC ${ZLIB_LIBRARIES})
+   include_directories(${ZLIB_INCLUDE_DIRS})
+ endif ()
+ if (BZIP2_FOUND)
+@@ -396,7 +404,7 @@
+ # Note the trailing slash in the argument to the `DIRECTORY' directive
+ if (NOT SKIP_INSTALL_HEADERS AND NOT SKIP_INSTALL_ALL)
+   install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/
+-    DESTINATION include/freetype2
++    DESTINATION include
+     PATTERN "internal" EXCLUDE
+     PATTERN "ftconfig.h" EXCLUDE
+     PATTERN "ftoption.h" EXCLUDE
+@@ -404,22 +412,31 @@
+   install(FILES
+     ${PROJECT_BINARY_DIR}/include/freetype/config/ftconfig.h
+     ${PROJECT_BINARY_DIR}/include/freetype/config/ftoption.h
+-    DESTINATION include/freetype2/freetype/config
++    DESTINATION include/freetype/config
+     )
++    # install(FILES
++    #   ${CMAKE_CURRENT_SOURCE_DIR}/include/ft2build.h
++    #   DESTINATION include
++    #   )
+ endif ()
+ 
+ if (NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL)
+   install(TARGETS freetype
+-    EXPORT freetype-targets
++    EXPORT freetype
+     RUNTIME DESTINATION bin
+     LIBRARY DESTINATION lib
+     ARCHIVE DESTINATION lib
+     FRAMEWORK DESTINATION Library/Frameworks
+     )
+-  install(EXPORT freetype-targets
++  install(EXPORT freetype
++    FILE freetype.cmake
++    NAMESPACE freetype::
+     DESTINATION lib/cmake/freetype
+-    FILE freetype-config.cmake
+     )
++  install(FILES
++    builds/cmake/freetype-config.cmake
++    ${CMAKE_CURRENT_BINARY_DIR}/freetype-config-version.cmake
++    DESTINATION lib/cmake/freetype)
+ endif ()
+ 
+ 
+--- /dev/null
++++ b/builds/cmake/freetype-config.cmake
+@@ -0,0 +1 @@
++include(${CMAKE_CURRENT_LIST_DIR}/freetype.cmake)
+--- a/include/freetype/config/ftstdlib.h
++++ b/include/freetype/config/ftstdlib.h
+@@ -101,9 +101,18 @@
+ 
+ #include <stdio.h>
+ 
++#ifdef _MSC_VER
++FILE* utf8_fopen(
++  char const* _FileName,
++  char const* _Mode
++);
++
++#define ft_fopen    utf8_fopen
++#else
++#define ft_fopen    fopen
++#endif
+ #define FT_FILE     FILE
+ #define ft_fclose   fclose
+-#define ft_fopen    fopen
+ #define ft_fread    fread
+ #define ft_fseek    fseek
+ #define ft_ftell    ftell
+diff --git a/src/base/win32_compat.c b/src/base/win32_compat.c
+new file mode 100644
+index 0000000..1e29e9b
+--- /dev/null
++++ b/src/base/win32_compat.c
+@@ -0,0 +1,87 @@
++/***************************************************************************/
++/*                                                                         */
++/*  ftstream.h                                                             */
++/*                                                                         */
++/*    Stream handling (specification).                                     */
++/*                                                                         */
++/*  Copyright 2017 by                                                      */
++/*  Pär Björklund                                                          */
++/*                                                                         */
++/*  This file is part of the FreeType project, and may only be used,       */
++/*  modified, and distributed under the terms of the FreeType project      */
++/*  license, LICENSE.TXT.  By continuing to use, modify, or distribute     */
++/*  this file you indicate that you have read the license and              */
++/*  understand and accept it fully.                                        */
++/*                                                                         */
++/***************************************************************************/
++
++#include <stdio.h>
++#include <stdlib.h>
++
++#define WIN32_LEAN_AND_MEAN
++#include <windows.h>
++
++#if defined(WIN32) || defined(_MSC_VER)
++wchar_t* to_utf16(const char* str, size_t length)
++{
++  if (length == 0)
++    length = strlen(str);
++  int result = MultiByteToWideChar(CP_UTF8, 0, str, length, NULL, 0);
++  if (result == 0)
++  {
++    return NULL;
++  }
++
++  wchar_t* dirPath = malloc(result * 2);
++  result = MultiByteToWideChar(CP_UTF8, 0, str, length, dirPath, result);
++
++  if (result == 0)
++  {
++    free(dirPath);
++    return NULL;
++  }
++
++  return dirPath;
++}
++
++char* to_utf8(const wchar_t* str, size_t length)
++{
++  if (length == 0)
++    length = wcslen(str);
++
++  int result = WideCharToMultiByte(CP_UTF8, 0, str, length, NULL, 0, NULL, NULL);
++  if (result == 0)
++    return NULL;
++
++  char *newStr = malloc(result);
++  result = WideCharToMultiByte(CP_UTF8, 0, str, length, newStr, result, NULL, NULL);
++  if (result == 0)
++  {
++    free(newStr);
++    return NULL;
++  }
++
++  return newStr;
++}
++#endif
++
++FILE* utf8_fopen(
++  char const* _FileName,
++  char const* _Mode
++)
++{
++  FILE* f = NULL;
++  errno_t result = 0;
++  wchar_t* filename = to_utf16(_FileName, 0);
++  wchar_t* mode = to_utf16(_Mode, 0);
++
++  if (filename && mode)
++    result = _wfopen_s(&f, filename, mode);
++
++  free(filename);
++  free(mode);
++  if (result == 0)
++    return f;
++
++  return NULL;
++}
