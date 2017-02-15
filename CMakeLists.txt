@@ -187,3 +187,19 @@ ExternalProject_Add(tinyxml
 	CMAKE_ARGS
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+
+add_custom_target(DependenciesRequired
+	DEPENDS
+		cpluff
+		crossguid
+		easyhook
+		freetype
+		libcdio
+		libfribidi
+		libyajl
+		lzo2
+		pcre
+		sqlite
+		taglib
+		tinyxml
+)
