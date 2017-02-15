@@ -30,3 +30,20 @@ message(STATUS "          KODI_PATH: ${KODI_PATH}")
 message(STATUS "     INSTALL_PREFIX: ${INSTALL_PREFIX}")
 
 include(ExternalProject)
+
+
+# dependencies required by others
+
+ExternalProject_Add(expat
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://sourceforge.net/projects/expat/files/expat/2.2.0/expat-2.2.0.tar.bz2
+	URL_HASH SHA256=d9e50ff2d19b3538bd2127902a89987474e1a4db8e43a66a4d1a712ab9a504ff
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-BUILD_tests:BOOL=OFF
+		-DBUILD_doc:BOOL=OFF
+		-DBUILD_examples:BOOL=OFF
+		-DBUILD_tools:BOOL=OFF
+		-DBUILD_shared:BOOL=OFF
+)
