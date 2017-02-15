@@ -1,0 +1,55 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -64,10 +64,16 @@
+ 
+ 
+ ADD_SUBDIRECTORY(src)
++IF(BUILD_TEST)
+ ADD_SUBDIRECTORY(test)
++ENDIF(BUILD_TEST)
++IF(BUILD_BIN)
+ ADD_SUBDIRECTORY(reformatter)
+ ADD_SUBDIRECTORY(verify)
++ENDIF(BUILD_BIN)
++IF(BUILD_EXAMPLE)
+ ADD_SUBDIRECTORY(example)
++ENDIF(BUILD_EXAMPLE)
+ ADD_SUBDIRECTORY(perf)
+ 
+ INCLUDE(YAJLDoc.cmake)
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -35,8 +35,9 @@
+ # set the output path for libraries
+ SET(LIBRARY_OUTPUT_PATH ${libDir})
+ 
+-ADD_LIBRARY(yajl_s STATIC ${SRCS} ${HDRS} ${PUB_HDRS})
++ADD_LIBRARY(yajl STATIC ${SRCS} ${HDRS} ${PUB_HDRS})
+ 
++if(BUILD_SHARED)
+ ADD_LIBRARY(yajl SHARED ${SRCS} ${HDRS} ${PUB_HDRS})
+ 
+ #### setup shared library version number
+@@ -51,6 +52,7 @@
+   SET_TARGET_PROPERTIES(yajl PROPERTIES
+                         INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+ ENDIF(APPLE)
++endif(BUILD_SHARED)
+ 
+ #### build up an sdk as a post build step
+ 
+@@ -77,11 +79,13 @@
+ 
+ # at build time you may specify the cmake variable LIB_SUFFIX to handle
+ # 64-bit systems which use 'lib64'
++if(BUILD_SHARED)
+ INSTALL(TARGETS yajl
+         RUNTIME DESTINATION lib${LIB_SUFFIX}
+         LIBRARY DESTINATION lib${LIB_SUFFIX}
+         ARCHIVE DESTINATION lib${LIB_SUFFIX})
++endif(BUILD_SHARED)
+-INSTALL(TARGETS yajl_s ARCHIVE DESTINATION lib${LIB_SUFFIX})
++INSTALL(TARGETS yajl ARCHIVE DESTINATION lib${LIB_SUFFIX})
+ INSTALL(FILES ${PUB_HDRS} DESTINATION include/yajl)
+ INSTALL(FILES ${incDir}/yajl_version.h DESTINATION include/yajl)
+ INSTALL(FILES ${shareDir}/yajl.pc DESTINATION share/pkgconfig)

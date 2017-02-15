@@ -119,3 +119,16 @@ ExternalProject_Add(libfribidi
 	CMAKE_ARGS
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+
+ExternalProject_Add(libyajl
+	DOWNLOAD_NAME yajl-2.1.0.tar.gz
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://github.com/lloyd/yajl/archive/2.1.0.tar.gz
+	URL_HASH SHA256=3fb73364a5a30efe615046d07e6db9d09fd2b41c763c5f7d3bfb121cd5c5ac5a
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DBUILD_BIN:BOOL=OFF
+		-DBUILD_EXAMPLE:BOOL=OFF
+		-DBUILD_TEST:BOOL=OFF
+)
