@@ -110,3 +110,12 @@ ExternalProject_Add(libcdio
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/libiconv/${KODI_PATH}
 )
+
+ExternalProject_Add(libfribidi
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL http://fribidi.org/download/fribidi-0.19.7.tar.bz2
+	URL_HASH SHA256=08222a6212bbc2276a2d55c3bf370109ae4a35b689acbc66571ad2a670595a8e
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
