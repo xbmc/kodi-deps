@@ -99,3 +99,14 @@ ExternalProject_Add(freetype
 	CMAKE_ARGS
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+
+ExternalProject_Add(libcdio
+	DEPENDS libiconv
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://ftp.gnu.org/gnu/libcdio/libcdio-0.94.tar.gz
+	URL_HASH SHA256=96e2c903f866ae96f9f5b9048fa32db0921464a2286f5b586c0f02699710025a
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/libiconv/${KODI_PATH}
+)
