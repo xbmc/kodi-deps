@@ -1,0 +1,51 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -191,7 +191,7 @@
+ ENDIF(MINGW)
+ 
+ IF(MSVC)
+-  OPTION(PCRE_STATIC_RUNTIME OFF CACHE BOOL
++  OPTION(PCRE_STATIC_RUNTIME
+ 	"ON=Compile against the static runtime (/MT)."
+ 	OFF)
+   OPTION(INSTALL_MSVC_PDB
+@@ -614,6 +614,7 @@
+ # against release libs and vice versa
+ IF(WIN32)
+   SET(CMAKE_DEBUG_POSTFIX "d")
++  add_compile_options("$<$<CONFIG:Debug>:-D_ITERATOR_DEBUG_LEVEL=0>")
+ ENDIF(WIN32)
+ 
+ SET(targets)
+@@ -909,18 +910,25 @@
+         SET(man3 ${man3_new})
+ ENDIF(PCRE_BUILD_PCRECPP)
+ 
++IF(INSTALL_DOC)
+ INSTALL(FILES ${man1} DESTINATION man/man1)
+ INSTALL(FILES ${man3} DESTINATION man/man3)
+ INSTALL(FILES ${html} DESTINATION share/doc/pcre/html)
++ENDIF(INSTALL_DOC)
+ 
+ IF(MSVC AND INSTALL_MSVC_PDB)
++    set_target_properties(pcre PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME_DEBUG pcred)
++    set_target_properties(pcrecpp PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME_DEBUG pcrecppd)
++    set_target_properties(pcreposix PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME_DEBUG pcreposixd)
+-    INSTALL(FILES ${PROJECT_BINARY_DIR}/pcre.pdb
+-                  ${PROJECT_BINARY_DIR}/pcreposix.pdb
+-            DESTINATION bin
++    INSTALL(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/pcre.pdb
++                  ${PROJECT_BINARY_DIR}/RelWithDebInfo/pcrecpp.pdb
++                  ${PROJECT_BINARY_DIR}/RelWithDebInfo/pcreposix.pdb
++            DESTINATION lib
+             CONFIGURATIONS RelWithDebInfo)
+-    INSTALL(FILES ${PROJECT_BINARY_DIR}/pcred.pdb
+-                  ${PROJECT_BINARY_DIR}/pcreposixd.pdb
+-            DESTINATION bin
++    INSTALL(FILES ${PROJECT_BINARY_DIR}/Debug/pcred.pdb
++                  ${PROJECT_BINARY_DIR}/Debug/pcrecppd.pdb
++                  ${PROJECT_BINARY_DIR}/Debug/pcreposixd.pdb
++            DESTINATION lib
+             CONFIGURATIONS Debug)
+ ENDIF(MSVC AND INSTALL_MSVC_PDB)
+ 
