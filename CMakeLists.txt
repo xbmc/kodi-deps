@@ -61,3 +61,13 @@ ExternalProject_Add(cpluff
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/expat/${KODI_PATH}
 )
+
+ExternalProject_Add(crossguid
+	DOWNLOAD_NAME crossguid-fef89a4.tar.gz
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://github.com/graeme-hill/crossguid/archive/fef89a4.tar.gz
+	URL_HASH SHA256=271f0cc8ca79f4e56398439c5d6e59dcc47b34f27b54ecda2491ef901e5bd65d
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
