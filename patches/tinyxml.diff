@@ -1,0 +1,73 @@
+--- /dev/null
++++ b/CMakeLists.txt
+@@ -0,0 +1,66 @@
++cmake_minimum_required(VERSION 3.2)
++
++project(tinyXML VERSION 2.8.2 LANGUAGES CXX)
++
++if(MSVC)
++    set(CMAKE_DEBUG_POSTFIX "d")
++    add_compile_options("$<$<CONFIG:Debug>:-D_ITERATOR_DEBUG_LEVEL=0>")
++endif()
++
++add_library(tinyXML STATIC
++  tinyxml.h
++  tinyxml.cpp
++  tinyxmlerror.cpp
++  tinyxmlparser.cpp
++)
++
++target_compile_definitions(tinyXML
++  PRIVATE
++  TIXML_USE_STL
++  _CRT_SECURE_NO_DEPRECATE
++  _CRT_NONSTDC_NO_DEPRECATE
++  INTERFACE
++  TIXML_USE_STL
++)
++
++if(MSVC)
++    set_target_properties(tinyXML PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME tinyxmlSTL COMPILE_PDB_NAME_DEBUG tinyxmlSTLd)
++    install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/tinyxmlSTL.pdb DESTINATION lib CONFIGURATIONS RelWithDebInfo)
++    install(FILES ${PROJECT_BINARY_DIR}/Debug/tinyxmlSTLd.pdb DESTINATION lib CONFIGURATIONS Debug)
++endif()
++
++include(CMakePackageConfigHelpers)
++write_basic_package_version_file(
++  ${CMAKE_CURRENT_BINARY_DIR}/tinyXML-config-version.cmake
++  VERSION ${PROJECT_VERSION}
++  COMPATIBILITY AnyNewerVersion
++)
++install(TARGETS tinyXML EXPORT tinyXML
++  RUNTIME DESTINATION bin
++  ARCHIVE DESTINATION lib
++  LIBRARY DESTINATION lib)
++install(FILES
++  tinystr.h
++  tinyxml.h
++  DESTINATION include)
++
++install(EXPORT tinyXML
++  FILE
++    tinyXML.cmake
++  NAMESPACE
++    tinyxml::
++  DESTINATION
++    lib/cmake/tinyXML
++)
++install(
++  FILES
++    cmake/tinyXML-config.cmake
++    ${CMAKE_CURRENT_BINARY_DIR}/tinyXML-config-version.cmake
++  DESTINATION
++    lib/cmake/tinyXML
++)
++
++export(TARGETS tinyXML
++    FILE tinyXML-config.cmake
++    NAMESPACE tinyxml::
++)
+--- /dev/null
++++ b/cmake/tinyXML-config.cmake
+@@ -0,0 +1 @@
++include(${CMAKE_CURRENT_LIST_DIR}/tinyXML.cmake)
