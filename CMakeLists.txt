@@ -260,3 +260,9 @@ ExternalProject_Add(curl
 		-DCMAKE_USE_OPENSSL:BOOL=ON
 		-DENABLE_MANUAL:BOOL=OFF
 )
+
+add_custom_target(DependenciesDllRequired
+	DEPENDS
+		curl
+		libass
+)
