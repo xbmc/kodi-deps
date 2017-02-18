@@ -1,0 +1,39 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -310,7 +310,7 @@ set(HAVE_LIBCRYPTO OFF)
+ set(HAVE_LIBSSL OFF)
+ 
+ if(CMAKE_USE_OPENSSL)
+-  find_package(OpenSSL)
++  find_package(OpenSSL REQUIRED)
+   if(OPENSSL_FOUND)
+     list(APPEND CURL_LIBS ${OPENSSL_LIBRARIES})
+     set(USE_OPENSSL ON)
+@@ -459,7 +459,7 @@ set(HAVE_LIBZ OFF)
+ set(HAVE_ZLIB_H OFF)
+ set(HAVE_ZLIB OFF)
+ if(CURL_ZLIB)
+-  find_package(ZLIB QUIET)
++  find_package(ZLIB REQUIRED)
+   if(ZLIB_FOUND)
+     set(HAVE_ZLIB_H ON)
+     set(HAVE_ZLIB ON)
+--- a/lib/CMakeLists.txt
++++ b/lib/CMakeLists.txt
+@@ -99,7 +99,7 @@
+ if(WIN32)
+   if(NOT CURL_STATICLIB)
+     # Add "_imp" as a suffix before the extension to avoid conflicting with the statically linked "libcurl.lib"
+-    set_target_properties(${LIB_NAME} PROPERTIES IMPORT_SUFFIX "_imp.lib")
++    # set_target_properties(${LIB_NAME} PROPERTIES IMPORT_SUFFIX "_imp.lib")
+   endif()
+ endif()
+ 
+@@ -107,3 +107,7 @@
+   ARCHIVE DESTINATION lib
+   LIBRARY DESTINATION lib
+   RUNTIME DESTINATION bin)
++
++if(MSVC)
++  install(FILES "${CMAKE_BINARY_DIR}/lib/RelWithDebInfo/libcurl.pdb" DESTINATION lib CONFIGURATIONS RelWithDebInfo)
++endif()
