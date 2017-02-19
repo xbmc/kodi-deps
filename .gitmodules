@@ -1,144 +1,144 @@
 [submodule "libs/zlib"]
 	path = libs/zlib
-	url = https://github.com/Paxxi/zlib
+	url = https://github.com/xbmc/zlib
 [submodule "libs/tinyxml"]
 	path = libs/tinyxml
-	url = https://github.com/Paxxi/TinyXML
+	url = https://github.com/xbmc/TinyXML
 [submodule "libs/yajl"]
 	path = libs/yajl
-	url = https://github.com/Paxxi/yajl
+	url = https://github.com/xbmc/yajl
 [submodule "libs/libmicrohttpd"]
 	path = libs/libmicrohttpd
-	url = https://github.com/Paxxi/libmicrohttpd
+	url = https://github.com/xbmc/libmicrohttpd
 [submodule "libs/taglib"]
 	path = libs/taglib
-	url = https://github.com/Paxxi/taglib
+	url = https://github.com/xbmc/taglib
 [submodule "libs/openssl"]
 	path = libs/openssl
-	url = https://github.com/Paxxi/openssl
+	url = https://github.com/xbmc/openssl
 [submodule "libs/curl"]
 	path = libs/curl
-	url = https://github.com/Paxxi/curl
+	url = https://github.com/xbmc/curl
 [submodule "libs/fribidi"]
 	path = libs/fribidi
-	url = https://github.com/Paxxi/fribidi
+	url = https://github.com/xbmc/fribidi
 [submodule "libs/libiconv"]
 	path = libs/libiconv
-	url = https://github.com/Paxxi/libiconv
+	url = https://github.com/xbmc/libiconv
 [submodule "libs/libbluray"]
 	path = libs/libbluray
-	url = https://github.com/Paxxi/libbluray
+	url = https://github.com/xbmc/libbluray
 [submodule "libs/freetype2"]
 	path = libs/freetype2
-	url = https://github.com/Paxxi/freetype2
+	url = https://github.com/xbmc/freetype2
 [submodule "libs/libass"]
 	path = libs/libass
-	url = https://github.com/Paxxi/libass
+	url = https://github.com/xbmc/libass
 [submodule "libs/crossguid"]
 	path = libs/crossguid
-	url = https://github.com/Paxxi/crossguid
+	url = https://github.com/xbmc/crossguid
 [submodule "libs/lzo2"]
 	path = libs/lzo2
-	url = https://github.com/Paxxi/lzo2
+	url = https://github.com/xbmc/lzo2
 [submodule "libs/sqlite"]
 	path = libs/sqlite
-	url = https://github.com/Paxxi/sqlite
+	url = https://github.com/xbmc/sqlite
 [submodule "libs/pcre"]
 	path = libs/pcre
-	url = https://github.com/Paxxi/pcre
+	url = https://github.com/xbmc/pcre
 [submodule "libs/libxml2"]
 	path = libs/libxml2
-	url = https://github.com/Paxxi/libxml2
+	url = https://github.com/xbmc/libxml2
 [submodule "libs/libxslt"]
 	path = libs/libxslt
-	url = https://github.com/Paxxi/libxslt
+	url = https://github.com/xbmc/libxslt
 [submodule "libs/libssh"]
 	path = libs/libssh
-	url = https://github.com/Paxxi/libssh
+	url = https://github.com/xbmc/libssh
 [submodule "libs/python"]
 	path = libs/python
-	url = https://github.com/Paxxi/python
+	url = https://github.com/xbmc/python
 [submodule "libs/pillow"]
 	path = libs/pillow
-	url = https://github.com/Paxxi/Pillow
+	url = https://github.com/xbmc/Pillow
 [submodule "libs/mDNSReponder"]
 	path = libs/mDNSReponder
-	url = https://github.com/Paxxi/mDNSResponder
+	url = https://github.com/xbmc/mDNSResponder
 [submodule "libs/mDNSResponder"]
 	path = libs/mDNSResponder
-	url = https://github.com/Paxxi/mDNSResponder
+	url = https://github.com/xbmc/mDNSResponder
 [submodule "libs/libcec"]
 	path = libs/libcec
-	url = https://github.com/Paxxi/libcec
+	url = https://github.com/xbmc/libcec
 [submodule "libs/p8-platform"]
 	path = libs/p8-platform
-	url = https://github.com/Paxxi/platform
+	url = https://github.com/xbmc/platform
 [submodule "lib/libnfs"]
 	path = lib/libnfs
-	url = https://github.com/Paxxi/libnfs
+	url = https://github.com/xbmc/libnfs
 [submodule "libs/libnfs"]
 	path = libs/libnfs
-	url = https://github.com/Paxxi/libnfs
+	url = https://github.com/xbmc/libnfs
 [submodule "libs/libplist"]
 	path = libs/libplist
-	url = https://github.com/Paxxi/libplist
+	url = https://github.com/xbmc/libplist
 [submodule "libs/shairplay"]
 	path = libs/shairplay
-	url = https://github.com/Paxxi/shairplay
+	url = https://github.com/xbmc/shairplay
 [submodule "libs/expat"]
 	path = libs/expat
-	url = https://github.com/Paxxi/expat
+	url = https://github.com/xbmc/expat
 [submodule "libs/libcdio"]
 	path = libs/libcdio
-	url = https://github.com/Paxxi/libcdio
+	url = https://github.com/xbmc/libcdio
 [submodule "libs/libdvdnav"]
 	path = libs/libdvdnav
-	url = https://github.com/Paxxi/libdvdnav
+	url = https://github.com/xbmc/libdvdnav
 [submodule "libs/libdvdcss"]
 	path = libs/libdvdcss
-	url = https://github.com/Paxxi/libdvdcss
+	url = https://github.com/xbmc/libdvdcss
 [submodule "libs/libdvdread"]
 	path = libs/libdvdread
-	url = https://github.com/Paxxi/libdvdread
+	url = https://github.com/xbmc/libdvdread
 [submodule "libs/EasyHook"]
 	path = libs/EasyHook
-	url = https://github.com/Paxxi/EasyHook
+	url = https://github.com/xbmc/EasyHook
 [submodule "libs/mysql-connector-c"]
 	path = libs/mysql-connector-c
-	url = https://github.com/Paxxi/mysql-connector-c
+	url = https://github.com/xbmc/mysql-connector-c
 [submodule "libs/openjpeg"]
 	path = libs/openjpeg
-	url = https://github.com/Paxxi/openjpeg
+	url = https://github.com/xbmc/openjpeg
 [submodule "libs/Little-CMS"]
 	path = libs/Little-CMS
-	url = https://github.com/Paxxi/Little-CMS
+	url = https://github.com/xbmc/Little-CMS
 [submodule "libs/libtiff"]
 	path = libs/libtiff
-	url = https://github.com/Paxxi/libtiff
+	url = https://github.com/xbmc/libtiff
 [submodule "libs/xz"]
 	path = libs/xz
-	url = https://github.com/Paxxi/xz
+	url = https://github.com/xbmc/xz
 [submodule "libs/libwebp"]
 	path = libs/libwebp
-	url = https://github.com/Paxxi/libwebp
+	url = https://github.com/xbmc/libwebp
 [submodule "libs/libpng"]
 	path = libs/libpng
-	url = https://github.com/Paxxi/libpng
+	url = https://github.com/xbmc/libpng
 [submodule "libs/giflib"]
 	path = libs/giflib
-	url = https://github.com/Paxxi/giflib
+	url = https://github.com/xbmc/giflib
 [submodule "libs/odb"]
 	path = libs/odb
-	url = https://github.com/Paxxi/odb
+	url = https://github.com/xbmc/odb
 [submodule "libs/libodb"]
 	path = libs/libodb
-	url = https://github.com/Paxxi/libodb
+	url = https://github.com/xbmc/libodb
 [submodule "libs/libodb-mysql"]
 	path = libs/libodb-mysql
-	url = https://github.com/Paxxi/libodb-mysql
+	url = https://github.com/xbmc/libodb-mysql
 [submodule "libs/libodb-sqlite"]
 	path = libs/libodb-sqlite
-	url = https://github.com/Paxxi/libodb-sqlite
+	url = https://github.com/xbmc/libodb-sqlite
 [submodule "libs/LibRaw"]
 	path = libs/LibRaw
-	url = https://github.com/Paxxi/LibRaw
+	url = https://github.com/xbmc/LibRaw
