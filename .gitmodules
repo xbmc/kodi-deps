@@ -139,3 +139,6 @@
 [submodule "libs/libodb-sqlite"]
 	path = libs/libodb-sqlite
 	url = https://github.com/Paxxi/libodb-sqlite
+[submodule "libs/LibRaw"]
+	path = libs/LibRaw
+	url = https://github.com/Paxxi/LibRaw
