@@ -94,22 +94,22 @@
 -    FILE freetype-config.cmake
      )
 +  install(FILES
-+    builds/cmake/freetype-config.cmake
++    cmake/freetype-config.cmake
 +    ${CMAKE_CURRENT_BINARY_DIR}/freetype-config-version.cmake
 +    DESTINATION lib/cmake/freetype)
  endif ()
  
  
 --- /dev/null
-+++ b/builds/cmake/freetype-config.cmake
++++ b/cmake/freetype-config.cmake
 @@ -0,0 +1 @@
 +include(${CMAKE_CURRENT_LIST_DIR}/freetype.cmake)
 --- a/include/freetype/config/ftstdlib.h
 +++ b/include/freetype/config/ftstdlib.h
-@@ -101,9 +101,18 @@
+@@ -103,7 +103,16 @@
  
- #include <stdio.h>
- 
+ #define FT_FILE     FILE
+ #define ft_fclose   fclose
 +#ifdef _MSC_VER
 +FILE* utf8_fopen(
 +  char const* _FileName,
@@ -118,17 +118,11 @@
 +
 +#define ft_fopen    utf8_fopen
 +#else
-+#define ft_fopen    fopen
+ #define ft_fopen    fopen
 +#endif
- #define FT_FILE     FILE
- #define ft_fclose   fclose
--#define ft_fopen    fopen
  #define ft_fread    fread
  #define ft_fseek    fseek
  #define ft_ftell    ftell
-diff --git a/src/base/win32_compat.c b/src/base/win32_compat.c
-new file mode 100644
-index 0000000..1e29e9b
 --- /dev/null
 +++ b/src/base/win32_compat.c
 @@ -0,0 +1,87 @@
@@ -156,7 +150,7 @@ index 0000000..1e29e9b
 +#include <windows.h>
 +
 +#if defined(WIN32) || defined(_MSC_VER)
-+wchar_t* to_utf16(const char* str, size_t length)
++wchar_t* ft_to_utf16(const char* str, size_t length)
 +{
 +  if (length == 0)
 +    length = strlen(str);
@@ -178,7 +172,7 @@ index 0000000..1e29e9b
 +  return dirPath;
 +}
 +
-+char* to_utf8(const wchar_t* str, size_t length)
++char* ft_to_utf8(const wchar_t* str, size_t length)
 +{
 +  if (length == 0)
 +    length = wcslen(str);
@@ -206,8 +200,8 @@ index 0000000..1e29e9b
 +{
 +  FILE* f = NULL;
 +  errno_t result = 0;
-+  wchar_t* filename = to_utf16(_FileName, 0);
-+  wchar_t* mode = to_utf16(_Mode, 0);
++  wchar_t* filename = ft_to_utf16(_FileName, 0);
++  wchar_t* mode = ft_to_utf16(_Mode, 0);
 +
 +  if (filename && mode)
 +    result = _wfopen_s(&f, filename, mode);
