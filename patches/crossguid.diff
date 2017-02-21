@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,64 @@
 +cmake_minimum_required(VERSION 3.2)
 +
 +project(crossguid VERSION 0.1 LANGUAGES CXX)
@@ -9,7 +9,6 @@
 +
 +if(MSVC)
 +  set(CMAKE_DEBUG_POSTFIX "d")
-+  add_compile_options("$<$<CONFIG:Debug>:-D_ITERATOR_DEBUG_LEVEL=0>")
 +endif()
 +
 +

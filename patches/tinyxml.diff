@@ -1,13 +1,12 @@
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,66 @@
+@@ -0,0 +1,65 @@
 +cmake_minimum_required(VERSION 3.2)
 +
 +project(tinyXML VERSION 2.8.2 LANGUAGES CXX)
 +
 +if(MSVC)
 +    set(CMAKE_DEBUG_POSTFIX "d")
-+    add_compile_options("$<$<CONFIG:Debug>:-D_ITERATOR_DEBUG_LEVEL=0>")
 +endif()
 +
 +add_library(tinyXML STATIC

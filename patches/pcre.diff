@@ -9,15 +9,7 @@
  	"ON=Compile against the static runtime (/MT)."
  	OFF)
    OPTION(INSTALL_MSVC_PDB
-@@ -614,6 +614,7 @@
- # against release libs and vice versa
- IF(WIN32)
-   SET(CMAKE_DEBUG_POSTFIX "d")
-+  add_compile_options("$<$<CONFIG:Debug>:-D_ITERATOR_DEBUG_LEVEL=0>")
- ENDIF(WIN32)
- 
- SET(targets)
-@@ -909,18 +910,25 @@
+@@ -909,18 +909,25 @@
          SET(man3 ${man3_new})
  ENDIF(PCRE_BUILD_PCRECPP)
  
