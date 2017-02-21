@@ -187,11 +187,12 @@ ExternalProject_Add(pcre
 
 ExternalProject_Add(sqlite
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL http://sqlite.com/2017/sqlite-amalgamation-3160200.zip
-	URL_HASH SHA256=3ea98729366ec1d38d13a860aa10cfe29a355bfe089c32080987e2771514c42b
-	PATCH_COMMAND mkdir cmake COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	URL http://sqlite.com/2017/sqlite-amalgamation-3170000.zip
+	URL_HASH SHA256=ad3d5152f7dd09117654736b416e656c46de83b251e71a14b9a2de3aab29cfb2
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DBUILD_SHARED_LIBS:BOOL=ON
 )
 
 ExternalProject_Add(taglib
