@@ -1,71 +1,46 @@
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,113 @@
+@@ -0,0 +1,92 @@
 +cmake_minimum_required(VERSION 3.0)
 +
-+project(cpluff VERSION 0.1.4 LANGUAGES C)
-+set(CP_VERSION_MAJOR 0)
-+set(CP_VERSION_MINOR 1)
++project(cpluff VERSION 0.1.3 LANGUAGES C)
 +
-+find_package(expat 2.2.0)
-+
-+set(KAZDIR ${CMAKE_CURRENT_SOURCE_DIR}/kazlib)
-+add_library(kazlib STATIC
-+  ${KAZDIR}/hash.h
-+  ${KAZDIR}/hash.c
-+  ${KAZDIR}/list.h
-+  ${KAZDIR}/list.c
-+)
-+
-+set(CPLUFFDIR ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff)
-+configure_file(
-+  ${CPLUFFDIR}/cpluffdef.h.in
-+  ${CMAKE_CURRENT_BINARY_DIR}/cpluffdef.h
-+  @ONLY
-+)
-+
-+add_library(cpluff SHARED
-+  ${CPLUFFDIR}/context.c
-+  ${CPLUFFDIR}/cpluff.h
-+  ${CPLUFFDIR}/cpluff.c
-+  ${CPLUFFDIR}/defines.h
-+  ${CPLUFFDIR}/internal.h
-+  ${CPLUFFDIR}/logging.c
-+  ${CPLUFFDIR}/pcontrol.c
-+  ${CPLUFFDIR}/pinfo.c
-+  ${CPLUFFDIR}/ploader.c
-+  ${CPLUFFDIR}/pscan.c
-+  ${CPLUFFDIR}/psymbol.c
-+  ${CPLUFFDIR}/serial.c
-+  ${CPLUFFDIR}/thread.h
-+  ${CPLUFFDIR}/util.c
-+  ${CPLUFFDIR}/util.h
-+  ${CMAKE_CURRENT_BINARY_DIR}/cpluffdef.h
-+)
-+
-+if(WIN32)
-+  target_sources(cpluff
-+    PRIVATE  
-+    ${CPLUFFDIR}/win32/dirent.c
-+    ${CPLUFFDIR}/win32/dirent.h
-+    ${CPLUFFDIR}/thread_windows.c
-+  )
-+  target_compile_definitions(cpluff
-+    PRIVATE
-+    XML_STATIC
-+    _USRDLL
-+    CP_C_API=CP_EXPORT
-+    _CRT_SECURE_NO_WARNINGS
-+    _CRT_NONSTDC_NO_DEPRECATE
-+  )
-+else()
-+  target_sources(cpluff
-+    PRIVATE
-+    ${CPLUFFDIR}/thread_posix.c
-+  )
++if(MSVC)
++  set(CMAKE_DEBUG_POSTFIX "d")
 +endif()
 +
-+target_link_libraries(cpluff PRIVATE kazlib ${EXPAT_LIBRARIES})
++find_package(expat 2.2.0 REQUIRED)
++
++add_library(cpluff SHARED
++  ${CMAKE_CURRENT_SOURCE_DIR}/kazlib/hash.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/kazlib/hash.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/kazlib/list.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/kazlib/list.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/context.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/cpluff.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/cpluff.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/defines.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/internal.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/logging.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/pcontrol.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/pinfo.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/ploader.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/pscan.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/psymbol.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/serial.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/thread.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/thread_windows.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/util.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/util.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/win32/cpluffdef.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/win32/dirent.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/win32/dirent.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/win32/win32_utils.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/libcpluff/win32/win32_utils.c
++)
++
++target_link_libraries(cpluff PRIVATE ${EXPAT_LIBRARIES})
++
 +target_include_directories(cpluff
 +  PRIVATE
 +  $<BUILD_INTERFACE:kazlib;libcpluff;libcpluff/win32;${EXPAT_INCLUDE_DIR}>
@@ -73,53 +48,57 @@
 +  $<INSTALL_INTERFACE:include>
 +)
 +
++target_compile_definitions(cpluff
++  PRIVATE
++  XML_STATIC
++  _USRDLL
++  CP_C_API=CP_EXPORT
++  _CRT_SECURE_NO_WARNINGS
++  _CRT_NONSTDC_NO_DEPRECATE
++)
 +
 +include(CMakePackageConfigHelpers)
 +write_basic_package_version_file(
-+  ${CMAKE_CURRENT_BINARY_DIR}/cpluff-config-version.cmake
++  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
 +  VERSION ${PROJECT_VERSION}
 +  COMPATIBILITY AnyNewerVersion
 +)
 +
-+# install(TARGETS cpluff kazlib EXPORT cpluff 
-+install(TARGETS cpluff EXPORT cpluff 
++install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}
 +  RUNTIME DESTINATION bin
-+  ARCHIVE DESTINATION lib
 +  LIBRARY DESTINATION lib
++  ARCHIVE DESTINATION lib
 +)
 +
-+install(FILES
-+  ${CMAKE_CURRENT_BINARY_DIR}/cpluffdef.h
-+  ${CPLUFFDIR}/cpluff.h
-+  DESTINATION include
-+)
++install(FILES libcpluff/cpluff.h DESTINATION include)
++install(FILES libcpluff/win32/cpluffdef.h DESTINATION include/win32)
 +
 +if(MSVC)
 +  set_target_properties(cpluff PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME cpluff)
 +  install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/cpluff.pdb DESTINATION lib CONFIGURATIONS RelWithDebInfo)
 +endif()
 +
-+install(EXPORT cpluff
++install(EXPORT ${PROJECT_NAME}
 +  FILE
-+    cpluff.cmake
++    ${PROJECT_NAME}.cmake
 +  NAMESPACE
-+    cpluff::
++    ${PROJECT_NAME}::
 +  DESTINATION
-+    lib/cmake/cpluff
++    lib/cmake/${PROJECT_NAME}
 +)
 +install(
 +  FILES
-+    cmake/cpluff-config.cmake
-+    ${CMAKE_CURRENT_BINARY_DIR}/cpluff-config-version.cmake
++    cmake/${PROJECT_NAME}-config.cmake
++    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
 +  DESTINATION
-+    lib/cmake/cpluff
++    lib/cmake/${PROJECT_NAME}
 +)
 --- /dev/null
 +++ b/cmake/cpluff-config.cmake
 @@ -0,0 +1 @@
 +include(${CMAKE_CURRENT_LIST_DIR}/cpluff.cmake)
---- b/kazlib/hash.h
-+++ a/kazlib/hash.h
+--- a/kazlib/hash.h
++++ b/kazlib/hash.h
 @@ -27,7 +27,11 @@
  #ifndef HASH_H
  #define HASH_H
@@ -132,8 +111,8 @@
  
  #include <limits.h>
  #ifdef KAZLIB_SIDEEFFECT_DEBUG
---- b/kazlib/list.h
-+++ a/kazlib/list.h
+--- a/kazlib/list.h
++++ b/kazlib/list.h
 @@ -27,7 +27,11 @@
  #ifndef LIST_H
  #define LIST_H
@@ -146,8 +125,8 @@
  
  #include <limits.h>
  
---- b/libcpluff/cpluff.h
-+++ a/libcpluff/cpluff.h
+--- a/libcpluff/cpluff.h
++++ b/libcpluff/cpluff.h
 @@ -38,7 +38,11 @@
   * Preprocessor defines.
   */
@@ -187,10 +166,8 @@
   * Installs the plug-in described by the specified plug-in information
   * structure to the specified plug-in context. The plug-in information
   * must have been loaded using ::cp_load_plugin_descriptor with the same
-diff --git b/libcpluff/internal.h a/libcpluff/internal.h
-index 91989e8451..161ba6de07 100644
---- b/libcpluff/internal.h
-+++ a/libcpluff/internal.h
+--- a/libcpluff/internal.h
++++ b/libcpluff/internal.h
 @@ -83,7 +83,13 @@ extern "C" {
   * Macros
   * ----------------------------------------------------------------------*/
@@ -206,8 +183,8 @@ index 91989e8451..161ba6de07 100644
  #define DLHANDLE void *
  #define DLOPEN(name) dlopen((name), RTLD_LAZY | RTLD_GLOBAL)
  #define DLSYM(handle, symbol) dlsym((handle), (symbol))
---- b/libcpluff/pcontrol.c
-+++ a/libcpluff/pcontrol.c
+--- a/libcpluff/pcontrol.c
++++ b/libcpluff/pcontrol.c
 @@ -40,6 +40,9 @@
  #include "defines.h"
  #include "util.h"
@@ -263,8 +240,8 @@ index 91989e8451..161ba6de07 100644
  	
  	assert(plugin != NULL);
  	free(plugin->name);
---- b/libcpluff/pinfo.c
-+++ a/libcpluff/pinfo.c
+--- a/libcpluff/pinfo.c
++++ b/libcpluff/pinfo.c
 @@ -194,7 +194,7 @@ CP_C_API cp_plugin_info_t * cp_get_plugin_info(cp_context_t *context, const char
  		// Lookup plug-in information
  		if (id != NULL) {
@@ -292,11 +269,17 @@ index 91989e8451..161ba6de07 100644
  			
  			for (i = 0; i < e->num_atts; i++) {
  				if (!strcmp(attr, e->atts[2*i])) {
-diff --git b/libcpluff/ploader.c a/libcpluff/ploader.c
-index 648c2bb326..6c9a741f1d 100644
---- b/libcpluff/ploader.c
-+++ a/libcpluff/ploader.c
-@@ -57,7 +57,7 @@
+--- a/libcpluff/ploader.c
++++ b/libcpluff/ploader.c
+@@ -37,6 +37,7 @@
+ #include "defines.h"
+ #include "util.h"
+ #include "internal.h"
++#include "win32_utils.h"
+ 
+ // Use XMLCALL if available
+ #ifdef XMLCALL
+@@ -57,7 +58,7 @@
  #define CP_CFG_ELEMENT_VALUE_INITSIZE 64
  
  /// Plugin descriptor name 
@@ -305,7 +288,7 @@ index 648c2bb326..6c9a741f1d 100644
  
  
  /* ------------------------------------------------------------------------
-@@ -520,7 +520,7 @@ static void CP_XMLCALL start_element_handler(
+@@ -520,7 +521,7 @@ static void CP_XMLCALL start_element_handler(
  	static const XML_Char * const opt_bwcompatibility_atts[] = { "abi", "api", NULL };
  	static const XML_Char * const req_cpluff_atts[] = { "version", NULL };
  	static const XML_Char * const opt_cpluff_atts[] = { NULL };
@@ -314,7 +297,7 @@ index 648c2bb326..6c9a741f1d 100644
  	static const XML_Char * const opt_import_atts[] = { "version", "optional", NULL };
  	static const XML_Char * const req_runtime_atts[] = { "library", NULL };
  	static const XML_Char * const opt_runtime_atts[] = { "funcs", NULL };
-@@ -535,7 +535,7 @@ static void CP_XMLCALL start_element_handler(
+@@ -535,7 +536,7 @@ static void CP_XMLCALL start_element_handler(
  	switch (plcontext->state) {
  
  		case PARSER_BEGIN:
@@ -323,7 +306,7 @@ index 648c2bb326..6c9a741f1d 100644
  				plcontext->state = PARSER_PLUGIN;
  				if (!check_attributes(plcontext, name, atts,
  						req_plugin_atts, opt_plugin_atts)) {
-@@ -745,7 +745,7 @@ static void CP_XMLCALL start_element_handler(
+@@ -745,7 +746,7 @@ static void CP_XMLCALL start_element_handler(
  					import->plugin_id = NULL;
  					import->version = NULL;
  					for (i = 0; atts[i] != NULL; i += 2) {
@@ -332,7 +315,7 @@ index 648c2bb326..6c9a741f1d 100644
  							import->plugin_id
  								= parser_strdup(plcontext, atts[i+1]);
  						} else if (!strcmp(atts[i], "version")) {
-@@ -828,7 +828,7 @@ static void CP_XMLCALL end_element_handler(
+@@ -828,7 +829,7 @@ static void CP_XMLCALL end_element_handler(
  	switch (plcontext->state) {
  
  		case PARSER_PLUGIN:
@@ -341,7 +324,30 @@ index 648c2bb326..6c9a741f1d 100644
  				
  				// Readjust memory allocated for extension points, if necessary 
  				if (plcontext->ext_points_size != plcontext->plugin->num_ext_points) {
-@@ -1130,7 +1130,7 @@ CP_C_API cp_plugin_info_t * cp_load_plugin_descriptor(cp_context_t *context, con
+@@ -1009,11 +1010,22 @@ CP_C_API cp_plugin_info_t * cp_load_plugin_descriptor(cp_context_t *context, con
+ 		file[path_len] = CP_FNAMESEP_CHAR;
+ 		strcpy(file + path_len + 1, CP_PLUGIN_DESCRIPTOR);
+ 
++#ifdef _WIN32
++    wchar_t* fileW = to_utf16(file, 0);
++    fh = _wfopen(fileW, L"rb");
++    free(fileW);
++    if (!fh)
++    {
++      status = CP_ERR_IO;
++      break;
++    }
++#else
+ 		// Open the file 
+ 		if ((fh = fopen(file, "rb")) == NULL) {
+ 			status = CP_ERR_IO;
+ 			break;
+ 		}
++#endif
+ 
+ 		// Initialize the XML parsing 
+ 		parser = XML_ParserCreate(NULL);
+@@ -1130,7 +1142,7 @@ CP_C_API cp_plugin_info_t * cp_load_plugin_descriptor(cp_context_t *context, con
  					N_("Plug-in descriptor in %s is invalid."), path);
  				break;
  			case CP_ERR_IO:
@@ -350,7 +356,7 @@ index 648c2bb326..6c9a741f1d 100644
  					N_("An I/O error occurred while loading a plug-in descriptor from %s."), path);
  				break;
  			case CP_ERR_RESOURCE:
-@@ -1184,3 +1184,182 @@ CP_C_API cp_plugin_info_t * cp_load_plugin_descriptor(cp_context_t *context, con
+@@ -1184,3 +1196,182 @@ CP_C_API cp_plugin_info_t * cp_load_plugin_descriptor(cp_context_t *context, con
  
  	return plugin;
  }
@@ -533,8 +539,8 @@ index 648c2bb326..6c9a741f1d 100644
 +
 +	return plugin;
 +}
---- b/libcpluff/pscan.c
-+++ a/libcpluff/pscan.c
+--- a/libcpluff/pscan.c
++++ b/libcpluff/pscan.c
 @@ -269,13 +269,13 @@ CP_C_API cp_status_t cp_scan_plugins(cp_context_t *context, int flags) {
  	// Report error
  	switch (status) {
@@ -551,8 +557,8 @@ index 648c2bb326..6c9a741f1d 100644
  			break;
  	}
  	cpi_unlock_context(context);
---- b/libcpluff/psymbol.c
-+++ a/libcpluff/psymbol.c
+--- a/libcpluff/psymbol.c
++++ b/libcpluff/psymbol.c
 @@ -33,6 +33,9 @@
  #include "defines.h"
  #include "internal.h"
@@ -563,8 +569,8 @@ index 648c2bb326..6c9a741f1d 100644
  
  
  /* ------------------------------------------------------------------------
---- b/libcpluff/util.c
-+++ a/libcpluff/util.c
+--- a/libcpluff/util.c
++++ b/libcpluff/util.c
 @@ -153,6 +153,7 @@ static int vercmp_num_value(const char *v, const char *vn) {
  CP_HIDDEN int cpi_vercmp(const char *v1, const char *v2) {
  	const char *v1n;
@@ -583,7 +589,7 @@ index 648c2bb326..6c9a741f1d 100644
  				return diff;
  			}
 --- /dev/null
-+++ a/libcpluff/win32/cpluffdef.h
++++ b/libcpluff/win32/cpluffdef.h
 @@ -0,0 +1,211 @@
 +/*-------------------------------------------------------------------------
 + * C-Pluff, a plug-in framework for C
@@ -798,7 +804,7 @@ index 648c2bb326..6c9a741f1d 100644
 +#endif /*CPLUFFDEF_H_*/
 --- /dev/null
 +++ b/libcpluff/win32/dirent.c
-@@ -0,0 +1,233 @@
+@@ -0,0 +1,231 @@
 +/*
 +
 +    Implementation of POSIX directory browsing functions and types for Win32.
@@ -810,6 +816,7 @@ index 648c2bb326..6c9a741f1d 100644
 +*/
 +
 +#include "dirent.h"
++#include "win32_utils.h"
 +#include <errno.h>
 +#include <io.h> /* _findfirst and _findnext set errno iff they return -1 */
 +#include <stdlib.h>
@@ -822,10 +829,10 @@ index 648c2bb326..6c9a741f1d 100644
 +
 +struct DIR
 +{
-+    long                handle; /* -1 for failed rewind */
-+    struct _finddata_t  info;
++	HANDLE handle; /* -1 for failed rewind */
 +    struct dirent       result; /* d_name null iff first time */
-+    char                *name;  /* null-terminated char string */
++	wchar_t* name;
++	WIN32_FIND_DATAW info;
 +};
 +
 +DIR *opendir(const char *name)
@@ -834,16 +841,29 @@ index 648c2bb326..6c9a741f1d 100644
 +
 +    if(name && name[0])
 +    {
-+        size_t base_length = strlen(name);
-+        const char *all = /* search pattern must end with suitable wildcard */
-+            strchr("/\\", name[base_length - 1]) ? "*" : "/*";
-+
-+        if((dir = (DIR *) malloc(sizeof *dir)) != 0 &&
-+           (dir->name = (char *) malloc(base_length + strlen(all) + 1)) != 0)
++        if ((dir = (DIR *)malloc(sizeof *dir)) != 0)
 +        {
-+            strcat(strcpy(dir->name, name), all);
++            dir->handle = INVALID_HANDLE_VALUE;
++            int len = strlen(name);
++            size_t newLength = len + 2; //add an extra for null and another for a * at the end
++            if (!(name[0] == '\\' && name[1] == '\\' && name[2] == '?' && name[3] == '\\'))
++                newLength += 4;
++            if (name[len - 1] != '\\')
++                newLength += 1;
 +
-+            if((dir->handle = _findfirst(dir->name, &dir->info)) != -1)
++            char* newDir = (char*)malloc(newLength);
++            strcpy_s(newDir, newLength, "\\\\?\\");
++            strcat_s(newDir, newLength, name);
++            if (name[len - 1] != '\\')
++                strcat_s(newDir, newLength, "\\");
++            strcat_s(newDir, newLength, "*");
++            newDir[newLength - 1] = '\0';
++
++            dir->name = to_utf16(newDir, newLength);
++            free(newDir);
++
++            dir->handle = FindFirstFileW(dir->name, &dir->info);
++            if (dir->handle != INVALID_HANDLE_VALUE)
 +            {
 +                dir->result.d_name = 0;
 +            }
@@ -856,6 +876,7 @@ index 648c2bb326..6c9a741f1d 100644
 +        }
 +        else /* rollback */
 +        {
++            free(dir->name);
 +            free(dir);
 +            dir   = 0;
 +            errno = ENOMEM;
@@ -873,12 +894,9 @@ index 648c2bb326..6c9a741f1d 100644
 +{
 +    int result = -1;
 +
-+    if(dir)
++    if(dir && dir->handle != INVALID_HANDLE_VALUE)
 +    {
-+        if(dir->handle != -1)
-+        {
-+            result = _findclose(dir->handle);
-+        }
++        FindClose(dir->handle);
 +
 +        free(dir->name);
 +        free(dir);
@@ -896,12 +914,12 @@ index 648c2bb326..6c9a741f1d 100644
 +{
 +    struct dirent *result = 0;
 +
-+    if(dir && dir->handle != -1)
++    if(dir && dir->handle != INVALID_HANDLE_VALUE)
 +    {
-+        if(!dir->result.d_name || _findnext(dir->handle, &dir->info) != -1)
++        if (FindNextFileW(dir->handle, &dir->info))
 +        {
 +            result         = &dir->result;
-+            result->d_name = dir->info.name;
++            result->d_name = to_utf8(dir->info.cFileName, 0);
 +        }
 +    }
 +    else
@@ -910,20 +928,6 @@ index 648c2bb326..6c9a741f1d 100644
 +    }
 +
 +    return result;
-+}
-+
-+void rewinddir(DIR *dir)
-+{
-+    if(dir && dir->handle != -1)
-+    {
-+        _findclose(dir->handle);
-+        dir->handle = _findfirst(dir->name, &dir->info);
-+        dir->result.d_name = 0;
-+    }
-+    else
-+    {
-+        errno = EBADF;
-+    }
 +}
 +
 +// helper for scandir below
@@ -1034,7 +1038,7 @@ index 648c2bb326..6c9a741f1d 100644
 +*/
 --- /dev/null
 +++ b/libcpluff/win32/dirent.h
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,57 @@
 +
 +#ifndef DIRENT_INCLUDED
 +#define DIRENT_INCLUDED
@@ -1055,10 +1059,6 @@ index 648c2bb326..6c9a741f1d 100644
 +#endif
 +
 +typedef struct DIR DIR;
-+
-+#ifndef WIN32
-+static int errno;
-+#endif
 +
 +struct dirent
 +{
@@ -1094,5 +1094,115 @@ index 648c2bb326..6c9a741f1d 100644
 +#ifdef __cplusplus
 +}
 +#endif
++
++#endif
+--- /dev/null
++++ b/libcpluff/win32/win32_utils.c
+@@ -0,0 +1,74 @@
++/*-------------------------------------------------------------------------
++ * C-Pluff, a plug-in framework for C
++ * Copyright 2016 Team Kodi
++ * 
++ * Permission is hereby granted, free of charge, to any person obtaining a
++ * copy of this software and associated documentation files (the "Software"),
++ * to deal in the Software without restriction, including without limitation
++ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
++ * and/or sell copies of the Software, and to permit persons to whom the
++ * Software is furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included
++ * in all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
++ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
++ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
++ * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
++ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
++ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ *-----------------------------------------------------------------------*/
++#include <stdlib.h>
++#if defined(WIN32) || defined(_MSC_VER)
++
++#include "win32_utils.h"
++
++wchar_t* to_utf16(const char* str, size_t length)
++{
++  if (length == 0)
++    length = strlen(str);
++  int result = MultiByteToWideChar(CP_UTF8, 0, str, length, NULL, 0);
++  if (result == 0)
++  {
++    return NULL;
++  }
++
++  int newLen = result + 1;
++  wchar_t* dirPath = malloc(newLen * 2);
++  result = MultiByteToWideChar(CP_UTF8, 0, str, length, dirPath, newLen);
++
++  if (result == 0)
++  {
++    free(dirPath);
++    return NULL;
++  }
++
++  dirPath[newLen - 1] = L'\0';
++  return dirPath;
++}
++
++char* to_utf8(const wchar_t* str, size_t length)
++{
++  if (length == 0)
++    length = wcslen(str);
++
++  int result = WideCharToMultiByte(CP_UTF8, 0, str, length, NULL, 0, NULL, NULL);
++  if (result == 0)
++    return NULL;
++
++  int newLen = result + 1;
++  char *newStr = malloc(newLen);
++  result = WideCharToMultiByte(CP_UTF8, 0, str, length, newStr, result, NULL, NULL);
++  if (result == 0)
++  {
++    free(newStr);
++    return NULL;
++  }
++
++  newStr[newLen - 1] = '\0';
++
++  return newStr;
++}
++#endif
+--- /dev/null
++++ b/libcpluff/win32/win32_utils.h
+@@ -0,0 +1,30 @@
++/*-------------------------------------------------------------------------
++ * C-Pluff, a plug-in framework for C
++ * Copyright 2016 Team Kodi
++ * 
++ * Permission is hereby granted, free of charge, to any person obtaining a
++ * copy of this software and associated documentation files (the "Software"),
++ * to deal in the Software without restriction, including without limitation
++ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
++ * and/or sell copies of the Software, and to permit persons to whom the
++ * Software is furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included
++ * in all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
++ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
++ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
++ * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
++ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
++ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ *-----------------------------------------------------------------------*/
++
++#if defined(_WIN32) || defined(_MSC_VER)
++#define WIN32_LEAN_AND_MEAN 1
++#include <windows.h>
++wchar_t* to_utf16(const char* str, size_t length);
++char* to_utf8(const wchar_t* str, size_t length);
 +
 +#endif
