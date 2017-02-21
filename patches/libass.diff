@@ -818,7 +818,7 @@
 +        strcpy_s(newDir, dirPathLength, dir);
 +        strcat_s(newDir, dirPathLength, "*");
 +
-+        dirPath = to_utf16(newDir, dirPathLength);
++        dirPath = ft_to_utf16(newDir, dirPathLength);
 +        free(newDir);
 +        filePath = static_cast<wchar_t*>(malloc(32000 * sizeof(wchar_t)));
 +    }
@@ -1237,7 +1237,7 @@
 +
 +    init_FallbackLogTextRenderer(&renderer, dw_factory);
 +
-+    auto requested_font = to_utf16(base, 0);
++    auto requested_font = ft_to_utf16(base, 0);
 +
 +    hr = dw_factory->CreateTextFormat(requested_font ? requested_font : FALLBACK_DEFAULT_FONT,
 +                                   nullptr,
@@ -1310,7 +1310,7 @@
 +        }
 +    }
 +
-+    auto family = to_utf8(temp_name, 0);
++    auto family = ft_to_utf8(temp_name, 0);
 +
 +    familyNames->Release();
 +    font->Release();
@@ -1369,7 +1369,7 @@
 +    {
 +        auto diff = start - refKey - 1;
 +        auto length = files / 2 - diff;
-+        path = to_utf8(start - 1, length);
++        path = ft_to_utf8(start - 1, length);
 +    }
 +
 +    fontFace->Release();
@@ -1411,7 +1411,7 @@
 +        }
 +
 +        temp_name[NAME_MAX_LENGTH - 1] = 0;
-+        auto mbName = to_utf8(temp_name, 0);
++        auto mbName = ft_to_utf8(temp_name, 0);
 +        if (!mbName)
 +        {
 +            psNames->Release();
@@ -1447,7 +1447,7 @@
 +            }
 +
 +            temp_name[NAME_MAX_LENGTH - 1] = 0;
-+            char* mbName = to_utf8(temp_name, 0);
++            char* mbName = ft_to_utf8(temp_name, 0);
 +            if (!mbName)
 +            {
 +                fontNames->Release();
@@ -1483,7 +1483,7 @@
 +        }
 +
 +        temp_name[NAME_MAX_LENGTH - 1] = 0;
-+        auto mbName = to_utf8(temp_name, 0);
++        auto mbName = ft_to_utf8(temp_name, 0);
 +        if (!mbName)
 +        {
 +            familyNames->Release();
@@ -1775,7 +1775,7 @@
 +  strcpy_s(newDir, newLen, "\\\\?\\");
 +  strcat_s(newDir, newLen, dir);
 +
-+  wchar_t *dirPath = to_utf16(newDir, newLen);
++  wchar_t *dirPath = ft_to_utf16(newDir, newLen);
 +  free(newDir);
 +
 +  if (!dirPath)
@@ -1804,7 +1804,7 @@
 +      //anyway
 +      void *data = read_fileW(library, buf, ffd.nFileSizeLow, &bufSize);
 +        if (data) {
-+          char *name = to_utf8(ffd.cFileName, 0);
++          char *name = ft_to_utf8(ffd.cFileName, 0);
 +          if (name)
 +          {
 +            ass_add_font(library, name, data, bufSize);
@@ -2010,8 +2010,8 @@
  }
  
 +#if defined(WIN32) || defined(_MSC_VER)
-+wchar_t* to_utf16(const char* str, size_t length);
-+char* to_utf8(const wchar_t* str, size_t length);
++wchar_t* ft_to_utf16(const char* str, size_t length);
++char* ft_to_utf8(const wchar_t* str, size_t length);
 +#endif
 +#if __cplusplus
 +}
