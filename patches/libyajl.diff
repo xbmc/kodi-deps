@@ -1,6 +1,6 @@
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -64,10 +64,16 @@
+@@ -64,11 +64,19 @@
  
  
  ADD_SUBDIRECTORY(src)
@@ -14,9 +14,12 @@
 +IF(BUILD_EXAMPLE)
  ADD_SUBDIRECTORY(example)
 +ENDIF(BUILD_EXAMPLE)
++IF(BUILD_TEST)
  ADD_SUBDIRECTORY(perf)
++ENDIF(BUILD_TEST)
  
  INCLUDE(YAJLDoc.cmake)
+
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
 @@ -35,8 +35,9 @@
@@ -38,6 +41,15 @@
  
  #### build up an sdk as a post build step
  
+@@ -69,7 +71,7 @@
+ 
+   EXEC_PROGRAM(${CMAKE_COMMAND} ARGS -E copy_if_different ${header} ${incDir})
+ 
+-  ADD_CUSTOM_COMMAND(TARGET yajl_s POST_BUILD
++  ADD_CUSTOM_COMMAND(TARGET yajl POST_BUILD
+       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${header} ${incDir})
+ ENDFOREACH (header ${PUB_HDRS})
+
 @@ -77,11 +79,13 @@
  
  # at build time you may specify the cmake variable LIB_SUFFIX to handle
