@@ -276,3 +276,24 @@ add_custom_target(DependenciesDllRequired
 		curl
 		libass
 )
+
+
+ExternalProject_Add(python
+	DEPENDS bzip2 openssl sqlite zlib
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://www.python.org/ftp/python/2.7.13/Python-2.7.13.tgz
+	URL_HASH SHA256=a4f05a0720ce0fd92626f0278b6b433eee9a6173ddf2bced7957dfb599a5ece1
+	PATCH_COMMAND
+		COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/python-cmake-buildsystem-b348a50.diff
+		COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/bzip2/${KODI_PATH}%3B%3B${PREFIX}/openssl/${KODI_PATH}%3B%3B${PREFIX}/sqlite/${KODI_PATH}%3B%3B${PREFIX}/zlib/${KODI_PATH}
+		-DCMAKE_CONFIGURATION_TYPES:STRING=RelWithDebInfo
+		-DBUILD_LIBPYTHON_SHARED:BOOL=ON
+		-DBUILD_TESTING:BOOL=OFF
+		-DBUILD_WININST:BOOL=OFF
+		-DDOWNLOAD_SOURCES:BOOL=OFF
+		-DINSTALL_MANUAL:BOOL=OFF
+		-DINSTALL_TEST:BOOL=OFF
+)
