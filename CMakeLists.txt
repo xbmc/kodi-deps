@@ -34,6 +34,15 @@ include(ExternalProject)
 
 # dependencies required by others
 
+ExternalProject_Add(bzip2
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL http://www.bzip.org/1.0.6/bzip2-1.0.6.tar.gz
+	URL_HASH SHA256=a2848f34fcd5d6cf47def00461fcb528a0484d8edef8208d6d2e2909dc61d9cd
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+
 ExternalProject_Add(expat
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://sourceforge.net/projects/expat/files/expat/2.2.0/expat-2.2.0.tar.bz2
