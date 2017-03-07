@@ -124,6 +124,16 @@ ExternalProject_Add(easyhook
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
 
+ExternalProject_Add(fmt
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://github.com/fmtlib/fmt/releases/download/3.0.1/fmt-3.0.1.zip
+	URL_HASH SHA256=4c9af0dc919a8ae7022b44e1a03c435e42d65c866f44667d8d920d342b098550
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DFMT_DOC:BOOL=OFF
+		-DFMT_TEST:BOOL=OFF
+)
+
 ExternalProject_Add(freetype
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://download.savannah.gnu.org/releases/freetype/freetype-2.7.1.tar.gz
@@ -227,6 +237,7 @@ add_custom_target(DependenciesRequired
 		cpluff
 		crossguid
 		easyhook
+		fmt
 		freetype
 		libcdio
 		libfribidi
