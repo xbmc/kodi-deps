@@ -1,0 +1,106 @@
+--- /dev/null
++++ b/CMakeLists.txt
+@@ -0,0 +1,99 @@
++cmake_minimum_required(VERSION 3.2)
++
++project(libmicrohttpd LANGUAGES C VERSION 0.9.52)
++
++if(MSVC)
++  set(CMAKE_DEBUG_POSTFIX "_d")
++endif()
++
++add_library(libmicrohttpd
++  src/include/autoinit_funcs.h
++  src/include/mhd_options.h
++  src/include/microhttpd.h
++  src/include/platform.h
++  src/microhttpd/base64.c
++  src/microhttpd/base64.h
++  src/microhttpd/basicauth.c
++  src/microhttpd/connection.c
++  src/microhttpd/connection.h
++  src/microhttpd/daemon.c
++  src/microhttpd/digestauth.c
++  src/microhttpd/internal.c
++  src/microhttpd/internal.h
++  src/microhttpd/md5.c
++  src/microhttpd/md5.h
++  src/microhttpd/memorypool.c
++  src/microhttpd/memorypool.h
++  src/microhttpd/mhd_byteorder.h
++  src/microhttpd/mhd_compat.c
++  src/microhttpd/mhd_compat.h
++  src/microhttpd/mhd_itc.c
++  src/microhttpd/mhd_itc.h
++  src/microhttpd/mhd_itc_types.h
++  src/microhttpd/mhd_limits.h
++  src/microhttpd/mhd_locks.h
++  src/microhttpd/mhd_mono_clock.c
++  src/microhttpd/mhd_mono_clock.h
++  src/microhttpd/mhd_sockets.c
++  src/microhttpd/mhd_sockets.h
++  src/microhttpd/mhd_str.c
++  src/microhttpd/mhd_str.h
++  src/microhttpd/mhd_threads.c
++  src/microhttpd/mhd_threads.h
++  src/microhttpd/postprocessor.c
++  src/microhttpd/reason_phrase.c
++  src/microhttpd/response.c
++  src/microhttpd/response.h
++  src/microhttpd/sysfdsetsize.c
++  src/microhttpd/sysfdsetsize.h
++  src/microhttpd/tsearch.c
++  src/microhttpd/tsearch.h
++  w32/common/MHD_config.h
++)
++
++target_include_directories(
++  libmicrohttpd PRIVATE
++  $<BUILD_INTERFACE:src/include;src/microhttpd;src/platform;w32/common>
++  INTERFACE
++  $<INSTALL_INTERFACE:include>
++)
++
++if(MSVC)
++  target_compile_definitions(libmicrohttpd PRIVATE MHD_W32LIB)
++  set_target_properties(libmicrohttpd PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME libmicrohttpd COMPILE_PDB_NAME_DEBUG libmicrohttpd_d)
++  install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/libmicrohttpd.pdb DESTINATION lib CONFIGURATIONS RelWithDebInfo)
++  install(FILES ${PROJECT_BINARY_DIR}/Debug/libmicrohttpd_d.pdb DESTINATION lib CONFIGURATIONS Debug)
++endif()
++
++include(CMakePackageConfigHelpers)
++write_basic_package_version_file(
++  ${CMAKE_CURRENT_BINARY_DIR}/libmicrohttpd-config-version.cmake
++  VERSION ${libmicrohttpd_VERSION}
++  COMPATIBILITY AnyNewerVersion
++)
++
++install(TARGETS libmicrohttpd EXPORT libmicrohttpd
++  RUNTIME DESTINATION bin
++  ARCHIVE DESTINATION lib
++  LIBRARY DESTINATION lib)
++
++
++install(FILES
++  src/include/microhttpd.h
++  DESTINATION include)
++
++install(EXPORT libmicrohttpd
++  FILE
++    libmicrohttpd.cmake
++  NAMESPACE
++    libmicrohttpd::
++  DESTINATION
++    lib/cmake/libmicrohttpd
++)
++install(
++  FILES
++    cmake/libmicrohttpd-config.cmake
++    ${CMAKE_CURRENT_BINARY_DIR}/libmicrohttpd-config-version.cmake
++  DESTINATION
++    lib/cmake/libmicrohttpd
++)
+--- /dev/null
++++ b/cmake/libmicrohttpd-config.cmake
+@@ -0,0 +1 @@
++include(${CMAKE_CURRENT_LIST_DIR}/libmicrohttpd.cmake)

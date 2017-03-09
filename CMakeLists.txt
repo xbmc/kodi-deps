@@ -289,6 +289,15 @@ add_custom_target(DependenciesDllRequired
 )
 
 
+ExternalProject_Add(libmicrohttpd
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.52.tar.gz
+	URL_HASH SHA256=54797f6e763d417627f89f60e4ae0a431dab0523f92f83def23ea02d0defafea
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+
 ExternalProject_Add(python
 	DEPENDS bzip2 openssl sqlite zlib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
