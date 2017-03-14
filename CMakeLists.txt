@@ -327,3 +327,14 @@ ExternalProject_Add(python
 		-DINSTALL_MANUAL:BOOL=OFF
 		-DINSTALL_TEST:BOOL=OFF
 )
+
+ExternalProject_Add(shairplay
+	DOWNLOAD_NAME shairplay-ce80e00.tar.gz
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://github.com/juhovh/shairplay/archive/ce80e00.tar.gz
+	URL_HASH SHA256=49ac0e0470ec6367f720c7b79a09165138f57b60f5949a2d9c38be5823d13294
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DBUILD_SHARED_LIBS:BOOL=ON
+)
