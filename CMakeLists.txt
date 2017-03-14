@@ -320,6 +320,18 @@ ExternalProject_Add(libxml2
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
 
+ExternalProject_Add(libxslt
+	DEPENDS libiconv
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL ftp://xmlsoft.org/libxml2/libxslt-1.1.29.tar.gz
+	URL_HASH SHA256=b5976e3857837e7617b29f2249ebb5eeac34e249208d31f1fbf7a6ba7a4090ce
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff COMMAND
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/libiconv/${KODI_PATH}%3B%3B${PREFIX}/libxml2/${KODI_PATH}
+		-DBUILD_SHARED_LIBS:BOOL=ON
+)
+
 ExternalProject_Add(python
 	DEPENDS bzip2 openssl sqlite zlib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads

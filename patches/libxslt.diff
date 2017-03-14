@@ -1,0 +1,535 @@
+--- /dev/null
++++ b/CMakeLists.txt
+@@ -0,0 +1,213 @@
++cmake_minimum_required(VERSION 3.2)
++
++project(libxslt LANGUAGES C VERSION 1.1.29)
++
++option(BUILD_SHARED_LIBS "Build as shared lib instead of static" ON)
++option(WITH_TRIO "Enable TRIO string manipulator" ON)
++option(WITH_ICONV "Enable iconv support" ON)
++option(WITH_DEBUG "Enable XML debugging module" ON)
++option(WITH_MEM_DEBUG "Enable memory debugger" OFF)
++option(WITH_RUN_DEBUG "Enable memory debugger" OFF)
++
++
++include(CheckIncludeFile)
++include(CheckFunctionExists)
++
++CHECK_INCLUDE_FILE(nan.h HAVE_NAN_H)
++CHECK_INCLUDE_FILE(ctype.h HAVE_CTYPE_H)
++CHECK_INCLUDE_FILE(dirent.h HAVE_DIRENT_H)
++CHECK_INCLUDE_FILE(dl.h HAVE_DL_H)
++CHECK_INCLUDE_FILE(errno.h HAVE_ERRNO_H)
++CHECK_INCLUDE_FILE(fcntl.h HAVE_FCNTL_H)
++CHECK_INCLUDE_FILE(ieeefp.h HAVE_IEEEP_H)
++CHECK_INCLUDE_FILE(inttypes.h HAVE_INTTYPES_H)
++CHECK_INCLUDE_FILE(limits.h HAVE_LIMITS_H)
++CHECK_INCLUDE_FILE(malloc.h HAVE_MALLOC_H)
++CHECK_INCLUDE_FILE(math.h HAVE_MATH_H)
++CHECK_INCLUDE_FILE(memory.h HAVE_MEMORY_H)
++CHECK_INCLUDE_FILE(time.h HAVE_TIME_H)
++CHECK_INCLUDE_FILE(unistd.h HAVE_UNISTD_H)
++CHECK_INCLUDE_FILE(locale.h HAVE_LOCALE_H)
++CHECK_INCLUDE_FILE(xlocale.h HAVE_XLOCALE_H)
++CHECK_INCLUDE_FILE(stdarg.h HAVE_STDARG_H)
++CHECK_INCLUDE_FILE(stdint.h HAVE_STDINT_H)
++CHECK_INCLUDE_FILE(stdlib.h HAVE_STDLIB_H)
++CHECK_INCLUDE_FILE(strings.h HAVE_STRINGS_H)
++CHECK_INCLUDE_FILE(string.h HAVE_STRING_H)
++CHECK_INCLUDE_FILE(sys/select.h HAVE_SYS_SELECT_H)
++CHECK_INCLUDE_FILE(sys/stat.h HAVE_SYS_STAT_H)
++CHECK_INCLUDE_FILE(sys/timeb.h HAVE_SYS_TIMEB_H)
++CHECK_INCLUDE_FILE(sys/time.h HAVE_SYS_TIME_H)
++CHECK_INCLUDE_FILE(sys/types.h HAVE_SYS_TYPES_H)
++CHECK_INCLUDE_FILE(ansidecl.h HAVE_ANSIDECL_H)
++CHECK_INCLUDE_FILE(float.h HAVE_FLOAT_H)
++CHECK_INCLUDE_FILE(fp_class.h HAVE_FP_CLASS_H)
++
++
++if(MSVC)
++  set(CMAKE_DEBUG_POSTFIX "d")
++  set(XSLT_LOCALE_WINAPI ON)
++endif()
++
++set(libxslt_VERSION 1.1.29)
++set(VERSION ${libxslt_VERSION})
++set(LIBXSLT_VERSION_NUMBER 10129)
++set(LIBXSLT_VERSION_EXTRA "")
++
++configure_file(
++  config.h.cmake
++  ${CMAKE_CURRENT_BINARY_DIR}/config.h
++)
++configure_file(
++  libxslt/xsltconfig.h.in
++  ${CMAKE_CURRENT_BINARY_DIR}/libxslt/xsltconfig.h)
++
++configure_file(
++  libxslt/xsltwin32config.h.in
++  ${CMAKE_CURRENT_BINARY_DIR}/libxslt/xsltwin32config.h)
++
++configure_file(
++  libexslt/exsltconfig.h.in
++  ${CMAKE_CURRENT_BINARY_DIR}/libexslt/exsltconfig.h)
++
++set(XSLT_HEADERS
++  ${CMAKE_CURRENT_BINARY_DIR}/libxslt/xsltconfig.h
++  ${CMAKE_CURRENT_BINARY_DIR}/libxslt/xsltwin32config.h
++  libxslt/xsltutils.h
++  libxslt/xsltlocale.h
++  libxslt/xsltInternals.h
++  libxslt/xsltexports.h
++  libxslt/xslt.h
++  libxslt/win32config.h
++  libxslt/variables.h
++  libxslt/triodef.h
++  libxslt/trio.h
++  libxslt/transform.h
++  libxslt/templates.h
++  libxslt/security.h
++  libxslt/preproc.h
++  libxslt/pattern.h
++  libxslt/numbersInternals.h
++  libxslt/namespaces.h
++  libxslt/libxslt.h
++  libxslt/keys.h
++  libxslt/imports.h
++  libxslt/functions.h
++  libxslt/extra.h
++  libxslt/extensions.h
++  libxslt/documents.h
++  libxslt/attributes.h
++)
++
++set(EXSLT_HEADERS
++  ${CMAKE_CURRENT_BINARY_DIR}/libexslt/exsltconfig.h
++  libexslt/exslt.h
++  libexslt/exsltexports.h
++  libexslt/libexslt.h
++)
++add_library(libxslt 
++#generated files
++  ${CMAKE_CURRENT_BINARY_DIR}/config.h
++#libxslt
++  ${XSLT_HEADERS}
++  libxslt/attributes.c
++  libxslt/xsltutils.c
++  libxslt/xsltlocale.c
++  libxslt/xslt.c
++  libxslt/variables.c
++  libxslt/transform.c
++  libxslt/templates.c
++  libxslt/security.c
++  libxslt/preproc.c
++  libxslt/pattern.c
++  libxslt/numbers.c
++  libxslt/namespaces.c
++  libxslt/keys.c
++  libxslt/imports.c
++  libxslt/functions.c
++  libxslt/extra.c
++  libxslt/extensions.c
++  libxslt/documents.c
++  libxslt/attrvt.c
++)
++add_library(libexslt STATIC
++  ${EXSLT_HEADERS}
++  libexslt/common.c
++  libexslt/crypto.c
++  libexslt/date.c
++  libexslt/dynamic.c
++  libexslt/exslt.c
++  libexslt/functions.c
++  libexslt/math.c
++  libexslt/saxon.c
++  libexslt/sets.c
++  libexslt/strings.c
++)
++target_include_directories(
++  libxslt PRIVATE
++  $<BUILD_INTERFACE:.;libxslt;${CMAKE_CURRENT_BINARY_DIR}>
++  INTERFACE
++  $<INSTALL_INTERFACE:include/libxslt>
++)
++
++target_include_directories(
++  libexslt PRIVATE
++  $<BUILD_INTERFACE:.;libxslt;libexslt;${CMAKE_CURRENT_BINARY_DIR}>
++)
++target_compile_definitions(libxslt 
++  PRIVATE 
++  _CRT_SECURE_NO_WARNINGS
++  _CRT_STDC_NO_DEPRECATE)
++
++add_dependencies(libxslt libexslt)
++
++if(WITH_ICONV)
++  find_package(iconv REQUIRED NO_MODULE)
++  target_link_libraries(libxslt PRIVATE iconv::iconv)
++  target_link_libraries(libexslt PRIVATE iconv::iconv)
++endif()
++
++find_package(libxml2 REQUIRED NO_MODULE)
++target_link_libraries(libxslt PRIVATE libxml2::libxml2)
++target_link_libraries(libexslt PRIVATE libxml2::libxml2)
++
++include(CMakePackageConfigHelpers)
++write_basic_package_version_file(
++  ${CMAKE_CURRENT_BINARY_DIR}/libxslt-config-version.cmake
++  VERSION ${libxslt_VERSION}
++  COMPATIBILITY AnyNewerVersion
++)
++
++install(TARGETS libxslt EXPORT libxslt
++  RUNTIME DESTINATION bin
++  ARCHIVE DESTINATION lib
++  LIBRARY DESTINATION lib)
++
++
++install(FILES
++  ${XSLT_HEADERS}
++  ${EXSLT_HEADERS}
++  DESTINATION include/libxslt)
++
++install(EXPORT libxslt
++  FILE
++    libxslt.cmake
++  NAMESPACE
++    libxslt::
++  DESTINATION
++    lib/cmake/libxslt
++)
++install(
++  FILES
++    cmake/libxslt-config.cmake
++    ${CMAKE_CURRENT_BINARY_DIR}/libxslt-config-version.cmake
++  DESTINATION
++    lib/cmake/libxslt
++)
++
++if(MSVC)
++  install(FILES
++    $<TARGET_PDB_FILE:libxslt>
++    DESTINATION lib
++  )
++endif()
+--- /dev/null
++++ b/cmake/libxslt-config.cmake
+@@ -0,0 +1 @@
++include(${CMAKE_CURRENT_LIST_DIR}/libxslt.cmake)
+--- /dev/null
++++ b/config.h.cmake
+@@ -0,0 +1,207 @@
++/* config.h.in.  Generated from configure.in by autoheader.  */
++
++/* Define to 1 if you have the <ansidecl.h> header file. */
++#cmakedefine HAVE_ANSIDECL_H
++
++/* Define to 1 if you have the `asctime' function. */
++#cmakedefine HAVE_ASCTIME
++
++/* Define to 1 if you have the `clock_gettime' function. */
++#cmakedefine HAVE_CLOCK_GETTIME
++
++/* Define to 1 if you have the <errno.h> header file. */
++#cmakedefine HAVE_ERRNO_H
++
++/* Define to 1 if you have the <float.h> header file. */
++#cmakedefine HAVE_FLOAT_H
++
++/* Define to 1 if you have the `ftime' function. */
++#cmakedefine HAVE_FTIME
++
++/* Define to 1 if you have the `gettimeofday' function. */
++#cmakedefine HAVE_GETTIMEOFDAY
++
++/* Define to 1 if you have the `gmtime' function. */
++#cmakedefine HAVE_GMTIME
++
++/* Define to 1 if you have the `gmtime_r' function. */
++#cmakedefine HAVE_GMTIME_R
++
++/* Define to 1 if you have the <ieeefp.h> header file. */
++#cmakedefine HAVE_IEEEFP_H
++
++/* Define to 1 if you have the <inttypes.h> header file. */
++#cmakedefine HAVE_INTTYPES_H
++
++/* Define if pthread library is there (-lpthread) */
++#cmakedefine HAVE_LIBPTHREAD
++
++/* Define to 1 if you have the <locale.h> header file. */
++#cmakedefine HAVE_LOCALE_H
++
++/* Define to 1 if you have the `localtime' function. */
++#cmakedefine HAVE_LOCALTIME
++
++/* Define to 1 if you have the `localtime_r' function. */
++#cmakedefine HAVE_LOCALTIME_R
++
++/* Define to 1 if you have the <math.h> header file. */
++#cmakedefine HAVE_MATH_H
++
++/* Define to 1 if you have the <memory.h> header file. */
++#cmakedefine HAVE_MEMORY_H
++
++/* Define to 1 if you have the `mktime' function. */
++#cmakedefine HAVE_MKTIME
++
++/* Define to 1 if you have the <nan.h> header file. */
++#cmakedefine HAVE_NAN_H
++
++/* Define if pow is there */
++#cmakedefine HAVE_POW
++
++/* Define to 1 if you have the `printf' function. */
++#cmakedefine HAVE_PRINTF
++
++/* Define if <pthread.h> is there */
++#cmakedefine HAVE_PTHREAD_H
++
++/* Define to 1 if you have the `snprintf' function. */
++#cmakedefine HAVE_SNPRINTF
++
++/* Define to 1 if you have the `sprintf' function. */
++#cmakedefine HAVE_SPRINTF
++
++/* Define to 1 if you have the `sscanf' function. */
++#cmakedefine HAVE_SSCANF
++
++/* Define to 1 if you have the `stat' function. */
++#cmakedefine HAVE_STAT
++
++/* Define to 1 if you have the <stdarg.h> header file. */
++#cmakedefine HAVE_STDARG_H
++
++/* Define to 1 if you have the <stdint.h> header file. */
++#cmakedefine HAVE_STDINT_H
++
++/* Define to 1 if you have the <stdlib.h> header file. */
++#cmakedefine HAVE_STDLIB_H
++
++/* Define to 1 if you have the <strings.h> header file. */
++#cmakedefine HAVE_STRINGS_H
++
++/* Define to 1 if you have the <string.h> header file. */
++#cmakedefine HAVE_STRING_H
++
++/* Define to 1 if you have the <sys/select.h> header file. */
++#cmakedefine HAVE_SYS_SELECT_H
++
++/* Define to 1 if you have the <sys/stat.h> header file. */
++#cmakedefine HAVE_SYS_STAT_H
++
++/* Define to 1 if you have the <sys/timeb.h> header file. */
++#cmakedefine HAVE_SYS_TIMEB_H
++
++/* Define to 1 if you have the <sys/time.h> header file. */
++#cmakedefine HAVE_SYS_TIME_H
++
++/* Define to 1 if you have the <sys/types.h> header file. */
++#cmakedefine HAVE_SYS_TYPES_H
++
++/* Define to 1 if you have the `time' function. */
++#cmakedefine HAVE_TIME
++
++/* Define to 1 if you have the <time.h> header file. */
++#cmakedefine HAVE_TIME_H
++
++/* Define to 1 if you have the <unistd.h> header file. */
++#cmakedefine HAVE_UNISTD_H
++
++/* Define to 1 if you have the `vfprintf' function. */
++#cmakedefine HAVE_VFPRINTF
++
++/* Define to 1 if you have the `vsnprintf' function. */
++#cmakedefine HAVE_VSNPRINTF
++
++/* Define to 1 if you have the `vsprintf' function. */
++#cmakedefine HAVE_VSPRINTF
++
++/* Define to 1 if you have the <xlocale.h> header file. */
++#cmakedefine HAVE_XLOCALE_H
++
++/* Define to 1 if you have the `_stat' function. */
++#cmakedefine HAVE__STAT
++
++/* Define to the sub-directory where libtool stores uninstalled libraries. */
++#cmakedefine LT_OBJDIR
++
++/* Name of package */
++#cmakedefine PACKAGE
++
++/* Define to the address where bug reports for this package should be sent. */
++#cmakedefine PACKAGE_BUGREPORT
++
++/* Define to the full name of this package. */
++#cmakedefine PACKAGE_NAME
++
++/* Define to the full name and version of this package. */
++#cmakedefine PACKAGE_STRING
++
++/* Define to the one symbol short name of this package. */
++#cmakedefine PACKAGE_TARNAME
++
++/* Define to the home page for this package. */
++#cmakedefine PACKAGE_URL
++
++/* Define to the version of this package. */
++#cmakedefine PACKAGE_VERSION
++
++/* Define to 1 if you have the ANSI C header files. */
++#cmakedefine STDC_HEADERS
++
++/* Enable extensions on AIX 3, Interix.  */
++#ifndef _ALL_SOURCE
++#cmakedefine _ALL_SOURCE
++#endif
++/* Enable GNU extensions on systems that have them.  */
++#ifndef _GNU_SOURCE
++#cmakedefine _GNU_SOURCE
++#endif
++/* Enable threading extensions on Solaris.  */
++#ifndef _POSIX_PTHREAD_SEMANTICS
++#cmakedefine _POSIX_PTHREAD_SEMANTICS
++#endif
++/* Enable extensions on HP NonStop.  */
++#ifndef _TANDEM_SOURCE
++#cmakedefine _TANDEM_SOURCE
++#endif
++/* Enable general extensions on Solaris.  */
++#ifndef __EXTENSIONS__
++#cmakedefine __EXTENSIONS__
++#endif
++
++
++/* Version number of package */
++#cmakedefine VERSION
++
++/* Define if debugging support is enabled */
++#cmakedefine WITH_DEBUGGER
++
++/* Define to 1 if on MINIX. */
++#cmakedefine _MINIX
++
++/* Define to 2 if the system does not provide POSIX.1 features except with
++   this defined. */
++#cmakedefine _POSIX_1_SOURCE
++
++/* Define to 1 if you need to in order for `stat' and other things to work. */
++#cmakedefine _POSIX_SOURCE
++
++/* Using the Win32 Socket implementation */
++#cmakedefine _WINSOCKAPI_
++
++/* Win32 Std C name mangling work-around */
++#cmakedefine snprintf
++
++/* Win32 Std C name mangling work-around */
++#cmakedefine vsnprintf
+--- a/libexslt/exsltconfig.h.in
++++ b/libexslt/exsltconfig.h.in
+@@ -25,28 +25,29 @@
+  *
+  * the version number: 1.2.3 value is 10203
+  */
+-#define LIBEXSLT_VERSION @LIBEXSLT_VERSION_NUMBER@
++#define LIBEXSLT_VERSION @LIBXSLT_VERSION_NUMBER@
+ 
+ /**
+  * LIBEXSLT_VERSION_STRING:
+  *
+  * the version number string, 1.2.3 value is "10203"
+  */
+-#define LIBEXSLT_VERSION_STRING "@LIBEXSLT_VERSION_NUMBER@"
++#define LIBEXSLT_VERSION_STRING "@LIBXSLT_VERSION_NUMBER@"
+ 
+ /**
+  * LIBEXSLT_VERSION_EXTRA:
+  *
+  * extra version information, used to show a CVS compilation
+  */
+-#define	LIBEXSLT_VERSION_EXTRA "@LIBEXSLT_VERSION_EXTRA@"
++#define	LIBEXSLT_VERSION_EXTRA "@LIBXSLT_VERSION_EXTRA@"
+ 
+ /**
+  * WITH_CRYPTO:
+  *
+  * Whether crypto support is configured into exslt
+  */
+-#if @WITH_CRYPTO@
++#cmakedefine WITH_CRYPTO
++#if WITH_CRYPTO
+ #define EXSLT_CRYPTO_ENABLED
+ #endif
+ 
+--- a/libxslt/xsltconfig.h.in
++++ b/libxslt/xsltconfig.h.in
+@@ -50,11 +50,10 @@
+  * is insignifiant and being able to run xsltpoc -v is useful. On
+  * by default unless --without-debug is passed to configure
+  */
+-#if @WITH_XSLT_DEBUG@
+-#define WITH_XSLT_DEBUG
+-#endif
++#cmakedefine WITH_XSLT_DEBUG
++#cmakedefine WITH_MEM_DEBUG
+ 
+-#if @WITH_MEM_DEBUG@
++#if WITH_MEM_DEBUG
+ /**
+  * DEBUG_MEMORY:
+  *
+@@ -82,7 +81,8 @@
+  * compiled in the libxml2 library.
+  */
+ 
+-#if @WITH_TRIO@
++#cmakedefine WITH_TRIO
++#ifdef WITH_TRIO
+ #define XSLT_NEED_TRIO
+ #endif
+ #ifdef __VMS
+@@ -104,11 +104,7 @@
+  * is insignifiant.
+  * On by default unless --without-debugger is passed to configure
+  */
+-#if @WITH_DEBUGGER@
+-#ifndef WITH_DEBUGGER
+-#define WITH_DEBUGGER
+-#endif
+-#endif
++#cmakedefine WITH_DEBUGGER
+ 
+ /**
+  * WITH_MODULES:
+@@ -116,25 +112,14 @@
+  * Whether module support is configured into libxslt
+  * Note: no default module path for win32 platforms
+  */
+-#if @WITH_MODULES@
+-#ifndef WITH_MODULES
+-#define WITH_MODULES
+-#endif
++#cmakedefine WITH_MODULES
+ #define LIBXSLT_DEFAULT_PLUGINS_PATH() "@LIBXSLT_DEFAULT_PLUGINS_PATH@"
+-#endif
+ 
+ /**
+  * Locale support
+  */
+-#if @XSLT_LOCALE_XLOCALE@
+-#ifndef XSLT_LOCALE_XLOCALE
+-#define XSLT_LOCALE_XLOCALE
+-#endif
+-#elif @XSLT_LOCALE_WINAPI@
+-#ifndef XSLT_LOCALE_WINAPI
+-#define XSLT_LOCALE_WINAPI
+-#endif
+-#endif
++#cmakedefine XSLT_LOCALE_XLOCALE
++#cmakedefine XSLT_LOCALE_WINAPI
+ 
+ /**
+  * ATTRIBUTE_UNUSED:
