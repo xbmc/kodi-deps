@@ -1,0 +1,608 @@
+--- /dev/null
++++ b/CMakeLists.txt
+@@ -0,0 +1,217 @@
++cmake_minimum_required(VERSION 3.2)
++
++project(libxml2 VERSION 2.9.4 LANGUAGES C)
++
++option(BUILD_SHARED_LIBS "Build as shared lib instead of static" ON)
++option(WITH_TRIO "Enable TRIO string manipulator" ON)
++option(WITH_THREADS:STRING "Enable thread safety [no|ctls|native|posix" "native")
++option(WITH_FTP "Enable FTP client" OFF)
++option(WITH_HTTP "Enable HTTP client" OFF)
++option(WITH_HTML "Enable HTML processor" ON)
++option(WITH_C14N "Enable C14N support" ON)
++option(WITH_CATALOG "Enable catalog support" ON)
++option(WITH_DOCB "Enable DocBook support" ON)
++option(WITH_XPATH "Enable XPath support" ON)
++option(WITH_XPTR "Enable XPointer support" ON)
++option(WITH_XINCLUDE "Enable XInclude support" ON)
++option(WITH_ICONV "Enable iconv support" ON)
++option(WITH_ICU "Enable icu support" OFF)
++option(WITH_ISO8859X "Enable ISO8859X support" OFF)
++option(WITH_ZLIB "Enable zlib support" OFF)
++option(WITH_LZMA "Enable lzma support" OFF)
++option(WITH_DEBUG "Enable XML debugging module" ON)
++option(WITH_MEM_DEBUG "Enable memory debugger" OFF)
++option(WITH_RUN_DEBUG "Enable memory debugger" OFF)
++option(WITH_SCHEMAS "Enable XML schema support" ON)
++option(WITH_SCHEMATRON "Enable schematron support" ON)
++option(WITH_REGEXPS "Enable regular expressions" ON)
++option(WITH_MODULES "Enable module support" ON)
++option(WITH_TREE "Enable tree api" ON)
++option(WITH_READER "Enable xmlReader api" ON)
++option(WITH_WRITER "Enable xmlWriter api" ON)
++option(WITH_WALKER "Enable xmlDocWalker api" ON)
++option(WITH_PATTERN "Enable xmlPattern api" ON)
++option(WITH_PUSH "Enable push api" ON)
++option(WITH_VALID "Enable DTD validation support" ON)
++option(WITH_SAX1 "Enable SAX1 api" ON)
++option(WITH_LEGACY "Enable deprecated api's" OFF)
++option(WITH_OUTPUT "Enable serialization support" ON)
++option(WITH_PYTHON "Enable Python bindings" OFF)
++
++include(CheckIncludeFile)
++include(CheckFunctionExists)
++
++#CHECK_INCLUDE_FILE(sys/stat.h HAVE__STAT)
++#(HAVE_ISINF)
++#(HAVE_ISNAN)
++#(HAVE_STAT)
++set(SUPPORT_IP6 ON)
++CHECK_INCLUDE_FILE(ctype.h HAVE_CTYPE_H)
++CHECK_INCLUDE_FILE(dirent.h HAVE_DIRENT_H)
++CHECK_INCLUDE_FILE(dl.h HAVE_DL_H)
++CHECK_INCLUDE_FILE(dlfcn.h HAVEN_DLFCN_H)
++CHECK_INCLUDE_FILE(errno.h HAVE_ERRNO_H)
++CHECK_INCLUDE_FILE(fcntl.h HAVE_FCNTL_H)
++CHECK_INCLUDE_FILE(ieeefp.h HAVE_IEEEP_H)
++CHECK_INCLUDE_FILE(inttypes.h HAVE_INTTYPES_H)
++CHECK_INCLUDE_FILE(limits.h HAVE_LIMITS_H)
++CHECK_INCLUDE_FILE(malloc.h HAVE_MALLOC_H)
++CHECK_INCLUDE_FILE(math.h HAVE_MATH_H)
++CHECK_INCLUDE_FILE(memory.h HAVE_MEMORY_H)
++CHECK_INCLUDE_FILE(stdarg.h HAVE_STDARG_H)
++CHECK_INCLUDE_FILE(stdint.h HAVE_STDINT_H)
++CHECK_INCLUDE_FILE(stdlib.h HAVE_STDLIB_H)
++CHECK_INCLUDE_FILE(sys/stat.h HAVE_SYS_STAT_H)
++CHECK_INCLUDE_FILE(sys/types.h HAVE_SYS_TYPES_H)
++CHECK_INCLUDE_FILE(time.h HAVE_TIME_H)
++CHECK_INCLUDE_FILE(unistd.h HAVE_UNISTD_H)
++
++if(WIN32)
++  set(CMAKE_DEBUG_POSTFIX "d")
++endif()
++
++add_library(${PROJECT_NAME} 
++  buf.c
++  buf.h
++  c14n.c
++  catalog.c
++  chvalid.c
++  config.h
++  debugXML.c
++  dict.c
++  DOCBparser.c
++  elfgcchack.h
++  enc.h
++  encoding.c
++  entities.c
++  error.c
++  globals.c
++  hash.c
++  HTMLparser.c
++  HTMLtree.c
++  legacy.c
++  libxml.h
++  list.c
++  nanoftp.c
++  nanohttp.c
++  parser.c
++  parserInternals.c
++  pattern.c
++  relaxng.c
++  save.h
++  SAX.c
++  SAX2.c
++  schematron.c
++  threads.c
++  timsort.h
++  tree.c
++  trio.c
++  trio.h
++  triodef.h
++  trionan.c
++  trionan.h
++  triop.h
++  triostr.c
++  triostr.h
++  uri.c
++  valid.c
++  xinclude.c
++  xlink.c
++  xmlcatalog.c
++  xmlIO.c
++  xmlmemory.c
++  xmlmodule.c
++  xmlreader.c
++  xmlregexp.c
++  xmlsave.c
++  xmlschemas.c
++  xmlschemastypes.c
++  xmlstring.c
++  xmlunicode.c
++  xmlwriter.c
++  xpath.c
++  xpointer.c
++  xzlib.c
++  xzlib.h
++)
++
++add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
++target_include_directories(
++  libxml2 PRIVATE
++  $<BUILD_INTERFACE:.;include;include/libxml>
++  INTERFACE
++  $<INSTALL_INTERFACE:include>
++)
++#  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
++#  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/libxml>
++target_compile_definitions(libxml2 
++  PRIVATE 
++  _CRT_SECURE_NO_WARNINGS
++  _CRT_STDC_NO_DEPRECATE)
++
++if(BUILD_SHARED_LIBS AND MSVC)
++  target_link_libraries(libxml2 PRIVATE ws2_32.lib)
++endif()
++
++if(WITH_ICONV)
++  find_package(iconv 1.14 REQUIRED NO_MODULE)
++  target_link_libraries(libxml2 PRIVATE iconv::iconv)
++  set(ICONV_CONST const)
++endif()
++
++if(WITH_LZMA)
++  find_package(xz 5 REQUIRED)
++  target_link_libraries(libxml2 PRIVATE xz::lzma)
++  set(HAVE_LZMA_H ON)
++endif()
++
++configure_file(
++  config.h.cmake
++  ${CMAKE_CURRENT_SOURCE_DIR}/config.h
++)
++
++include(CMakePackageConfigHelpers)
++write_basic_package_version_file(
++  ${CMAKE_CURRENT_BINARY_DIR}/libxml2-config-version.cmake
++  VERSION ${PROJECT_VERSION}
++  COMPATIBILITY AnyNewerVersion
++)
++
++install(TARGETS libxml2 EXPORT libxml2
++  RUNTIME DESTINATION bin
++  ARCHIVE DESTINATION lib
++  LIBRARY DESTINATION lib)
++
++
++install(DIRECTORY
++  ${CMAKE_CURRENT_SOURCE_DIR}/include/libxml
++  DESTINATION include
++  FILES_MATCHING PATTERN "*.h")
++
++install(EXPORT libxml2
++  FILE
++    libxml2.cmake
++  NAMESPACE
++    libxml2::
++  DESTINATION
++    lib/cmake/libxml2
++)
++install(
++  FILES
++    cmake/libxml2-config.cmake
++    ${CMAKE_CURRENT_BINARY_DIR}/libxml2-config-version.cmake
++  DESTINATION
++    lib/cmake/libxml2
++)
++
++export(TARGETS libxml2
++  FILE libxml2.cmake
++  NAMESPACE libxml2::
++)
++
++if(MSVC)
++  install(FILES
++    $<TARGET_PDB_FILE:libxml2>
++    DESTINATION lib
++  )
++endif()
+--- /dev/null
++++ b/cmake/libxml2-config.cmake
+@@ -0,0 +1 @@
++include(${CMAKE_CURRENT_LIST_DIR}/libxml2.cmake)
+--- /dev/null
++++ b/config.h.cmake
+@@ -0,0 +1,343 @@
++/* config.h.in.  Generated from configure.ac by autoheader.  */
++
++/* Type cast for the gethostbyname() argument */
++#cmakedefine GETHOSTBYNAME_ARG_CAST
++
++/* Define to 1 if you have the <ansidecl.h> header file. */
++#cmakedefine HAVE_ANSIDECL_H
++
++/* Define to 1 if you have the <arpa/inet.h> header file. */
++#cmakedefine HAVE_ARPA_INET_H
++
++/* Define to 1 if you have the <arpa/nameser.h> header file. */
++#cmakedefine HAVE_ARPA_NAMESER_H
++
++/* Whether struct sockaddr::__ss_family exists */
++#cmakedefine HAVE_BROKEN_SS_FAMILY
++
++/* Define to 1 if you have the `class' function. */
++#cmakedefine HAVE_CLASS
++
++/* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
++   */
++#cmakedefine HAVE_SYS_DIR_H
++
++/* Define to 1 if you have the <sys/mman.h> header file. */
++#cmakedefine HAVE_SYS_MMAN_H
++
++/* Define to 1 if you have the <sys/ndir.h> header file, and it defines `DIR'.
++   */
++#cmakedefine HAVE_SYS_NDIR_H
++
++/* Define to 1 if you have the <sys/select.h> header file. */
++#cmakedefine HAVE_SYS_SELECT_H
++
++/* Define to 1 if you have the <sys/socket.h> header file. */
++#cmakedefine HAVE_SYS_SOCKET_H
++
++/* Define to 1 if you have the <sys/stat.h> header file. */
++#cmakedefine HAVE_SYS_STAT_H
++
++/* Define to 1 if you have the <sys/timeb.h> header file. */
++#cmakedefine HAVE_SYS_TIMEB_H
++
++/* Define to 1 if you have the <sys/time.h> header file. */
++#cmakedefine HAVE_SYS_TIME_H
++
++/* Define to 1 if you have the <sys/types.h> header file. */
++#cmakedefine HAVE_SYS_TYPES_H
++
++/* Define to 1 if you have the <time.h> header file. */
++#cmakedefine HAVE_TIME_H
++
++/* Define to 1 if you have the <unistd.h> header file. */
++#cmakedefine HAVE_UNISTD_H
++/* Define to 1 if you have the <ctype.h> header file. */
++#cmakedefine HAVE_CTYPE_H
++
++/* Define to 1 if you have the <dirent.h> header file. */
++#cmakedefine HAVE_DIRENT_H
++
++/* Define to 1 if you have the <dlfcn.h> header file. */
++#cmakedefine HAVE_DLFCN_H
++
++/* Define to 1 if you have the <limits.h> header file. */
++#cmakedefine HAVE_LIMITS_H
++
++/* Define to 1 if you have the `localtime' function. */
++#cmakedefine HAVE_LOCALTIME
++
++/* Define to 1 if you have the <lzma.h> header file. */
++#cmakedefine HAVE_LZMA_H
++
++/* Define to 1 if you have the <malloc.h> header file. */
++#cmakedefine HAVE_MALLOC_H
++
++/* Define to 1 if you have the <math.h> header file. */
++#cmakedefine HAVE_MATH_H
++
++/* Define to 1 if you have the <memory.h> header file. */
++#cmakedefine HAVE_MEMORY_H
++
++/* Define to 1 if you have the <dl.h> header file. */
++#cmakedefine HAVE_DL_H
++
++/* Define to 1 if you have the <errno.h> header file. */
++#cmakedefine HAVE_ERRNO_H
++
++/* Define to 1 if you have the <fcntl.h> header file. */
++#cmakedefine HAVE_FCNTL_H
++
++/* Define to 1 if you have the <fp_class.h> header file. */
++#cmakedefine HAVE_FP_CLASS_H
++
++/* Define to 1 if you have the <float.h> header file. */
++#cmakedefine HAVE_FLOAT_H
++
++/* Define to 1 if you have the <ieeefp.h> header file. */
++#cmakedefine HAVE_IEEEFP_H
++
++/* Define to 1 if you have the <inttypes.h> header file. */
++#cmakedefine HAVE_INTTYPES_H
++
++/* Define to 1 if you have the <nan.h> header file. */
++#cmakedefine HAVE_NAN_H
++
++/* Define to 1 if you have the <ndir.h> header file, and it defines `DIR'. */
++#cmakedefine HAVE_NDIR_H
++
++/* Define to 1 if you have the <netdb.h> header file. */
++#cmakedefine HAVE_NETDB_H
++
++/* Define to 1 if you have the <netinet/in.h> header file. */
++#cmakedefine HAVE_NETINET_IN_H
++
++/* Define to 1 if you have the <poll.h> header file. */
++#cmakedefine HAVE_POLL_H
++
++/* Define to 1 if you have the <stdarg.h> header file. */
++#cmakedefine HAVE_STDARG_H
++
++/* Define to 1 if you have the <stdint.h> header file. */
++#cmakedefine HAVE_STDINT_H
++
++/* Define to 1 if you have the <stdlib.h> header file. */
++#cmakedefine HAVE_STDLIB_H
++
++/* Define to 1 if you have the <strings.h> header file. */
++#cmakedefine HAVE_STRINGS_H
++
++/* Define to 1 if you have the <string.h> header file. */
++#cmakedefine HAVE_STRING_H
++
++/* Define to 1 if you have the ANSI C header files. */
++#cmakedefine STDC_HEADERS
++
++/* Define to 1 if you have the <resolv.h> header file. */
++#cmakedefine HAVE_RESOLV_H
++
++/* Define to 1 if you have the <signal.h> header file. */
++#cmakedefine HAVE_SIGNAL_H
++
++/* Define to 1 if you have the `finite' function. */
++#cmakedefine HAVE_FINITE
++
++/* Define to 1 if you have the `fpclass' function. */
++#cmakedefine HAVE_FPCLASS
++
++/* Define to 1 if you have the `fprintf' function. */
++#cmakedefine HAVE_FPRINTF
++
++/* Define to 1 if you have the `fp_class' function. */
++#cmakedefine HAVE_FP_CLASS
++
++/* Have dlopen based dso */
++#cmakedefine HAVE_DLOPEN
++
++/* Define to 1 if you have the `ftime' function. */
++#cmakedefine HAVE_FTIME
++
++/* Define to 1 if you have the `time' function. */
++#cmakedefine HAVE_TIME
++
++/* Define if getaddrinfo is there */
++#cmakedefine HAVE_GETADDRINFO
++
++/* Define to 1 if you have the `gettimeofday' function. */
++#cmakedefine HAVE_GETTIMEOFDAY
++
++/* Define to 1 if you have the `isascii' function. */
++#cmakedefine HAVE_ISASCII
++
++/* Define if isinf is there */
++#cmakedefine HAVE_ISINF
++
++/* Define if isnan is there */
++#cmakedefine HAVE_ISNAN
++
++/* Define to 1 if you have the `isnand' function. */
++#cmakedefine HAVE_ISNAND
++
++/* Define if history library is there (-lhistory) */
++#cmakedefine HAVE_LIBHISTORY
++
++/* Have compression library */
++#cmakedefine HAVE_LIBLZMA
++
++/* Define if pthread library is there (-lpthread) */
++#cmakedefine HAVE_LIBPTHREAD
++
++/* Define if readline library is there (-lreadline) */
++#cmakedefine HAVE_LIBREADLINE
++
++/* Have compression library */
++#cmakedefine HAVE_LIBZ
++
++
++/* Define to 1 if you have the `mmap' function. */
++#cmakedefine HAVE_MMAP
++
++/* Define to 1 if you have the `munmap' function. */
++#cmakedefine HAVE_MUNMAP
++
++/* mmap() is no good without munmap() */
++#if defined(HAVE_MMAP) && !defined(HAVE_MUNMAP)
++#  undef /**/ HAVE_MMAP
++#endif
++
++/* Define to 1 if you have the `printf' function. */
++#cmakedefine HAVE_PRINTF
++
++/* Define if <pthread.h> is there */
++#cmakedefine HAVE_PTHREAD_H
++
++/* Define to 1 if you have the `putenv' function. */
++#cmakedefine HAVE_PUTENV
++
++/* Define to 1 if you have the `rand' function. */
++#cmakedefine HAVE_RAND
++
++/* Define to 1 if you have the `rand_r' function. */
++#cmakedefine HAVE_RAND_R
++
++/* Have shl_load based dso */
++#cmakedefine HAVE_SHLLOAD
++
++/* Define to 1 if you have the `signal' function. */
++#cmakedefine HAVE_SIGNAL
++
++/* Define to 1 if you have the `snprintf' function. */
++#cmakedefine HAVE_SNPRINTF
++
++/* Define to 1 if you have the `sprintf' function. */
++#cmakedefine HAVE_SPRINTF
++
++/* Define to 1 if you have the `srand' function. */
++#cmakedefine HAVE_SRAND
++
++/* Define to 1 if you have the `sscanf' function. */
++#cmakedefine HAVE_SSCANF
++
++/* Define to 1 if you have the `stat' function. */
++#cmakedefine HAVE_STAT
++
++
++/* Define to 1 if you have the `strdup' function. */
++#cmakedefine HAVE_STRDUP
++
++/* Define to 1 if you have the `strerror' function. */
++#cmakedefine HAVE_STRERROR
++
++/* Define to 1 if you have the `strftime' function. */
++#cmakedefine HAVE_STRFTIME
++
++
++/* Define to 1 if you have the `strndup' function. */
++#cmakedefine HAVE_STRNDUP
++
++
++/* Whether va_copy() is available */
++#cmakedefine HAVE_VA_COPY
++
++/* Define to 1 if you have the `vfprintf' function. */
++#cmakedefine HAVE_VFPRINTF
++
++/* Define to 1 if you have the `vsnprintf' function. */
++#cmakedefine HAVE_VSNPRINTF
++
++/* Define to 1 if you have the `vsprintf' function. */
++#cmakedefine HAVE_VSPRINTF
++
++/* Define to 1 if you have the <zlib.h> header file. */
++#cmakedefine HAVE_ZLIB_H
++
++/* Define to 1 if you have the `_stat' function. */
++#cmakedefine HAVE__STAT
++
++/* Whether __va_copy() is available */
++#cmakedefine HAVE___VA_COPY
++
++/* Define as const if the declaration of iconv() needs const. */
++#cmakedefine ICONV_CONST
++
++/* Define to the sub-directory where libtool stores uninstalled libraries. */
++#cmakedefine LT_OBJDIR
++
++/* Name of package */
++#cmakedefine PACKAGE
++
++/* Define to the address where bug reports for this package should be sent. */
++#cmakedefine PACKAGE_BUGREPORT
++
++/* Define to the full name of this package. */
++#cmakedefine PACKAGE_NAME
++
++/* Define to the full name and version of this package. */
++#cmakedefine PACKAGE_STRING
++
++/* Define to the one symbol short name of this package. */
++#cmakedefine PACKAGE_TARNAME
++
++/* Define to the home page for this package. */
++#cmakedefine PACKAGE_URL
++
++/* Define to the version of this package. */
++#cmakedefine PACKAGE_VERSION
++
++/* Type cast for the send() function 2nd arg */
++#cmakedefine SEND_ARG2_CAST
++
++
++/* Support for IPv6 */
++#cmakedefine SUPPORT_IP6
++
++/* Define if va_list is an array type */
++#cmakedefine VA_LIST_IS_ARRAY
++
++/* Version number of package */
++#cmakedefine VERSION
++
++/* Determine what socket length (socklen_t) data type is */
++#cmakedefine XML_SOCKLEN_T
++
++/* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
++   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
++   #define below would cause a syntax error. */
++#cmakedefine _UINT32_T
++
++/* Using the Win32 Socket implementation */
++#cmakedefine _WINSOCKAPI_
++
++/* ss_family is not defined here, use __ss_family instead */
++#cmakedefine ss_family
++
++/* Define to the type of an unsigned integer type of width exactly 32 bits if
++   such a type exists and the standard includes do not define it. */
++
++#if defined(_WIN32)
++#define SEND_ARG2_CAST
++#define GETHOSTBYNAME_ARG_CAST
++#if defined(NEED_SOCKETS)
++#include <wsockcompat.h>
++#endif
++#endif
+--- a/include/libxml/xmlversion.h
++++ b/include/libxml/xmlversion.h
+@@ -291,7 +291,7 @@
+  *
+  * Whether ISO-8859-* support is made available in case iconv is not
+  */
+-#if 1
++#if 0
+ #define LIBXML_ISO8859X_ENABLED
+ #endif
+ 
+@@ -388,7 +388,7 @@
+  *
+  * the string suffix used by dynamic modules (usually shared libraries)
+  */
+-#define LIBXML_MODULE_EXTENSION ".so" 
++#define LIBXML_MODULE_EXTENSION ".dll" 
+ #endif
+ 
+ /**
+@@ -396,7 +396,7 @@
+  *
+  * Whether the Zlib support is compiled in
+  */
+-#if 1
++#if 0
+ #define LIBXML_ZLIB_ENABLED
+ #endif
+ 
+@@ -405,7 +405,7 @@
+  *
+  * Whether the Lzma support is compiled in
+  */
+-#if 1
++#if 0
+ #define LIBXML_LZMA_ENABLED
+ #endif
+ 
