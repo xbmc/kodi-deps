@@ -1,0 +1,566 @@
+--- /dev/null
++++ b/CMakeLists.txt
+@@ -0,0 +1,252 @@
++cmake_minimum_required(VERSION 3.0)
++
++project(libbluray VERSION 1.0.0 LANGUAGES C)
++
++find_package(freetype 2.6 REQUIRED NO_MODULE)
++find_package(iconv 1 REQUIRED)
++find_package(libxml2 2.9 REQUIRED NO_MODULE)
++
++if(MSVC)
++  set(CMAKE_DEBUG_POSTFIX "d")
++endif()
++
++set(SRCS
++  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/headers_fixup.h
++  ${CMAKE_CURRENT_BINARY_DIR}/config.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/bluray-version.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/libbluray.def
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/dirs.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/dirs_win32.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/dir_win32.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/dl.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/dl_win32.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/file.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/file.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/filesystem.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/filesystem.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/file_win32.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/mount.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/mount.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bluray.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bluray.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bluray_internal.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/keys.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/player_settings.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/register.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/register.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/bdid_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/bdid_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/bdparse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/clpi_data.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/clpi_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/clpi_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/extdata_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/extdata_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/index_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/index_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/meta_data.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/meta_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/meta_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/mpls_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/mpls_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/navigation.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/navigation.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/sound_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/sound_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/uo_mask_table.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/graphics_controller.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/graphics_controller.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/graphics_processor.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/graphics_processor.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/hdmv_pids.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/ig.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/ig_decode.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/ig_decode.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/m2ts_demux.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/m2ts_demux.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/m2ts_filter.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/m2ts_filter.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/overlay.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/pes_buffer.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/pes_buffer.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/pg.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/pg_decode.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/pg_decode.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/rle.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/rle.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/textst.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/textst_decode.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/textst_decode.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/textst_render.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/textst_render.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/aacs.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/aacs.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/bdplus.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/bdplus.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/dec.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/dec.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/disc.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/disc.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/enc_info.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/hdmv/hdmv_insn.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/hdmv/hdmv_vm.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/hdmv/hdmv_vm.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/hdmv/mobj_data.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/hdmv/mobj_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/hdmv/mobj_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/hdmv/mobj_print.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/hdmv/mobj_print.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/array.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/array.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/attributes.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/bits.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/bits.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/event_queue.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/event_queue.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/logging.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/logging.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/log_control.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/macro.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/mutex.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/mutex.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/refcnt.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/refcnt.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/strutl.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/strutl.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/time.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/time.h
++)
++
++set(bdj_SRCS
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdj.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdj.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdjo_data.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdjo_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdjo_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/bdjo.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/bdjo.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/java_awt_BDFontMetrics.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/java_awt_BDFontMetrics.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/java_awt_BDGraphics.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/java_awt_BDGraphics.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/org_videolan_Libbluray.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/org_videolan_Libbluray.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/org_videolan_Logger.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/org_videolan_Logger.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/register_native.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/register_native.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/util.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/util.h
++)
++
++
++# BD-J
++
++find_package(JNI)
++if (JNI_FOUND)
++  include_directories("${JAVA_INCLUDE_PATH}")
++  include_directories("${JAVA_INCLUDE_PATH2}")
++  set(HAVE_JNI_H 1)
++endif()
++
++find_package(Java COMPONENTS Development)
++if (JAVA_FOUND)
++  get_filename_component(_JDK_HOME "${Java_JAVA_EXECUTABLE}" PATH)
++  get_filename_component(_JDK_HOME "${_JDK_HOME}/.." ABSOLUTE)
++  message("JDK_HOME=${_JDK_HOME}")
++endif()
++
++if (JNI_FOUND AND JAVA_FOUND)
++  set(USING_BDJAVA 1)
++
++  ADD_LIBRARY(libbluray SHARED ${SRCS} ${bdj_SRCS})
++  target_link_libraries(libbluray PRIVATE freetype::freetype)
++  SET_TARGET_PROPERTIES(libbluray PROPERTIES LINK_FLAGS "/DEF:\"libbluray.def\"")
++  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdj.h DESTINATION include/libbluray)
++else()
++
++ADD_LIBRARY(libbluray SHARED ${SRCS})
++SET_TARGET_PROPERTIES(libbluray PROPERTIES LINK_FLAGS "/DEF:\"libbluray.def\"")
++
++endif()
++
++target_link_libraries(libbluray PRIVATE iconv::iconv libxml2::libxml2)
++target_compile_definitions(libbluray
++  PRIVATE
++  HAVE_CONFIG_H
++  _CRT_SECURE_NO_WARNINGS)
++target_include_directories(libbluray
++  PRIVATE
++  $<BUILD_INTERFACE:.;cmake;src;src/libbluray;${CMAKE_CURRENT_BINARY_DIR}>
++  INTERFACE
++  $<INSTALL_INTERFACE:include/libbluray>
++)
++
++if (EXISTS $ENV{ANT_HOME})
++set(ANT_CMD $ENV{ANT_HOME}/bin/ant)
++set(ANT_BUILD ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/build.xml)
++  # STRING(REGEX REPLACE "/" "\\\\" ANT_BUILD "${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/build.xml")
++  message("ANT command: ${ANT_CMD} -f ${ANT_BUILD}")
++  add_custom_target (ANT
++     COMMENT "compiling libbluray.jar"
++     COMMAND
++        ${ANT_CMD} -f "${ANT_BUILD}"
++                  -Ddist="${CMAKE_CURRENT_BINARY_DIR}"
++                  -Dsrc_awt=:java-j2se
++                  -Dversion="j2se-${libbluray_VERSION}"
++  )
++  add_dependencies(libbluray ANT)
++else()
++  message("ANT path not set, can't compile libbluray.jar")
++endif()
++
++set(HAVE_FT2 1)
++set(HAVE_LIBXML2 1)
++CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cm ${CMAKE_CURRENT_BINARY_DIR}/config.h)
++
++include(CMakePackageConfigHelpers)
++write_basic_package_version_file(
++  ${CMAKE_CURRENT_BINARY_DIR}/libbluray-config-version.cmake
++  VERSION ${libbluray_VERSION}
++  COMPATIBILITY AnyNewerVersion
++)
++
++install(TARGETS libbluray EXPORT libbluray
++  RUNTIME DESTINATION bin
++  ARCHIVE DESTINATION lib
++  LIBRARY DESTINATION lib)
++
++
++install(FILES
++  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/bluray-version.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/filesystem.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bluray.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/overlay.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/keys.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/player_settings.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/log_control.h
++  DESTINATION include/libbluray)
++
++install(FILES
++  $<TARGET_PDB_FILE:libbluray>
++  DESTINATION lib)
++
++install(FILES
++  ${CMAKE_CURRENT_BINARY_DIR}/libbluray-j2se-${libbluray_VERSION}.jar
++  DESTINATION bin)
++
++install(EXPORT libbluray
++  FILE
++    libbluray.cmake
++  NAMESPACE
++    libbluray::
++  DESTINATION
++    lib/cmake/libbluray
++)
++install(
++  FILES
++    cmake/libbluray-config.cmake
++    ${CMAKE_CURRENT_BINARY_DIR}/libbluray-config-version.cmake
++  DESTINATION
++    lib/cmake/libbluray
++)
+--- /dev/null
++++ b/cmake/bluray-version.h
+@@ -0,0 +1,37 @@
++/*
++ * This file is part of libbluray
++ * Copyright (C) 2011 hpi1
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2.1 of the License, or (at your option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with this library. If not, see
++ * <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef BLURAY_VERSION_H_
++#define BLURAY_VERSION_H_
++
++#define BLURAY_VERSION_CODE(major, minor, micro) \
++    (((major) * 10000) +                         \
++     ((minor) *   100) +                         \
++     ((micro) *     1))
++
++#define BLURAY_VERSION_MAJOR 1
++#define BLURAY_VERSION_MINOR 0
++#define BLURAY_VERSION_MICRO 0
++
++#define BLURAY_VERSION_STRING "1.0.0"
++
++#define BLURAY_VERSION \
++    BLURAY_VERSION_CODE(BLURAY_VERSION_MAJOR, BLURAY_VERSION_MINOR, BLURAY_VERSION_MICRO)
++
++#endif /* BLURAY_VERSION_H_ */
+--- /dev/null
++++ b/cmake/headers_fixup.h
+@@ -0,0 +1,97 @@
++#ifdef _MSC_VER /* help visual studio compile vlc headers */
++
++#define WIN32_LEAN_AND_MEAN
++
++# ifndef snwprintf
++#  define snwprintf _snwprintf
++# endif
++# ifndef __cplusplus
++#  define inline __inline
++# endif
++# define strdup _strdup
++typedef signed long int ssize_t;
++typedef signed long int off_t;
++typedef unsigned int mode_t;
++# define N_(x) x
++# define _(x) x
++
++# define alloca _alloca
++# define bzero(a,b) memset( (a), 0, (b) )
++# define bcopy memcpy
++# define bcmp memcmp
++
++// Stats part
++
++#define	_S_IFBLK	0x3000	/* Block: Is this ever set under w32? */
++
++#define _S_IFMT 0xF000
++#define _S_IFDIR 0x4000
++#define _S_IFCHR 0x2000
++#define _S_IFIFO 0x1000
++#define _S_IFREG 0x8000
++#define _S_IREAD 0x0100
++#define _S_IWRITE 0x0080
++#define _S_IEXEC 0x0040
++
++#define S_IFMT _S_IFMT
++#define S_IFDIR _S_IFDIR
++#define S_IFCHR _S_IFCHR
++#define S_IFREG _S_IFREG
++#define S_IREAD _S_IREAD
++#define S_IWRITE _S_IWRITE
++#define S_IEXEC _S_IEXEC
++#define	S_IFIFO		_S_IFIFO
++#define	S_IFBLK		_S_IFBLK
++
++#define	_S_IRWXU	(_S_IREAD | _S_IWRITE | _S_IEXEC)
++#define	_S_IXUSR	_S_IEXEC
++#define	_S_IWUSR	_S_IWRITE
++
++#define	S_IRWXU		_S_IRWXU
++#define	S_IXUSR		_S_IXUSR
++#define	S_IWUSR		_S_IWUSR
++#define	S_IRUSR		_S_IRUSR
++#define	_S_IRUSR	_S_IREAD
++
++# ifndef S_ISREG
++#  define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
++# endif
++
++#ifndef S_ISDIR
++# define S_ISDIR(mode)  (((mode) & S_IFMT) == S_IFDIR)
++#endif
++
++#define	S_ISFIFO(m)	(((m) & S_IFMT) == S_IFIFO)
++#define	S_ISCHR(m)	(((m) & S_IFMT) == S_IFCHR)
++#define	S_ISBLK(m)	(((m) & S_IFMT) == S_IFBLK)
++
++#define __func__ __FUNCDNAME__
++
++# define strcasecmp _stricmp
++# define HAVE_STRCASECMP
++# define strncasecmp _strnicmp
++
++#define HAVE_LLDIV
++#define HAVE_STRNLEN
++#define HAVE_ATOF
++#define HAVE_ATOLL
++#define HAVE_STRTOLL
++#define HAVE_SWAB
++
++/* Values for the second argument to access.
++   These may be OR'd together.  */
++#ifndef R_OK
++# define R_OK    4       /* Test for read permission.  */
++#endif
++
++#ifndef W_OK
++# define W_OK    2       /* Test for write permission.  */
++#endif
++
++#ifndef F_OK
++# define F_OK    0       /* Test for existence.  */
++#endif
++
++#define PATH_MAX MAX_PATH
++
++#endif
+--- /dev/null
++++ b/cmake/libbluray-config.cmake
+@@ -0,0 +1 @@
++include(${CMAKE_CURRENT_LIST_DIR}/libbluray.cmake)
+--- /dev/null
++++ b/cmake/libbluray.def
+@@ -0,0 +1,69 @@
++LIBRARY "libbluray.dll"
++
++EXPORTS
++       bd_chapter_pos
++       bd_close
++       bd_free_bdjo
++       bd_free_clpi
++       bd_free_mobj
++       bd_free_mpls
++       bd_free_title_info
++       bd_get_clpi
++       bd_get_current_angle
++       bd_get_current_chapter
++       bd_get_current_title
++       bd_get_debug_mask
++       bd_get_disc_info
++       bd_get_event
++       bd_get_main_title
++       bd_get_meta
++       bd_get_meta_file
++       bd_get_playlist_info
++       bd_get_sound_effect
++       bd_get_title_info
++       bd_get_title_size
++       bd_get_titles
++       bd_get_version
++       bd_init
++       bd_menu_call
++       bd_mouse_select
++       bd_open
++       bd_open_disc
++       bd_open_files
++       bd_open_stream
++       bd_play
++       bd_play_title
++       bd_read
++       bd_read_bdjo
++       bd_read_clpi
++       bd_read_ext
++       bd_read_file
++       bd_read_mobj
++       bd_read_mpls
++       bd_read_skip_still
++       bd_register_argb_overlay_proc
++       bd_register_dir
++       bd_register_file
++       bd_register_overlay_proc
++       bd_seamless_angle_change
++       bd_seek
++       bd_seek_chapter
++       bd_seek_mark
++       bd_seek_playitem
++       bd_seek_time
++       bd_select_angle
++       bd_select_playlist
++       bd_select_stream
++       bd_select_title
++       bd_set_debug_handler
++       bd_set_debug_mask
++       bd_set_player_setting
++       bd_set_player_setting_str
++       bd_set_rate
++       bd_set_scr
++       bd_start_bdj
++       bd_stop_bdj
++       bd_tell
++       bd_tell_time
++       bd_user_input
++       bdj_jvm_available
+--- /dev/null
++++ b/config.h.cm
+@@ -0,0 +1,63 @@
++/* Define to 1 if libudfread is to be used for disc image access */
++#cmakedefine ENABLE_UDF
++
++/* Define to 1 if using libbluray J2ME stack */
++#cmakedefine HAVE_BDJ_J2ME
++
++/* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
++   */
++#cmakedefine HAVE_DIRENT_H 1
++
++/* Define to 1 if you have the <strings.h> header file. */
++#cmakedefine HAVE_STRINGS_H
++
++/* Define to 1 if libxml2 is to be used for metadata parsing */
++#cmakedefine HAVE_LIBXML2
++
++/* Define to 1 if you have the <mntent.h> header file. */
++#cmakedefine HAVE_MNTENT_H
++
++/* Define to 1 if you have the <pthread.h> header file. */
++#cmakedefine HAVE_PTHREAD_H
++
++/* Define this if you have FreeType2 library */
++#cmakedefine HAVE_FT2
++
++/* Define this if you have fontconfig library */
++#cmakedefine HAVE_FONTCONFIG
++
++/* "Define to 1 if using BD-Java" */
++#define USING_BDJAVA ${USING_BDJAVA}
++
++/* Define to 1 if you have the <jni.h> header file. */
++#define HAVE_JNI_H ${HAVE_JNI_H}
++
++/* "Defines the architecture of the java vm." */
++#cmakedefine JAVA_ARCH
++
++/* "" */
++#define JDK_HOME "${_JDK_HOME}"
++
++/* Name of package */
++#define PACKAGE "libbluray"
++
++/* Define to the address where bug reports for this package should be sent. */
++#define PACKAGE_BUGREPORT "http://www.videolan.org/developers/libbluray.html"
++
++/* Define to the full name of this package. */
++#define PACKAGE_NAME "libbluray"
++
++/* Define to the full name and version of this package. */
++#define PACKAGE_STRING "libbluray @libbluray_VERSION@"
++
++/* Define to the one symbol short name of this package. */
++#define PACKAGE_TARNAME "libbluray"
++
++/* Define to the home page for this package. */
++#define PACKAGE_URL ""
++
++/* Define to the version of this package. */
++#define PACKAGE_VERSION "@libbluray_VERSION@"
++
++/* Version number of package */
++#define VERSION "@libbluray_VERSION@"
+--- a/src/libbluray/bdj/bdj.c
++++ b/src/libbluray/bdj/bdj.c
+@@ -74,10 +74,12 @@
+ {
+     void *result;
+ 
+-    PVOID WINAPI (*pAddDllDirectory)   (PCWSTR);
+-    BOOL  WINAPI (*pRemoveDllDirectory)(PVOID);
+-    pAddDllDirectory    = (__typeof__(pAddDllDirectory))    GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "AddDllDirectory");
+-    pRemoveDllDirectory = (__typeof__(pRemoveDllDirectory)) GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "RemoveDllDirectory");
++    typedef PVOID(WINAPI *AddDllDirectoryF)  (PCWSTR);
++    typedef BOOL(WINAPI *RemoveDllDirectoryF)(PVOID);
++    AddDllDirectoryF pAddDllDirectory;
++    RemoveDllDirectoryF pRemoveDllDirectory;
++    pAddDllDirectory = (AddDllDirectoryF)GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "AddDllDirectory");
++    pRemoveDllDirectory = (RemoveDllDirectoryF)GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "RemoveDllDirectory");
+ 
+     if (pAddDllDirectory && pRemoveDllDirectory) {
+ 
+--- a/src/libbluray/bdnav/meta_parse.c
++++ b/src/libbluray/bdnav/meta_parse.c
+@@ -36,6 +36,7 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <errno.h>
++#include <headers_fixup.h>
+ 
+ #ifdef HAVE_STRINGS_H
+ #include <strings.h>

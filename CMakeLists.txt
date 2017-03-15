@@ -362,3 +362,14 @@ ExternalProject_Add(shairplay
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+
+ExternalProject_Add(libbluray
+	DEPENDS freetype libiconv libxml2
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL ftp://ftp.videolan.org/pub/videolan/libbluray/1.0.0/libbluray-1.0.0.tar.bz2
+	URL_HASH SHA256=f7e3add335c7bbef45824fcd2249a9bf293868598c13f8479352c44ec95374cc
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/freetype/${KODI_PATH}%3B%3B${PREFIX}/libiconv/${KODI_PATH}%3B%3B${PREFIX}/libxml2/${KODI_PATH}
+)
