@@ -73,8 +73,8 @@
 [submodule "libs/p8-platform"]
 	path = libs/p8-platform
 	url = https://github.com/xbmc/platform
-[submodule "lib/libnfs"]
-	path = lib/libnfs
+[submodule "libs/libnfs"]
+	path = libs/libnfs
 	url = https://github.com/xbmc/libnfs
 [submodule "libs/libnfs"]
 	path = libs/libnfs
