@@ -76,9 +76,6 @@
 [submodule "libs/libnfs"]
 	path = libs/libnfs
 	url = https://github.com/xbmc/libnfs
-[submodule "libs/libnfs"]
-	path = libs/libnfs
-	url = https://github.com/xbmc/libnfs
 [submodule "libs/libplist"]
 	path = libs/libplist
 	url = https://github.com/xbmc/libplist
