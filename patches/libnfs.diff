@@ -108,3 +108,16 @@
 +++ b/cmake/libnfs-config.cmake
 @@ -0,0 +1 @@
 +include(${CMAKE_CURRENT_LIST_DIR}/libnfs.cmake)
+--- b/include/nfsc/libnfs.h
++++ b/include/nfsc/libnfs.h
+@@ -1520,8 +1520,8 @@
+  *
+  * returned data must be freed by nfs_free_srvr_list(srv);
+  */
+-struct nfs_server_list *nfs_find_local_servers(void);
+-void free_nfs_srvr_list(struct nfs_server_list *srv);
++EXTERN struct nfs_server_list *nfs_find_local_servers(void);
++EXTERN void free_nfs_srvr_list(struct nfs_server_list *srv);
+ 
+ #ifdef __cplusplus
+ }
