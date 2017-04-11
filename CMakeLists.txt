@@ -298,6 +298,17 @@ ExternalProject_Add(libgpg-error
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
 
+ExternalProject_Add(libgcrypt
+	DEPENDS libgpg-error
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.7.6.tar.bz2
+	URL_HASH SHA256=626aafee84af9d2ce253d2c143dc1c0902dda045780cc241f39970fc60be05bc
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/libgpg-error/${KODI_PATH}
+)
+
 ExternalProject_Add(libmicrohttpd
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.52.tar.gz
