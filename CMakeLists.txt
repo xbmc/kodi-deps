@@ -309,6 +309,18 @@ ExternalProject_Add(libgcrypt
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/libgpg-error/${KODI_PATH}
 )
 
+ExternalProject_Add(libbdplus
+	DOWNLOAD_NAME libbdplus-45c76dd.tar.gz
+	DEPENDS libgcrypt libgpg-error
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://github.com/ace20022/libbdplus/archive/45c76dd.tar.gz
+	URL_HASH SHA256=843081a7fb05567f5d0ca8bbe69996f3cf18bf94e76871519aa8f2e598210f7f
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/libgcrypt/${KODI_PATH}%3B%3B${PREFIX}/libgpg-error/${KODI_PATH}
+)
+
 ExternalProject_Add(libmicrohttpd
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.52.tar.gz
