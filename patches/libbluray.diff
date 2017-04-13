@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,252 @@
+@@ -0,0 +1,251 @@
 +cmake_minimum_required(VERSION 3.0)
 +
 +project(libbluray VERSION 1.0.0 LANGUAGES C)
@@ -165,7 +165,6 @@
 +  ADD_LIBRARY(libbluray SHARED ${SRCS} ${bdj_SRCS})
 +  target_link_libraries(libbluray PRIVATE freetype::freetype)
 +  SET_TARGET_PROPERTIES(libbluray PROPERTIES LINK_FLAGS "/DEF:\"libbluray.def\"")
-+  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdj.h DESTINATION include/libbluray)
 +else()
 +
 +ADD_LIBRARY(libbluray SHARED ${SRCS})
@@ -399,7 +398,7 @@
 +include(${CMAKE_CURRENT_LIST_DIR}/libbluray.cmake)
 --- /dev/null
 +++ b/cmake/libbluray.def
-@@ -0,0 +1,69 @@
+@@ -0,0 +1,68 @@
 +LIBRARY "libbluray.dll"
 +
 +EXPORTS
@@ -468,7 +467,6 @@
 +       bd_tell
 +       bd_tell_time
 +       bd_user_input
-+       bdj_jvm_available
 --- /dev/null
 +++ b/config.h.cm
 @@ -0,0 +1,63 @@
