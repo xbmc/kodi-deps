@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,164 @@
+@@ -0,0 +1,166 @@
 +cmake_minimum_required(VERSION 3.0)
 +
 +project(libpgp-error VERSION 1.2.7 LANGUAGES C)
@@ -66,6 +66,8 @@
 +  INTERFACE
 +  $<INSTALL_INTERFACE:include/libpgp-errors>
 +)
++
++target_link_libraries(libpgp-error PRIVATE Ws2_32.lib)
 +
 +add_custom_command(
 +  TARGET libpgp-error
