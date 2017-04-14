@@ -326,6 +326,15 @@ ExternalProject_Add(libgcrypt
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/libgpg-error/${KODI_PATH}
 )
 
+ExternalProject_Add(winflexbison
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://sourceforge.net/projects/winflexbison/files/win_flex_bison-2.5.9.zip
+	URL_HASH SHA256=aeb05493db39c03579412a54872334dcc54a342d856a755998074008eee4ba25
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+
 ExternalProject_Add(libbdplus
 	DOWNLOAD_NAME libbdplus-45c76dd.tar.gz
 	DEPENDS libgcrypt libgpg-error
