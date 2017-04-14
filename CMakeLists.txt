@@ -381,6 +381,18 @@ ExternalProject_Add(libxslt
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
 
+ExternalProject_Add(libplist
+	DEPENDS libiconv libxml2
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL http://www.libimobiledevice.org/downloads/libplist-1.12.tar.bz2
+	URL_HASH SHA256=0effdedcb3de128c4930d8c03a3854c74c426c16728b8ab5f0a5b6bdc0b644be
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/libiconv/${KODI_PATH}%3B%3B${PREFIX}/libxml2/${KODI_PATH}
+		-DBUILD_SHARED_LIBS:BOOL=ON
+)
+
 ExternalProject_Add(python
 	DEPENDS bzip2 openssl sqlite zlib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
