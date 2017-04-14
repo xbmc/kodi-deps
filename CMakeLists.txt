@@ -289,6 +289,16 @@ add_custom_target(DependenciesDllRequired
 )
 
 
+ExternalProject_Add(lcms2
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://sourceforge.net/projects/lcms/files/lcms/2.8/lcms2-2.8.tar.gz
+	URL_HASH SHA256=66d02b229d2ea9474e62c2b6cd6720fde946155cd1d0d2bffdab829790a0fb22
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff COMMAND
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DBUILD_SHARED_LIBS:BOOL=ON
+)
+
 ExternalProject_Add(libgpg-error
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2
