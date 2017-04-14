@@ -335,6 +335,18 @@ ExternalProject_Add(winflexbison
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
 
+ExternalProject_Add(libaacs
+	DOWNLOAD_NAME libaacs-295df3f.tar.gz
+	DEPENDS libgcrypt libgpg-error winflexbison
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://github.com/ace20022/libaacs/archive/295df3f.tar.gz
+	URL_HASH SHA256=26a77cdec2b19bf84597caf55f083f211e794c0290f5dc56593358d2a5a002b4
+	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/libgcrypt/${KODI_PATH}%3B%3B${PREFIX}/libgpg-error/${KODI_PATH}%3B%3B${PREFIX}/winflexbison/${KODI_PATH}
+)
+
 ExternalProject_Add(libbdplus
 	DOWNLOAD_NAME libbdplus-45c76dd.tar.gz
 	DEPENDS libgcrypt libgpg-error
