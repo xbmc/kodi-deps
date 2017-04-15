@@ -296,6 +296,16 @@ add_custom_target(DependenciesDllRequired
 )
 
 
+ExternalProject_Add(dnssd
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://opensource.apple.com/tarballs/mDNSResponder/mDNSResponder-765.50.9.tar.gz
+	URL_HASH SHA256=de61dd0034357aa50c60806726fb1f70fa8e953ff9cb62eccfb73efad10dba0a
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DBUILD_SHARED_LIBS:BOOL=ON
+)
+
 ExternalProject_Add(lcms2
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://sourceforge.net/projects/lcms/files/lcms/2.8/lcms2-2.8.tar.gz
