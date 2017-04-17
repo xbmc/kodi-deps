@@ -534,8 +534,8 @@ ExternalProject_Add(shairplay
 ExternalProject_Add(libbluray
 	DEPENDS freetype libiconv libxml2
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL ftp://ftp.videolan.org/pub/videolan/libbluray/1.0.0/libbluray-1.0.0.tar.bz2
-	URL_HASH SHA256=f7e3add335c7bbef45824fcd2249a9bf293868598c13f8479352c44ec95374cc
+	URL ftp://ftp.videolan.org/pub/videolan/libbluray/1.0.1/libbluray-1.0.1.tar.bz2
+	URL_HASH SHA512=798d38cc95af87599af5838e5c288f2536a73b33191db8ff3774cf7eb5b835006bea83693f016d47dff551001b98527d8b1f14051f673fb3b28073b820e325d7
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
