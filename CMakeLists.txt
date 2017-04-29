@@ -424,6 +424,19 @@ ExternalProject_Add(libplist
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
 
+ExternalProject_Add(mysql-connector-c
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://dev.mysql.com/get/Downloads/Connector-C/mysql-connector-c-6.1.9-src.tar.gz
+	URL_HASH SHA256=4e808704443365ad5b649673d03eca8fbebc0a4da9f1f96616c6bd1b1901ab2b
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/openssl/${KODI_PATH}
+		-DBUILD_SHARED_LIBS:BOOL=ON
+		-DINSTALL_DOC:BOOL=OFF
+		-DWITH_SSL:STRING=yes
+)
+
 ExternalProject_Add(python
 	DEPENDS bzip2 openssl sqlite zlib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads

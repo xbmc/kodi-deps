@@ -1,0 +1,153 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -450,6 +450,14 @@
+ # Run platform tests
+ INCLUDE(configure.cmake)
+ 
++include(CMakePackageConfigHelpers)
++SET(VERSION_FILE ${CMAKE_CURRENT_BINARY_DIR}/libmysql-config-version.cmake)
++write_basic_package_version_file(
++  ${CMAKE_CURRENT_BINARY_DIR}/libmysql-config-version.cmake
++  VERSION ${VERSION}
++  COMPATIBILITY AnyNewerVersion
++)
++
+ # Common defines and includes
+ ADD_DEFINITIONS(-DHAVE_CONFIG_H)
+ INCLUDE_DIRECTORIES(
+@@ -514,7 +522,7 @@
+ SET(WITH_INNOBASE_STORAGE_ENGINE 0)
+ ADD_SUBDIRECTORY(extra)
+ ADD_SUBDIRECTORY(scripts)
+-ADD_SUBDIRECTORY(testclients)
++# ADD_SUBDIRECTORY(testclients)
+ ADD_SUBDIRECTORY(support-files)
+ 
+ #
+@@ -562,6 +570,7 @@
+ #
+ # RPM installs documentation directly from the source tree
+ #
++IF(INSTALL_DOC)
+ IF(NOT INSTALL_LAYOUT MATCHES "RPM")
+   INSTALL(FILES COPYING LICENSE.mysql
+     DESTINATION ${INSTALL_DOCREADMEDIR}
+@@ -579,6 +588,7 @@
+     COMPONENT Documentation
+   )
+ ENDIF()
++ENDIF()
+ 
+ SET(SSL_DEFINES ${SSL_DEFINES} CACHE INTERNAL "pass SSL_DEFINES to client testing utilities")
+ SET(SSL_INCLUDE_DIRS ${SSL_INCLUDE_DIRS} CACHE INTERNAL "pass SSL_INCLUDE_DIRS to client testing utilities")
+--- a/cmake/install_macros.cmake
++++ b/cmake/install_macros.cmake
+@@ -238,7 +238,37 @@
+   IF(ARG_COMPONENT)
+     SET(COMP COMPONENT ${ARG_COMPONENT})
+   ENDIF()
+-  INSTALL(TARGETS ${TARGETS} DESTINATION ${ARG_DESTINATION} ${COMP})
++  foreach(target ${TARGETS})
++    target_include_directories(${target}
++      INTERFACE
++      $<INSTALL_INTERFACE:include>
++      $<INSTALL_INTERFACE:include/mysql>
++    )
++  endforeach()
++  INSTALL(TARGETS ${TARGETS} EXPORT ${TARGETS}
++    RUNTIME DESTINATION bin
++    ARCHIVE DESTINATION lib
++    LIBRARY DESTINATION lib
++    ${COMP}
++  )
++  install(EXPORT libmysql
++      FILE
++        libmysql.cmake
++      NAMESPACE
++        libmysql::
++      DESTINATION
++        lib/cmake/libmysql
++        )
++    install(
++      FILES
++        ${CMAKE_SOURCE_DIR}/cmake/libmysql-config.cmake
++        ${VERSION_FILE}
++      DESTINATION
++        lib/cmake/libmysql
++    )
++    if(MSVC)
++      install(FILES $<TARGET_PDB_FILE:libmysql> DESTINATION lib)
++    endif()
+   # Connector/C packages should not install any debug files
+   #SET(INSTALL_LOCATION ${ARG_DESTINATION} )
+   #INSTALL_DEBUG_SYMBOLS("${TARGETS}")
+--- /dev/null
++++ b/cmake/libmysql-config.cmake
+@@ -0,0 +1 @@
++include(${CMAKE_CURRENT_LIST_DIR}/libmysql.cmake)
+--- a/cmake/os/Windows.cmake
++++ b/cmake/os/Windows.cmake
+@@ -96,16 +96,16 @@
+   #     30% or so. If you do want to keep inlining off, set the
+   #     cmake flag WIN_DEBUG_NO_INLINE.
+   FOREACH(lang C CXX)
+-    SET(CMAKE_${lang}_FLAGS_RELEASE "${CMAKE_${lang}_FLAGS_RELEASE} /Z7")
++    # SET(CMAKE_${lang}_FLAGS_RELEASE "${CMAKE_${lang}_FLAGS_RELEASE} /Z7")
+   ENDFOREACH()
+   IF(NOT WINDOWS_RUNTIME_MD)
+     FOREACH(flag 
+      CMAKE_C_FLAGS_RELEASE    CMAKE_C_FLAGS_RELWITHDEBINFO 
+      CMAKE_C_FLAGS_DEBUG      CMAKE_C_FLAGS_DEBUG_INIT 
+      CMAKE_CXX_FLAGS_RELEASE  CMAKE_CXX_FLAGS_RELWITHDEBINFO
+      CMAKE_CXX_FLAGS_DEBUG    CMAKE_CXX_FLAGS_DEBUG_INIT)
+-     STRING(REPLACE "/MD"  "/MT" "${flag}" "${${flag}}")
+-     STRING(REPLACE "/Zi"  "/Z7" "${flag}" "${${flag}}")
++     # STRING(REPLACE "/MD"  "/MT" "${flag}" "${${flag}}")
++     # STRING(REPLACE "/Zi"  "/Z7" "${flag}" "${${flag}}")
+      IF (NOT WIN_DEBUG_NO_INLINE)
+        STRING(REPLACE "/Ob0"  "/Ob1" "${flag}" "${${flag}}")
+      ENDIF()
+--- a/extra/CMakeLists.txt
++++ b/extra/CMakeLists.txt
+@@ -57,6 +57,7 @@
+ ENDIF()
+ 
+ 
++IF(0)
+ MYSQL_ADD_EXECUTABLE(my_print_defaults my_print_defaults.c)
+ TARGET_LINK_LIBRARIES(my_print_defaults  mysys mysys_ssl)
+ SET_TARGET_PROPERTIES(my_print_defaults PROPERTIES LINKER_LANGUAGE CXX)
+@@ -75,3 +76,4 @@
+   MY_SEARCH_LIBS(inet_aton  "nsl;socket;resolv" SOLARIS_NSL)
+   TARGET_LINK_LIBRARIES(resolveip ${SOLARIS_NSL})
+ ENDIF()
++ENDIF()
+--- a/include/CMakeLists.txt
++++ b/include/CMakeLists.txt
+@@ -64,7 +64,7 @@
+   ${HEADERS_GEN_CONFIGURE}
+ )
+ 
+-INSTALL(FILES ${HEADERS} DESTINATION ${INSTALL_INCLUDEDIR} COMPONENT Development)
++INSTALL(FILES ${HEADERS} DESTINATION ${INSTALL_INCLUDEDIR}/mysql COMPONENT Development)
+ INSTALL(DIRECTORY mysql/ DESTINATION ${INSTALL_INCLUDEDIR}/mysql COMPONENT Development
+  PATTERN "*.h"
+  PATTERN "psi_abi*" EXCLUDE
+--- a/libmysql/CMakeLists.txt
++++ b/libmysql/CMakeLists.txt
+@@ -230,6 +230,7 @@
+   LIST(APPEND LIBS auth_win_client)
+ ENDIF()
+ 
++IF(0)
+ # Merge several convenience libraries into one big mysqlclient
+ IF(STATIC_LIB_SUBDIR)
+   SET(OLD_INSTALL_LIBDIR ${INSTALL_LIBDIR})
+@@ -239,6 +240,7 @@
+ IF(STATIC_LIB_SUBDIR)
+   SET(INSTALL_LIBDIR ${OLD_INSTALL_LIBDIR})
+ ENDIF()
++ENDIF(0)
+ 
+ MACRO(GET_TARGET_NAME target out_name)
+   GET_TARGET_PROPERTY(location ${target} LOCATION)
