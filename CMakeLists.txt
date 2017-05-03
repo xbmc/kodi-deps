@@ -316,6 +316,14 @@ ExternalProject_Add(lcms2
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
 
+ExternalProject_Add(platform
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://github.com/Pulse-Eight/platform/archive/platform-2.1.0.tar.gz
+	URL_HASH SHA256=ae730b5fe34c50df57db44e6925f462061e1a5b6619a20041a7aedfdda8243ef
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+
 ExternalProject_Add(libgpg-error
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2
