@@ -324,6 +324,17 @@ ExternalProject_Add(platform
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
 
+ExternalProject_Add(libcec
+	DEPENDS platform
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://github.com/Pulse-Eight/libcec/archive/libcec-4.0.2.tar.gz
+	URL_HASH SHA256=b8b8dd31f3ebdd5472f03ab7d401600ea0d959b1288b9ca24bf457ef60e2ba27
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/platform/${KODI_PATH}
+)
+
 ExternalProject_Add(libgpg-error
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2
