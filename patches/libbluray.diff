@@ -562,3 +562,13 @@
  
  #ifdef HAVE_STRINGS_H
  #include <strings.h>
+--- a/src/file/dl_win32.c
++++ b/src/file/dl_win32.c
+@@ -82,7 +82,6 @@
+                        "SetDefaultDllDirectories") != NULL)
+ #endif
+         flags = LOAD_LIBRARY_SEARCH_APPLICATION_DIR |
+-                LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR |
+                 LOAD_LIBRARY_SEARCH_SYSTEM32;
+ 
+     result = LoadLibraryExW(wname, NULL, flags);
