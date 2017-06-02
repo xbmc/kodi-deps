@@ -1,0 +1,52 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -6,12 +6,12 @@
+ set(LIBCEC_VERSION_PATCH 2)
+ 
+ # cec-client
+-add_subdirectory(src/cec-client)
+-add_dependencies(cec-client cec)
++# add_subdirectory(src/cec-client)
++# add_dependencies(cec-client cec)
+
+ # cecc-client
+-add_subdirectory(src/cecc-client)
+-add_dependencies(cecc-client cec)
++# add_subdirectory(src/cecc-client)
++# add_dependencies(cecc-client cec)
+ 
+ # pyCecClient
+ add_subdirectory(src/pyCecClient)
+--- a/src/libcec/CMakeLists.txt
++++ b/src/libcec/CMakeLists.txt
+@@ -179,7 +179,10 @@
+ # libCEC target
+ add_library(cec SHARED ${CEC_SOURCES})
+ install(TARGETS cec
+-        DESTINATION ${LIB_DESTINATION})
++  RUNTIME DESTINATION bin
++  ARCHIVE DESTINATION lib
++  LIBRARY DESTINATION lib
++)
+ set_target_properties(cec PROPERTIES VERSION   ${LIBCEC_VERSION_MAJOR}.${LIBCEC_VERSION_MINOR}.${LIBCEC_VERSION_PATCH}
+                                      SOVERSION ${LIBCEC_VERSION_MAJOR})
+ target_link_libraries(cec ${p8-platform_LIBRARIES})
+@@ -187,3 +190,7 @@
+ 
+ include(cmake/LinkPlatformSupport.cmake)
+ include(cmake/DisplayPlatformSupport.cmake)
++
++if(MSVC)
++  install(FILES $<TARGET_PDB_FILE:cec> DESTINATION lib)
++endif()
+--- a/src/libcec/cmake/CheckPlatformSupport.cmake
++++ b/src/libcec/cmake/CheckPlatformSupport.cmake
+@@ -42,6 +42,8 @@
+   # Windows
+   add_definitions(-DTARGET_WINDOWS -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS -D_WINSOCKAPI_)
+   set(LIB_DESTINATION ".")
++  include(CheckSymbolExists)
++  check_symbol_exists(_WIN64 "" WIN64)
+   if (${WIN64})
+     set(LIB_INFO "${LIB_INFO} (x64)")
+   else()
