@@ -443,6 +443,16 @@ ExternalProject_Add(libplist
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
 
+ExternalProject_Add(libudfread
+	DOWNLOAD_NAME libudfread-df23195.tar.gz
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://github.com/ace20022/libudfread/archive/df23195.tar.gz
+	URL_HASH SHA256=b1bd4419db51e05fad3a0c2c168f9d2077fe706c6197ff639e675ed2f9b4c424
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+
 ExternalProject_Add(mysql-connector-c
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://dev.mysql.com/get/Downloads/Connector-C/mysql-connector-c-6.1.9-src.tar.gz

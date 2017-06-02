@@ -1,0 +1,138 @@
+--- /dev/null
++++ b/CMakeLists.txt
+@@ -0,0 +1,77 @@
++cmake_minimum_required(VERSION 3.0)
++
++set(UDFREAD_VERSION_MAJOR 0)
++set(UDFREAD_VERSION_MINOR 0)
++set(UDFREAD_VERSION_MICRO 0)
++
++project(libudfread VERSION ${UDFREAD_VERSION_MAJOR}.${UDFREAD_VERSION_MINOR}.${UDFREAD_VERSION_MICRO} LANGUAGES C)
++
++configure_file(src/udfread-version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/src/udfread-version.h)
++
++ADD_LIBRARY(${PROJECT_NAME} SHARED
++  config.h
++  libudfread.def
++  src/blockinput.h
++  src/default_blockinput.h
++  src/default_blockinput.c
++  src/ecma167.h
++  src/ecma167.c
++  src/udfread.c
++  src/udfread.h
++  src/udfread-version.h
++  src/udfread-version.c
++)
++
++SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/DEF:\"libudfread.def\"")
++
++target_compile_definitions(${PROJECT_NAME}
++  PRIVATE
++  HAVE_CONFIG_H
++  PKGDATADIR=""
++  _CRT_SECURE_NO_WARNINGS
++  _CRT_NONSTDC_NO_WARNINGS
++  inline=__inline
++)
++
++target_include_directories(${PROJECT_NAME}
++  PRIVATE
++  $<BUILD_INTERFACE:.;src>
++  INTERFACE
++  $<INSTALL_INTERFACE:include>
++)
++
++include(CMakePackageConfigHelpers)
++write_basic_package_version_file(
++  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
++  VERSION ${PROJECT_VERSION}
++  COMPATIBILITY AnyNewerVersion
++)
++
++install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}
++  RUNTIME DESTINATION bin
++  LIBRARY DESTINATION lib
++  ARCHIVE DESTINATION lib
++)
++
++install(FILES src/udfread.h src/udfread-version.h src/blockinput.h DESTINATION include/udfread)
++
++if(MSVC)
++  set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME ${PROJECT_NAME})
++  install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/${PROJECT_NAME}.pdb DESTINATION lib CONFIGURATIONS RelWithDebInfo)
++endif()
++
++install(EXPORT ${PROJECT_NAME}
++  FILE
++    ${PROJECT_NAME}.cmake
++  NAMESPACE
++    ${PROJECT_NAME}::
++  DESTINATION
++    lib/cmake/${PROJECT_NAME}
++)
++install(
++  FILES
++    cmake/${PROJECT_NAME}-config.cmake
++    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
++  DESTINATION
++    lib/cmake/${PROJECT_NAME}
++)
+--- /dev/null
++++ b/cmake/libudfread-config.cmake
+@@ -0,0 +1 @@
++include(${CMAKE_CURRENT_LIST_DIR}/libudfread.cmake)
+--- /dev/null
++++ b/config.h
+@@ -0,0 +1,8 @@
++/* Define to 1 if you have the <fcntl.h> header file. */
++#define HAVE_FCNTL_H 1
++
++/* Define to 1 if you have the <pthread.h> header file. */
++#undef HAVE_PTHREAD_H
++
++/* Define to 1 if you have the <unistd.h> header file. */
++#undef HAVE_UNISTD_H
+--- /dev/null
++++ b/libudfread.def
+@@ -0,0 +1,15 @@
++EXPORTS
++  udfread_init
++  udfread_open
++  udfread_open_input
++  udfread_close
++  udfread_closedir
++  udfread_opendir
++  udfread_readdir
++  udfread_file_close
++  udfread_file_open
++  udfread_file_read
++  udfread_file_seek
++  udfread_file_size
++  udfread_file_tell
++  udfread_get_volume_id
+--- a/src/default_blockinput.c
++++ b/src/default_blockinput.c
+@@ -41,6 +41,11 @@
+ #include <stdio.h>
+ #endif
+ #include <io.h>
++# undef  lseek
++# define lseek _lseeki64
++# undef  off_t
++# define off_t int64_t
++typedef signed long int ssize_t;
+ #endif
+ 
+ #ifdef __ANDROID__
+--- a/src/udfread.h
++++ b/src/udfread.h
+@@ -29,6 +29,8 @@
+ #include <stdint.h>    /* *int_t */
+ #include <sys/types.h> /* *size_t */
+ 
++typedef signed long int ssize_t;
++
+ /**
+  * @file udfread/udfread.h
+  * external API header
