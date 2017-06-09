@@ -41,3 +41,21 @@
              CONFIGURATIONS Debug)
  ENDIF(MSVC AND INSTALL_MSVC_PDB)
  
+--- a/pcre_compile.c
++++ b/pcre_compile.c
+@@ -4484,6 +4484,7 @@
+ pcre_uchar *previous_callout = NULL;
+ size_t item_hwm_offset = 0;
+ pcre_uint8 classbits[32];
++pcre_uchar *slot = NULL;
+ 
+ /* We can fish out the UTF-8 setting once and for all into a BOOL, but we
+ must not do this for other options (e.g. PCRE_EXTENDED) because they may change
+@@ -6755,7 +6756,6 @@
+       int i, set, unset, namelen;
+       int *optset;
+       const pcre_uchar *name;
+-      pcre_uchar *slot;
+ 
+       switch (*(++ptr))
+         {
