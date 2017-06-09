@@ -168,14 +168,18 @@
   * must have been loaded using ::cp_load_plugin_descriptor with the same
 --- a/libcpluff/internal.h
 +++ b/libcpluff/internal.h
-@@ -83,7 +83,13 @@ extern "C" {
+@@ -83,7 +83,17 @@
   * Macros
   * ----------------------------------------------------------------------*/
  
 -#if defined(DLOPEN_POSIX)
 +#if defined(_WIN32)
 +#define DLHANDLE void *
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
++#define DLOPEN(name) LoadPackagedLibrary(name, 0)
++#else
 +#define DLOPEN(name) LoadLibraryA(name)
++#endif
 +#define DLSYM(handle, symbol) GetProcAddress(handle, symbol)
 +#define DLCLOSE(handle) CloseHandle(handle)
 +#define DLERROR() "WIN32 - TODO"
