@@ -25,7 +25,17 @@
  elseif (WINCE)
    set(BASE_SRCS ${BASE_SRCS} builds/wince/ftdebug.c)
  else ()
-@@ -339,6 +342,11 @@
+@@ -323,6 +326,9 @@
+   set(BASE_SRCS ${BASE_SRCS} src/base/ftdebug.c)
+ endif ()
+ 
++if(MSVC)
++  add_definitions(-D_CRT_SECURE_NO_DEPRECATE -D_CRT_NONSTDC_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS)
++endif()
+ 
+ if (BUILD_FRAMEWORK)
+   set(BASE_SRCS
+@@ -339,6 +345,11 @@
    ${PRIVATE_HEADERS}
    ${BASE_SRCS}
  )
