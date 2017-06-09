@@ -133,6 +133,7 @@ ExternalProject_Add(crossguid
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
 
+if(NOT CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
 ExternalProject_Add(easyhook
 	DOWNLOAD_NAME easyhook-2.7.6035.0.tar.gz
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -143,6 +144,7 @@ ExternalProject_Add(easyhook
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+endif()
 
 ExternalProject_Add(fmt
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
