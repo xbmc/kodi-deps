@@ -1,11 +1,12 @@
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -58,6 +58,10 @@
+@@ -58,6 +58,11 @@
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
  endif()
  
 +if(MSVC)
 +  set(CMAKE_DEBUG_POSTFIX "d")
++  add_definitions(-D_CRT_SECURE_NO_DEPRECATE -D_CRT_NONSTDC_NO_DEPRECATE)
 +endif()
 +
  if(MSVC AND ENABLE_STATIC_RUNTIME)
@@ -86,3 +87,39 @@
 +    position += bufferSize();
 +  }
  }
+--- a/taglib/toolkit/tfilestream.cpp
++++ b/taglib/toolkit/tfilestream.cpp
+@@ -52,9 +52,13 @@
+     const DWORD access = readOnly ? GENERIC_READ : (GENERIC_READ | GENERIC_WRITE);
+ 
+     if(!path.wstr().empty())
++#if defined(WINAPI_FAMILY) || WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP
++      return CreateFile2(path.wstr().c_str(), access, FILE_SHARE_READ, OPEN_EXISTING, NULL);
++#else
+       return CreateFileW(path.wstr().c_str(), access, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+     else if(!path.str().empty())
+       return CreateFileA(path.str().c_str(), access, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
++#endif
+     else
+       return InvalidFileHandle;
+   }
+@@ -427,6 +431,19 @@
+ #endif
+ }
+ 
++#if defined(WINAPI_FAMILY) || WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP
++DWORD GetFileSize(HANDLE hFile, LPDWORD lpFileSizeHigh)
++{
++  FILE_STANDARD_INFO info;
++  if (GetFileInformationByHandleEx(hFile, FileStandardInfo, &info, sizeof(info)))
++  {
++    *lpFileSizeHigh = info.EndOfFile.HighPart;
++    return info.EndOfFile.LowPart;
++  }
++  return 0;
++}
++#endif
++
+ long FileStream::length()
+ {
+   if(!isOpen()) {
