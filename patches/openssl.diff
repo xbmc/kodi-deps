@@ -19,8 +19,8 @@
 +	set(OPENSSL_GENERATE win64a)
 +endif()
 +
-+message(STATUS "perl Configure ${OPENSSL_PLATFORM} enable-static-engine --prefix=${CMAKE_INSTALL_PREFIX}")
-+execute_process(COMMAND perl Configure ${OPENSSL_PLATFORM} enable-static-engine --prefix=${CMAKE_INSTALL_PREFIX} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
++message(STATUS "perl Configure ${OPENSSL_PLATFORM} enable-static-engine no-asm --prefix=${CMAKE_INSTALL_PREFIX}")
++execute_process(COMMAND perl Configure ${OPENSSL_PLATFORM} enable-static-engine no-asm --prefix=${CMAKE_INSTALL_PREFIX} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 +
 +message(STATUS "ms/do_${OPENSSL_GENERATE}.bat")
 +execute_process(COMMAND ms\\do_${OPENSSL_GENERATE}.bat WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
