@@ -1,6 +1,17 @@
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -310,7 +310,7 @@ set(HAVE_LIBCRYPTO OFF)
+@@ -154,6 +154,10 @@
+ option(CURL_DISABLE_GOPHER "to disable Gopher" OFF)
+ mark_as_advanced(CURL_DISABLE_GOPHER)
+ 
++if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++  set(CURL_DISABLE_TELNET ON)
++endif()
++
+ if(HTTP_ONLY)
+   set(CURL_DISABLE_FTP ON)
+   set(CURL_DISABLE_LDAP ON)
+@@ -310,7 +314,7 @@
  set(HAVE_LIBSSL OFF)
  
  if(CMAKE_USE_OPENSSL)
@@ -9,7 +20,16 @@
    if(OPENSSL_FOUND)
      list(APPEND CURL_LIBS ${OPENSSL_LIBRARIES})
      set(USE_OPENSSL ON)
-@@ -459,7 +459,7 @@ set(HAVE_LIBZ OFF)
+@@ -340,7 +344,7 @@
+ endif()
+ 
+ if(NOT CURL_DISABLE_LDAP)
+-  if(WIN32)
++  if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" AND WIN32)
+     option(USE_WIN32_LDAP "Use Windows LDAP implementation" ON)
+     if(USE_WIN32_LDAP)
+       check_library_exists_concat("wldap32" cldap_open HAVE_WLDAP32)
+@@ -459,7 +463,7 @@ set(HAVE_LIBZ OFF)
  set(HAVE_ZLIB_H OFF)
  set(HAVE_ZLIB OFF)
  if(CURL_ZLIB)
@@ -18,6 +38,17 @@
    if(ZLIB_FOUND)
      set(HAVE_ZLIB_H ON)
      set(HAVE_ZLIB ON)
+@@ -1014,7 +1018,9 @@
+ add_definitions(-DHAVE_CONFIG_H)
+ 
+ # For windows, do not allow the compiler to use default target (Vista).
+-if(WIN32)
++if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++  add_definitions(-D_WIN32_WINNT=0x0A00 -DHAVE_STRUCT_POLLFD -D_WINSOCK_DEPRECATED_NO_WARNINGS)
++elseif(WIN32)
+   add_definitions(-D_WIN32_WINNT=0x0501)
+ endif(WIN32)
+ 
 --- a/lib/CMakeLists.txt
 +++ b/lib/CMakeLists.txt
 @@ -99,7 +99,7 @@
