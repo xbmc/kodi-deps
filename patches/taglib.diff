@@ -89,37 +89,40 @@
  }
 --- a/taglib/toolkit/tfilestream.cpp
 +++ b/taglib/toolkit/tfilestream.cpp
-@@ -52,9 +52,13 @@
+@@ -52,9 +52,22 @@
      const DWORD access = readOnly ? GENERIC_READ : (GENERIC_READ | GENERIC_WRITE);
  
      if(!path.wstr().empty())
-+#if defined(WINAPI_FAMILY) || WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP
++#if defined(WINAPI_FAMILY) && WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP
 +      return CreateFile2(path.wstr().c_str(), access, FILE_SHARE_READ, OPEN_EXISTING, NULL);
 +#else
        return CreateFileW(path.wstr().c_str(), access, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
++#endif
      else if(!path.str().empty())
++#if defined(WINAPI_FAMILY) && WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP
++    {
++      auto size = MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, path.str().data(), path.str().size(), NULL, 0);
++      std::wstring tmp(size, L'\0');
++      MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, path.str().data(), path.str().size(), &tmp[0], tmp.size());
++      return CreateFile2(tmp.c_str(), access, FILE_SHARE_READ, OPEN_EXISTING, NULL);
++    }
++#else
        return CreateFileA(path.str().c_str(), access, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 +#endif
      else
        return InvalidFileHandle;
    }
-@@ -427,6 +431,19 @@
- #endif
- }
+@@ -437,7 +450,13 @@
+ #ifdef _WIN32
  
-+#if defined(WINAPI_FAMILY) || WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP
-+DWORD GetFileSize(HANDLE hFile, LPDWORD lpFileSizeHigh)
-+{
-+  FILE_STANDARD_INFO info;
-+  if (GetFileInformationByHandleEx(hFile, FileStandardInfo, &info, sizeof(info)))
-+  {
-+    *lpFileSizeHigh = info.EndOfFile.HighPart;
-+    return info.EndOfFile.LowPart;
-+  }
-+  return 0;
-+}
+   SetLastError(NO_ERROR);
++#if defined(WINAPI_FAMILY) && WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP
++  LARGE_INTEGER fSize;
++  GetFileSizeEx(d->file, &fSize);
++  LONGLONG fileSize = fSize.QuadPart;
++#else
+   const DWORD fileSize = GetFileSize(d->file, NULL);
 +#endif
-+
- long FileStream::length()
- {
-   if(!isOpen()) {
+   if(GetLastError() == NO_ERROR) {
+     return static_cast<long>(fileSize);
+   }
