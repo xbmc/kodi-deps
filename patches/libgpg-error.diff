@@ -372,106 +372,6 @@
 +#define GPGRT_ENABLE_ES_MACROS 1
 +
 --- /dev/null
-+++ b/cmake/headers_fixup.h
-@@ -0,0 +1,97 @@
-+#ifdef _MSC_VER /* help visual studio compile vlc headers */
-+
-+#define WIN32_LEAN_AND_MEAN
-+
-+# ifndef snwprintf
-+#  define snwprintf _snwprintf
-+# endif
-+# ifndef __cplusplus
-+#  define inline __inline
-+# endif
-+# define strdup _strdup
-+typedef signed long int ssize_t;
-+typedef signed long int off_t;
-+typedef unsigned int mode_t;
-+//# define N_(x) x
-+//# define _(x) x
-+
-+# define alloca _alloca
-+# define bzero(a,b) memset( (a), 0, (b) )
-+# define bcopy memcpy
-+# define bcmp memcmp
-+
-+// Stats part
-+
-+#define	_S_IFBLK	0x3000	/* Block: Is this ever set under w32? */
-+
-+#define _S_IFMT 0xF000
-+#define _S_IFDIR 0x4000
-+#define _S_IFCHR 0x2000
-+#define _S_IFIFO 0x1000
-+#define _S_IFREG 0x8000
-+#define _S_IREAD 0x0100
-+#define _S_IWRITE 0x0080
-+#define _S_IEXEC 0x0040
-+
-+#define S_IFMT _S_IFMT
-+#define S_IFDIR _S_IFDIR
-+#define S_IFCHR _S_IFCHR
-+#define S_IFREG _S_IFREG
-+#define S_IREAD _S_IREAD
-+#define S_IWRITE _S_IWRITE
-+#define S_IEXEC _S_IEXEC
-+#define	S_IFIFO		_S_IFIFO
-+#define	S_IFBLK		_S_IFBLK
-+
-+#define	_S_IRWXU	(_S_IREAD | _S_IWRITE | _S_IEXEC)
-+#define	_S_IXUSR	_S_IEXEC
-+#define	_S_IWUSR	_S_IWRITE
-+
-+#define	S_IRWXU		_S_IRWXU
-+#define	S_IXUSR		_S_IXUSR
-+#define	S_IWUSR		_S_IWUSR
-+#define	S_IRUSR		_S_IRUSR
-+#define	_S_IRUSR	_S_IREAD
-+
-+# ifndef S_ISREG
-+#  define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
-+# endif
-+
-+#ifndef S_ISDIR
-+# define S_ISDIR(mode)  (((mode) & S_IFMT) == S_IFDIR)
-+#endif
-+
-+#define	S_ISFIFO(m)	(((m) & S_IFMT) == S_IFIFO)
-+#define	S_ISCHR(m)	(((m) & S_IFMT) == S_IFCHR)
-+#define	S_ISBLK(m)	(((m) & S_IFMT) == S_IFBLK)
-+
-+#define __func__ __FUNCDNAME__
-+
-+# define strcasecmp _stricmp
-+# define HAVE_STRCASECMP
-+# define strncasecmp _strnicmp
-+
-+#define HAVE_LLDIV
-+#define HAVE_STRNLEN
-+#define HAVE_ATOF
-+#define HAVE_ATOLL
-+#define HAVE_STRTOLL
-+#define HAVE_SWAB
-+
-+/* Values for the second argument to access.
-+   These may be OR'd together.  */
-+#ifndef R_OK
-+# define R_OK    4       /* Test for read permission.  */
-+#endif
-+
-+#ifndef W_OK
-+# define W_OK    2       /* Test for write permission.  */
-+#endif
-+
-+#ifndef F_OK
-+# define F_OK    0       /* Test for existence.  */
-+#endif
-+
-+#define PATH_MAX MAX_PATH
-+
-+#endif
---- /dev/null
 +++ b/cmake/libpgp-error-config.cmake
 @@ -0,0 +1 @@
 +include(${CMAKE_CURRENT_LIST_DIR}/libpgp-error.cmake)
@@ -624,12 +524,11 @@
 +#define BUILD_TIMESTAMP "2017-03-04T09:55+0000"
 --- a/src/estream-printf.c
 +++ b/src/estream-printf.c
-@@ -85,7 +85,7 @@
+@@ -85,7 +85,6 @@
  #include <stdio.h>
  #include <stdlib.h>
  #include <string.h>
 -#include <unistd.h>
-+#include <headers_fixup.h>
  #include <stdarg.h>
  #include <errno.h>
  #include <stddef.h>
@@ -640,47 +539,80 @@
  #endif
  #include <sys/types.h>
 -#include <sys/file.h>
--#include <sys/stat.h>
+ #include <sys/stat.h>
  #include <stdio.h>
  #include <stdlib.h>
  #include <string.h>
 -#include <unistd.h>
-+#include <headers_fixup.h>
 +#include <io.h>
  #include <stdarg.h>
  #include <fcntl.h>
  #include <errno.h>
+@@ -112,6 +111,26 @@
+ 
+ 
+ #ifdef HAVE_W32_SYSTEM
++#define S_IFMT _S_IFMT
++#define S_IFDIR _S_IFDIR
++#define S_IFCHR _S_IFCHR
++#define S_IFREG _S_IFREG
++#define S_IREAD _S_IREAD
++#define S_IWRITE _S_IWRITE
++#define S_IEXEC _S_IEXEC
++#define	S_IFIFO		_S_IFIFO
++#define	S_IFBLK		_S_IFBLK
++
++#define	_S_IRWXU	(_S_IREAD | _S_IWRITE | _S_IEXEC)
++#define	_S_IXUSR	_S_IEXEC
++#define	_S_IWUSR	_S_IWRITE
++
++#define	S_IRWXU		_S_IRWXU
++#define	S_IXUSR		_S_IXUSR
++#define	S_IWUSR		_S_IWUSR
++#define	S_IRUSR		_S_IRUSR
++#define	_S_IRUSR	_S_IREAD
++
+ # ifndef  S_IRGRP
+ #  define S_IRGRP S_IRUSR
+ # endif
 --- a/src/gpg-error.c
 +++ b/src/gpg-error.c
-@@ -50,7 +50,7 @@
- #endif
+@@ -53,6 +53,9 @@
  
- #include <gpg-error.h>
--
-+#include <headers_fixup.h>
  
  #if HAVE_W32_SYSTEM
++# define strcasecmp _stricmp
++# define strncasecmp _strnicmp
++
  /* The implementation follows below.  */
+ static char *get_locale_dir (void);
+ static void drop_locale_dir (char *locale_dir);
 --- a/src/mkheader.c
 +++ b/src/mkheader.c
-@@ -16,7 +16,8 @@
+@@ -16,7 +16,11 @@
  #include <stdlib.h>
  #include <string.h>
  #include <errno.h>
 -#include <unistd.h>
-+#include <headers_fixup.h>
 +#include <io.h>
++#ifndef R_OK
++# define R_OK 4
++#endif
++
  
  #define PGM "mkheader"
  
 --- a/src/w32-estream.c
 +++ b/src/w32-estream.c
-@@ -39,7 +39,7 @@
+@@ -39,7 +39,9 @@
  #endif
  #include <io.h>
  #include <windows.h>
 -
-+#include <headers_fixup.h>
++#ifdef HAVE_W32_SYSTEM
++  typedef SSIZE_T ssize_t;
++#endif
  /* Enable tracing.  The value is the module name to be printed.  */
  /*#define ENABLE_TRACING "estream" */
+ 
  
