@@ -18,7 +18,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
 endif()
 
 if(FOLDER_PER_PLATFORM)
-	set(KODI_PATH "${KODI_PATH}/$(Platform)")
+	if(CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
+		set(KODI_PATH "${KODI_PATH}/win10-$(Platform)")
+	else()
+		set(KODI_PATH "${KODI_PATH}/$(Platform)")
+	endif()
 endif()
 
 if(FOLDER_PER_TARGET)
