@@ -277,9 +277,9 @@ add_custom_target(DependenciesRequired
 		freetype
 		libcdio
 		libfribidi
-		libyajl
 		lzo2
 		pcre
+		rapidjson
 		sqlite
 		taglib
 		tinyxml
