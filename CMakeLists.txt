@@ -285,6 +285,17 @@ add_custom_target(DependenciesRequired
 		tinyxml
 )
 
+add_custom_target(DependenciesRequiredDebug
+	DEPENDS
+		crossguid
+		freetype
+		lzo2
+		pcre
+		sqlite
+		taglib
+		tinyxml
+)
+
 
 # Required, dyloaded deps
 
