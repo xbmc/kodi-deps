@@ -417,8 +417,8 @@ ExternalProject_Add(libaacs
 	DOWNLOAD_NAME libaacs-295df3f.tar.gz
 	DEPENDS libgcrypt libgpg-error winflexbison
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://github.com/ace20022/libaacs/archive/295df3f.tar.gz
-	URL_HASH SHA256=26a77cdec2b19bf84597caf55f083f211e794c0290f5dc56593358d2a5a002b4
+	URL ftp://ftp.videolan.org/pub/videolan/libaacs/0.9.0/libaacs-0.9.0.tar.bz2
+	URL_HASH SHA512=b9c658db22a0966486070d3b762509a7c0120469ab29d1e57c1b624cad309701de8b92455ec649db4d731be4a5c29c38fb4f99bb7617dbb4254270284a1903f6
 	PATCH_COMMAND ${CMAKE_SOURCE_DIR}/patch.exe -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
