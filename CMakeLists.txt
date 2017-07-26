@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 
-project(KodiDependencies)
+project(KodiDependencies LANGUAGES)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
