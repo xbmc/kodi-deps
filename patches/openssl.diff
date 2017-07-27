@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,29 @@
 +cmake_minimum_required(VERSION 3.0)
 +
 +project(openssl VERSION 1.0.2 LANGUAGES C)
@@ -17,6 +17,8 @@
 +	message(STATUS "x64")
 +	set(OPENSSL_PLATFORM VC-WIN64A)
 +	set(OPENSSL_GENERATE win64a)
++else()
++  message(FATAL_ERROR "Unsupported target architecture")
 +endif()
 +
 +message(STATUS "perl Configure ${OPENSSL_PLATFORM} enable-static-engine no-asm --prefix=${CMAKE_INSTALL_PREFIX}")
