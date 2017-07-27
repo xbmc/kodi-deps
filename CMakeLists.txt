@@ -534,6 +534,20 @@ ExternalProject_Add(python
 		-DINSTALL_TEST:BOOL=OFF
 )
 
+ExternalProject_Add(pycryptodome
+	DEPENDS python
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://pypi.python.org/packages/b7/fb/5ea74c6dfe6c4937f2ca2e609155c0d97bdf00f8aa306deb25c8f547fdb8/pycryptodome-3.4.6.tar.gz
+	URL_HASH SHA256=df1be662060cf3abdcf2086ebb401f750744106425ddebf74c57feab410e4923
+	PATCH_COMMAND
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/python/${KODI_PATH}
+		-DBUILD_SHARED_LIBS:BOOL=ON
+)
+
 ExternalProject_Add(shairplay
 	DOWNLOAD_NAME shairplay-ce80e00.tar.gz
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
