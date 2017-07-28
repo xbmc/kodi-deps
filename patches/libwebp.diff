@@ -1,0 +1,57 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,6 +1,6 @@
+-cmake_minimum_required(VERSION 2.8.7)
++cmake_minimum_required(VERSION 3.0)
+ 
+-project(libwebp C)
++project(libwebp VERSION 0.6.0 LANGUAGES C)
+ 
+ # Options for coder / decoder executables.
+ option(WEBP_BUILD_CWEBP "Build the cwebp command line tool." OFF)
+@@ -187,3 +187,41 @@
+     ${WEBP_DEP_LIBRARIES} ${WEBP_DEP_IMG_LIBRARIES}
+   )
+ endif()
++
++include(CMakePackageConfigHelpers)
++write_basic_package_version_file(
++  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
++  VERSION ${${PROJECT_NAME}_VERSION}
++  COMPATIBILITY AnyNewerVersion
++)
++
++install(TARGETS webp EXPORT ${PROJECT_NAME}
++  RUNTIME DESTINATION bin
++  ARCHIVE DESTINATION lib
++  LIBRARY DESTINATION lib
++  INCLUDES DESTINATION include
++)
++
++install(FILES src/webp/decode.h src/webp/demux.h src/webp/encode.h src/webp/types.h DESTINATION include/webp)
++
++if(MSVC)
++  set_target_properties(webp PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME webp)
++  install(FILES "${CMAKE_BINARY_DIR}/RelWithDebInfo/webp.pdb" DESTINATION lib)
++endif()
++
++install(EXPORT ${PROJECT_NAME}
++  FILE
++    ${PROJECT_NAME}.cmake
++  NAMESPACE
++    ${PROJECT_NAME}::
++  DESTINATION
++    lib/cmake/${PROJECT_NAME}
++)
++
++install(
++  FILES
++    cmake/${PROJECT_NAME}-config.cmake
++    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
++  DESTINATION
++    lib/cmake/${PROJECT_NAME}
++)
+--- /dev/null
++++ b/cmake/libwebp-config.cmake
+@@ -0,0 +1 @@
++include(${CMAKE_CURRENT_LIST_DIR}/libwebp.cmake)

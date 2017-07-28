@@ -499,6 +499,17 @@ ExternalProject_Add(libplist
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
 
+ExternalProject_Add(libwebp
+	DOWNLOAD_NAME libwebp-0.6.0.tar.gz
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://github.com/webmproject/libwebp/archive/v0.6.0.tar.gz
+	URL_HASH SHA256=e1bd8b81098b8094edba0f161baf89f9fb1492e3fca19cf1d28eff4b88518702
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+
 ExternalProject_Add(mysql-connector-c
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://dev.mysql.com/get/Downloads/Connector-C/mysql-connector-c-6.1.9-src.tar.gz
