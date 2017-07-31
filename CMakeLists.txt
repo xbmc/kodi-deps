@@ -100,7 +100,7 @@ ExternalProject_Add(zlib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL http://zlib.net/zlib-1.2.11.tar.gz
 	URL_HASH SHA256=c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1
-	PATCH_COMMAND del zconf.h COMMAND mkdir cmake COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
