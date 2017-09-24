@@ -545,6 +545,20 @@ ExternalProject_Add(python
 		-DINSTALL_TEST:BOOL=OFF
 )
 
+ExternalProject_Add(libjpeg-turbo
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://sourceforge.net/projects/libjpeg-turbo/files/1.5.2/libjpeg-turbo-1.5.2.tar.gz
+	URL_HASH SHA256=9098943b270388727ae61de82adec73cf9f0dbb240b3bc8b172595ebf405b528
+	PATCH_COMMAND copy CMakeLists.txt CMakeLists.orig.txt COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DENABLE_SHARED:BOOL=OFF
+		-DINSTALL_DOC:BOOL=OFF
+		-DWITH_JPEG8:BOOL=ON
+		-DWITH_SIMD:BOOL=OFF
+)
+
 ExternalProject_Add(pycryptodome
 	DEPENDS python
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
