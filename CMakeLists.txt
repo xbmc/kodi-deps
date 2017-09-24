@@ -559,6 +559,18 @@ ExternalProject_Add(libjpeg-turbo
 		-DWITH_SIMD:BOOL=OFF
 )
 
+ExternalProject_Add(pillow
+	DEPENDS freetype libjpeg-turbo python zlib
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://pypi.python.org/packages/55/aa/f7f983fb72710a9daa4b3374b7c160091d3f94f5c09221f9336ade9027f3/Pillow-4.2.1.tar.gz
+	URL_HASH SHA256=c724f65870e545316f9e82e4c6d608ab5aa9dd82d5185e5b2e72119378740073
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/freetype/${KODI_PATH}%3B%3B${PREFIX}/libjpeg-turbo/${KODI_PATH}%3B%3B${PREFIX}/python/${KODI_PATH}%3B%3B${PREFIX}/zlib/${KODI_PATH}
+)
+
 ExternalProject_Add(pycryptodome
 	DEPENDS python
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
