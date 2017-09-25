@@ -574,8 +574,8 @@ ExternalProject_Add(pillow
 ExternalProject_Add(pycryptodome
 	DEPENDS python
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://pypi.python.org/packages/b7/fb/5ea74c6dfe6c4937f2ca2e609155c0d97bdf00f8aa306deb25c8f547fdb8/pycryptodome-3.4.6.tar.gz
-	URL_HASH SHA256=df1be662060cf3abdcf2086ebb401f750744106425ddebf74c57feab410e4923
+	URL https://pypi.python.org/packages/2b/9b/aaa940ab8affd66eed043d69332dc607cddd68f9e399d93dcdfc8149fb21/pycryptodome-3.4.7.tar.gz
+	URL_HASH SHA256=18d8dfe31bf0cb53d58694903e526be68f3cf48e6e3c6dfbbc1e7042b1693af7
 	PATCH_COMMAND
 		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
