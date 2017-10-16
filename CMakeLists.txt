@@ -252,12 +252,33 @@ ExternalProject_Add(libfribidi
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL http://fribidi.org/download/fribidi-0.19.7.tar.bz2
 	URL_HASH SHA256=08222a6212bbc2276a2d55c3bf370109ae4a35b689acbc66571ad2a670595a8e
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	PATCH_COMMAND 
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0001-add-cross-compiling.patch
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DLIBFRIBIDI_GENERATORS_PREFIX:PATH=${PACKAGES_DIRECTORY}
+		-DBUILD_SHARED_LIBS:BOOL=ON
 )
 add_dependency_project_package(libfribidi 0.19.7)
+
+if (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+	# this will compile fribidi generators by native build
+	# then they will be used by UWP build
+	ExternalProject_Add(libfribidi-generators
+		DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+		URL http://fribidi.org/download/fribidi-0.19.7.tar.bz2
+		URL_HASH SHA256=08222a6212bbc2276a2d55c3bf370109ae4a35b689acbc66571ad2a670595a8e
+		PATCH_COMMAND 
+			COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/libfribidi.diff
+			COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/libfribidi/0001-add-cross-compiling.patch
+		CMAKE_ARGS
+			-DCMAKE_INSTALL_PREFIX:PATH=${PACKAGES_DIRECTORY}
+			-DBUILD_ONLY_GENERATORS:BOOL=ON
+		)
+	add_dependencies(libfribidi libfribidi-generators)
+endif()
 
 ExternalProject_Add(libyajl
 	DOWNLOAD_NAME yajl-2.1.0.tar.gz

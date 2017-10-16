@@ -1,0 +1,259 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index a58dfd0..0cab6cf 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -14,6 +14,9 @@ set(FRIBIDI_CHARSETS 0)
+ set(FRIBIDI_USE_GLIB 0)
+ set(FRIBIDI_SIZEOF_INT 4)
+ 
++if (BUILD_SHARED_LIBS)
++  set (CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
++endif()
+ 
+ configure_file(
+   ${CMAKE_CURRENT_SOURCE_DIR}/lib/fribidi-config.h.in
+@@ -23,41 +26,54 @@ configure_file(
+ 
+ set(COMPRESSION 2)
+ 
+-add_executable(gen-unicode-version
+-  gen.tab/gen-unicode-version.c)
+-target_include_directories(gen-unicode-version PUBLIC
+-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
+-)
++# when crosscompiling import the executable targets from a file
++if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++  SET(IMPORT_EXECUTABLES ${LIBFRIBIDI_GENERATORS_PREFIX}/tools/FribidiImportExecutables.cmake CACHE FILEPATH "Point it to the export file from a native build")
++  INCLUDE(${IMPORT_EXECUTABLES})
++endif()
++
++if (NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++  add_executable(gen-unicode-version
++    gen.tab/gen-unicode-version.c)
++
++  target_include_directories(gen-unicode-version PUBLIC
++    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
++  )
++
++  target_compile_definitions(gen-unicode-version
++    PRIVATE
++    _CRT_SECURE_NO_WARNINGS
++    _CRT_NONSTDC_NO_DEPRECATE
++  )
++endif()
+ 
+-target_compile_definitions(gen-unicode-version
+-  PRIVATE
+-  _CRT_SECURE_NO_WARNINGS
+-  _CRT_NONSTDC_NO_DEPRECATE
+-)
+ add_custom_target(gen-unicode
+-  COMMAND gen-unicode-version
++  COMMAND $<TARGET_FILE:gen-unicode-version>
+   ${CMAKE_CURRENT_SOURCE_DIR}/gen.tab/unidata/ReadMe.txt >
+   ${CMAKE_CURRENT_SOURCE_DIR}/lib/fribidi-unicode-version.h
+   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib
+   BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/lib/fribidi-unicode-version.h
++  DEPENDS gen-unicode-version
+   )
+ 
+-add_executable(gen-bidi-type-tab
+-  gen.tab/gen-bidi-type-tab.c
+-  gen.tab/packtab.h
+-  gen.tab/packtab.c)
+-target_include_directories(gen-bidi-type-tab PUBLIC
+-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
+-)
+-target_compile_definitions(gen-bidi-type-tab
+-  PRIVATE
+-  _CRT_SECURE_NO_WARNINGS
+-  _CRT_NONSTDC_NO_DEPRECATE
+-)
+-add_dependencies(gen-bidi-type-tab gen-unicode)
++if (NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++  add_executable(gen-bidi-type-tab
++    gen.tab/gen-bidi-type-tab.c
++    gen.tab/packtab.h
++    gen.tab/packtab.c)
++  target_include_directories(gen-bidi-type-tab PUBLIC
++    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
++  )
++  target_compile_definitions(gen-bidi-type-tab
++    PRIVATE
++    _CRT_SECURE_NO_WARNINGS
++    _CRT_NONSTDC_NO_DEPRECATE
++  )
++  add_dependencies(gen-bidi-type-tab gen-unicode)
++endif()
+ 
+ add_custom_target(gen-derived-bidi-type
+-  COMMAND gen-bidi-type-tab
++  COMMAND $<TARGET_FILE:gen-bidi-type-tab>
+   ${COMPRESSION}
+   ${CMAKE_CURRENT_SOURCE_DIR}/gen.tab/unidata/DerivedBidiClass.txt >
+   ${CMAKE_CURRENT_SOURCE_DIR}/lib/derived_bidi-type.tab.i
+@@ -65,76 +81,104 @@ add_custom_target(gen-derived-bidi-type
+   BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/lib/derived_bidi-type.tab.i)
+ 
+ add_custom_target(gen-bidi-type
+-  COMMAND gen-bidi-type-tab
++  COMMAND $<TARGET_FILE:gen-bidi-type-tab>
+   ${COMPRESSION}
+   ${CMAKE_CURRENT_SOURCE_DIR}/gen.tab/unidata/UnicodeData.txt >
+   ${CMAKE_CURRENT_SOURCE_DIR}/lib/bidi-type.tab.i
+   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib
+   BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/lib/bidi-type.tab.i)
+ 
+-add_executable(gen-joining-type-tab
+-  gen.tab/packtab.h
+-  gen.tab/packtab.c
+-  gen.tab/gen-joining-type-tab.c)
+-target_include_directories(gen-joining-type-tab PUBLIC
+-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
+-)
+-target_compile_definitions(gen-joining-type-tab
+-  PRIVATE
+-  _CRT_SECURE_NO_WARNINGS
+-  _CRT_NONSTDC_NO_DEPRECATE
+-)
+-add_dependencies(gen-joining-type-tab gen-unicode)
++if (NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++  add_executable(gen-joining-type-tab
++    gen.tab/packtab.h
++    gen.tab/packtab.c
++    gen.tab/gen-joining-type-tab.c)
++  target_include_directories(gen-joining-type-tab PUBLIC
++    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
++  )
++  target_compile_definitions(gen-joining-type-tab
++    PRIVATE
++    _CRT_SECURE_NO_WARNINGS
++    _CRT_NONSTDC_NO_DEPRECATE
++  )
++  add_dependencies(gen-joining-type-tab gen-unicode)
++endif()
+ 
+ add_custom_target(gen-joining-type
+-  COMMAND gen-joining-type-tab
++  COMMAND $<TARGET_FILE:gen-joining-type-tab>
+   ${COMPRESSION}
+   ${CMAKE_CURRENT_SOURCE_DIR}/gen.tab/unidata/UnicodeData.txt
+   ${CMAKE_CURRENT_SOURCE_DIR}/gen.tab/unidata/ArabicShaping.txt >
+   ${CMAKE_CURRENT_SOURCE_DIR}/lib/joining-type.tab.i
+   BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/lib/joining-type.tab.i)
+ 
+-add_executable(gen-arabic-shaping-tab
+-  gen.tab/gen-arabic-shaping-tab.c)
+-target_include_directories(gen-arabic-shaping-tab PUBLIC
+-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
+-)
+-target_compile_definitions(gen-arabic-shaping-tab
+-  PRIVATE
+-  _CRT_SECURE_NO_WARNINGS
+-  _CRT_NONSTDC_NO_DEPRECATE
+-)
+-add_dependencies(gen-arabic-shaping-tab gen-unicode)
++if (NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++  add_executable(gen-arabic-shaping-tab
++    gen.tab/gen-arabic-shaping-tab.c)
++  target_include_directories(gen-arabic-shaping-tab PUBLIC
++    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
++  )
++  target_compile_definitions(gen-arabic-shaping-tab
++    PRIVATE
++    _CRT_SECURE_NO_WARNINGS
++    _CRT_NONSTDC_NO_DEPRECATE
++  )
++  add_dependencies(gen-arabic-shaping-tab gen-unicode)
++endif()
+ 
+ add_custom_target(gen-arabic-shaping
+-  COMMAND gen-arabic-shaping-tab
++  COMMAND $<TARGET_FILE:gen-arabic-shaping-tab>
+   ${COMPRESSION}
+   ${CMAKE_CURRENT_SOURCE_DIR}/gen.tab/unidata/UnicodeData.txt >
+   ${CMAKE_CURRENT_SOURCE_DIR}/lib/arabic-shaping.tab.i
+   BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/lib/arabic-shaping.tab.i)
+ 
+-add_executable(gen-mirroring-tab
+-  gen.tab/packtab.h
+-  gen.tab/packtab.c
+-  gen.tab/gen-mirroring-tab.c)
+-target_include_directories(gen-mirroring-tab PUBLIC
+-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
+-)
+-target_compile_definitions(gen-mirroring-tab
+-  PRIVATE
+-  _CRT_SECURE_NO_WARNINGS
+-  _CRT_NONSTDC_NO_DEPRECATE
+-)
+-add_dependencies(gen-mirroring-tab gen-unicode)
++if (NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++  add_executable(gen-mirroring-tab
++    gen.tab/packtab.h
++    gen.tab/packtab.c
++    gen.tab/gen-mirroring-tab.c)
++  target_include_directories(gen-mirroring-tab PUBLIC
++    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
++  )
++  target_compile_definitions(gen-mirroring-tab
++    PRIVATE
++    _CRT_SECURE_NO_WARNINGS
++    _CRT_NONSTDC_NO_DEPRECATE
++  )
++  add_dependencies(gen-mirroring-tab gen-unicode)
++endif()
+ 
+ add_custom_target(gen-mirroring
+-  COMMAND gen-mirroring-tab
++  COMMAND $<TARGET_FILE:gen-mirroring-tab>
+   ${COMPRESSION}
+   ${CMAKE_CURRENT_SOURCE_DIR}/gen.tab/unidata/BidiMirroring.txt >
+   ${CMAKE_CURRENT_SOURCE_DIR}/lib/mirroring.tab.i
+   BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/lib/mirroring.tab.i)
+ 
+-add_library(fribidi STATIC
++# export the generator target to a file, so it can be imported (see above) by another build
++# the IF() is not necessary, but makes the intention clearer
++if(BUILD_ONLY_GENERATORS)
++  install(
++    TARGETS 
++      gen-unicode-version
++      gen-bidi-type-tab
++      gen-joining-type-tab
++      gen-arabic-shaping-tab
++      gen-mirroring-tab
++    EXPORT
++      fribigi
++    DESTINATION
++      tools
++  )
++  install(EXPORT fribigi
++  	FILE
++  	  FribidiImportExecutables.cmake
++    DESTINATION
++      tools
++  	)
++else()
++add_library(fribidi
+   lib/bidi-types.h
+   lib/common.h
+   lib/debug.h
+@@ -243,8 +287,13 @@ install(
+   DESTINATION
+     lib/cmake/fribidi
+ )
++if(MSVC)
++  install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/fribidi.pdb DESTINATION lib CONFIGURATIONS RelWithDebInfo)
++  install(FILES ${PROJECT_BINARY_DIR}/Debug/fribidi.pdb DESTINATION lib CONFIGURATIONS Debug)
++endif()
+ export(TARGETS fribidi
+   FILE
+   ${CMAKE_CURRENT_BINARY_DIR}/fribidi-config.cmake
+   NAMESPACE fribidi::
+ )
++endif()
+\ No newline at end of file
+-- 
+2.10.2.windows.1
+
