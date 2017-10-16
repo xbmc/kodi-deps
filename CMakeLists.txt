@@ -132,9 +132,11 @@ add_dependency_project_package(libiconv 1.15)
 
 ExternalProject_Add(openssl
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://www.openssl.org/source/openssl-1.0.2k.tar.gz
-	URL_HASH SHA256=6b3977c61f2aedf0f96367dcfb5c6e578cf37e7b8d913b4ecb6643c3cb88d8c0
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	URL https://github.com/Microsoft/openssl/archive/OpenSSL_1_0_2k_WinRT.zip
+	URL_HASH SHA256=ee4980b6d29fa1818627cf1d7056c491ef9d74de49df4111d21f6127fc889324
+	PATCH_COMMAND 
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/openssl/0001-uwp-build-fix.patch
 	INSTALL_COMMAND
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}

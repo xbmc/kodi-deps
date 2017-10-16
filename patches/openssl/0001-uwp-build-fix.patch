@@ -1,0 +1,116 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 1af9bef..03484bd 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -5,25 +5,55 @@ project(openssl VERSION 1.0.2 LANGUAGES C)
+ include(CheckSymbolExists) 
+ check_symbol_exists(_X86_ "Windows.h" _X86_)
+ check_symbol_exists(_AMD64_ "Windows.h" _AMD64_)
++check_symbol_exists(_ARM_ "Windows.h" _ARM_)
+ 
+ if(_X86_)
+ 	message(STATUS "Win32")
+ 	set(OPENSSL_PLATFORM VC-WIN32)
+ 	set(OPENSSL_GENERATE nasm)
++	set(OPENSSL_UWP_PLATFROM "Win32")
+ elseif(_AMD64_)
+ 	message(STATUS "x64")
+ 	set(OPENSSL_PLATFORM VC-WIN64A)
+ 	set(OPENSSL_GENERATE win64a)
++	set(OPENSSL_UWP_PLATFROM "x64")
+ else()
+-  message(FATAL_ERROR "Unsupported target architecture")
++	if (NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++		message(FATAL_ERROR "Unsupported target architecture")
++	endif()
++	message(STATUS "ARM")
++	set(OPENSSL_UWP_PLATFROM "arm")
+ endif()
+ 
+-message(STATUS "perl Configure ${OPENSSL_PLATFORM} enable-static-engine no-asm --prefix=${CMAKE_INSTALL_PREFIX}")
+-execute_process(COMMAND perl Configure ${OPENSSL_PLATFORM} enable-static-engine no-asm --prefix=${CMAKE_INSTALL_PREFIX} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
++if (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++	set(OPENSSL_PLATFORM VC-WINUNIVERSAL)
++	set(OPENSSL_GENERATE winuniversal)
++	set(OPENSSL_PERL_ARGS "no-dso")
++else()
++	set(OPENSSL_PERL_ARGS "enable-static-engine")
++endif()
++
++message(STATUS "perl Configure ${OPENSSL_PLATFORM} enable-static-engine no-asm ${OPENSSL_PERL_ARGS} --prefix=${CMAKE_INSTALL_PREFIX}")
++execute_process(COMMAND perl Configure ${OPENSSL_PLATFORM} enable-static-engine no-asm ${OPENSSL_PERL_ARGS} --prefix=${CMAKE_INSTALL_PREFIX} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+ 
+ message(STATUS "ms/do_${OPENSSL_GENERATE}.bat")
+ execute_process(COMMAND ms\\do_${OPENSSL_GENERATE}.bat WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+ 
+-add_custom_target(openssl ALL COMMAND nmake -f ms/ntdll.mak WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
++if (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++	add_custom_command(OUTPUT ${OPENSSL_GENERATE}.out
++		COMMAND ms/setVSvars.bat universal10.0${OPENSSL_UWP_PLATFROM}
++		COMMAND nmake -f ms/ntdll.mak 
++		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
++		COMMENT "Compiling OpenSSL UWP"
++	)
++else()
++	add_custom_command(OUTPUT ${OPENSSL_GENERATE}.out
++		COMMAND nmake -f ms/ntdll.mak 
++		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
++		COMMENT "Compiling OpenSSL"
++	)
++endif()
++
++add_custom_target(openssl ALL DEPENDS ${OPENSSL_GENERATE}.out)
+ 
+ install(CODE "execute_process(COMMAND nmake -f ms/ntdll.mak install WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})")
+diff --git a/ms/setVSvars.bat b/ms/setVSvars.bat
+index e6ebc0a..dda5007 100644
+--- a/ms/setVSvars.bat
++++ b/ms/setVSvars.bat
+@@ -3,7 +3,7 @@ call:set_%1
+ exit /b
+ :set_universal10.0Win32
+ 	call:setVar _VS14VC VisualStudio14VC
+-	call "%_VS14VC%vcvarsall" x86 store
++	call "%_VS14VC%vcvarsall" x86 store 10.0.14393.0
+ 	set _VCPlatform=x86
+ 	set _VCLibPlat=
+ 	call:setEnv
+@@ -11,7 +11,7 @@ exit /b
+ 
+ :set_universal10.0x64
+ 	call:setVar _VS14VC VisualStudio14VC
+-	call "%_VS14VC%vcvarsall" x64 store
++	call "%_VS14VC%vcvarsall" x64 store 10.0.14393.0
+ 	set _VCPlatform=x64
+ 	set _VCLibPlat=amd64
+ 	call:setEnv
+@@ -19,7 +19,7 @@ exit /b
+ 
+ :set_universal10.0arm
+ 	call:setVar _VS14VC VisualStudio14VC
+-	call "%_VS14VC%vcvarsall" x86_arm store
++	call "%_VS14VC%vcvarsall" x86_arm store 10.0.14393.0
+ 	set _VCPlatform=ARM
+ 	set _VCLibPlat=ARM
+ 	call:setEnv
+@@ -27,7 +27,7 @@ exit /b
+ 
+ :set_universal10.0arm64
+ 	call:setVar _VS14VC VisualStudio14VC
+-	call "%_VS14VC%vcvarsall" x86_arm64 store
++	call "%_VS14VC%vcvarsall" x86_arm64 store 10.0.14393.0
+ 	set _VCPlatform=ARM64
+ 	set _VCLibPlat=ARM64
+ 	call:setEnv
+@@ -179,7 +179,7 @@ exit /b
+ 	call:setVar _VS14VC VisualStudio14VC
+ 	call:setVar _WKITS10 WindowsKits10.0
+ 	set PATH=%_VS14VCBin%;%PATH%
+-	set "LIBPATH=%_WKITS10%UnionMetadata\Facade;%_VS14VC%vcpackages;%_WKITS10%references\windows.foundation.foundationcontract\1.0.0.0\;%_WKITS10%references\windows.foundation.universalapicontract\1.0.0.0\"
++	set "LIBPATH=%_WKITS10%UnionMetadata\Facade;%_VS14VC%vcpackages;%_WKITS10%references\windows.foundation.foundationcontract\2.0.0.0\;%_WKITS10%references\windows.foundation.universalapicontract\2.0.0.0\"
+ 	goto :eof
+ 
+ :end
+-- 
+2.10.2.windows.1
+
