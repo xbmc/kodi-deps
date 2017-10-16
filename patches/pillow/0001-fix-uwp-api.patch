@@ -1,0 +1,346 @@
+diff --git a/display.c b/display.c
+index 9f49334..77153cf 100644
+--- a/display.c
++++ b/display.c
+@@ -151,6 +151,10 @@ _query_palette(ImagingDisplayObject* display, PyObject* args)
+ static PyObject*
+ _getdc(ImagingDisplayObject* display, PyObject* args)
+ {
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    PyErr_SetString(PyExc_IOError, "not supported on UWP");
++    return NULL;
++#else
+     HWND window;
+     HDC dc;
+ 
+@@ -164,11 +168,16 @@ _getdc(ImagingDisplayObject* display, PyObject* args)
+     }
+ 
+     return Py_BuildValue(F_HANDLE, dc);
++#endif
+ }
+ 
+ static PyObject*
+ _releasedc(ImagingDisplayObject* display, PyObject* args)
+ {
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    PyErr_SetString(PyExc_IOError, "not supported on UWP");
++    return NULL;
++#else
+     HWND window;
+     HDC dc;
+ 
+@@ -179,6 +188,7 @@ _releasedc(ImagingDisplayObject* display, PyObject* args)
+ 
+     Py_INCREF(Py_None);
+     return Py_None;
++#endif
+ }
+ 
+ static PyObject*
+@@ -322,6 +332,10 @@ PyImaging_DisplayModeWin32(PyObject* self, PyObject* args)
+ PyObject*
+ PyImaging_GrabScreenWin32(PyObject* self, PyObject* args)
+ {
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    PyErr_SetString(PyExc_IOError, "not supported on UWP");
++    return NULL;
++#else
+     int width, height;
+     HBITMAP bitmap;
+     BITMAPCOREHEADER core;
+@@ -377,10 +391,15 @@ error:
+     DeleteDC(screen);
+ 
+     return NULL;
++#endif
+ }
+ 
+ static BOOL CALLBACK list_windows_callback(HWND hwnd, LPARAM lParam)
+ {
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    PyErr_SetString(PyExc_IOError, "not supported on UWP");
++    return 0;
++#else
+     PyObject* window_list = (PyObject*) lParam;
+     PyObject* item;
+     PyObject* title;
+@@ -419,11 +438,16 @@ static BOOL CALLBACK list_windows_callback(HWND hwnd, LPARAM lParam)
+         return 0;
+ 
+     return 1;
++#endif
+ }
+ 
+ PyObject*
+ PyImaging_ListWindowsWin32(PyObject* self, PyObject* args)
+ {
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    PyErr_SetString(PyExc_IOError, "not supported on UWP");
++    return NULL;
++#else
+     PyObject* window_list;
+ 
+     window_list = PyList_New(0);
+@@ -438,6 +462,7 @@ PyImaging_ListWindowsWin32(PyObject* self, PyObject* args)
+     }
+ 
+     return window_list;
++#endif
+ }
+ 
+ /* -------------------------------------------------------------------- */
+@@ -446,6 +471,10 @@ PyImaging_ListWindowsWin32(PyObject* self, PyObject* args)
+ PyObject*
+ PyImaging_GrabClipboardWin32(PyObject* self, PyObject* args)
+ {
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    PyErr_SetString(PyExc_IOError, "not supported on UWP");
++    return NULL;
++#else
+     int clip;
+     HANDLE handle;
+     int size;
+@@ -557,6 +586,7 @@ PyImaging_GrabClipboardWin32(PyObject* self, PyObject* args)
+     CloseClipboard();
+ 
+     return result;
++#endif
+ }
+ 
+ /* -------------------------------------------------------------------- */
+@@ -585,6 +615,7 @@ callback_error(const char* handler)
+     PyErr_Clear();
+ }
+ 
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP)
+ static LRESULT CALLBACK
+ windowCallback(HWND wnd, UINT message, WPARAM wParam, LPARAM lParam)
+ {
+@@ -693,10 +724,15 @@ windowCallback(HWND wnd, UINT message, WPARAM wParam, LPARAM lParam)
+ 
+     return status;
+ }
++#endif
+ 
+ PyObject*
+ PyImaging_CreateWindowWin32(PyObject* self, PyObject* args)
+ {
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    PyErr_SetString(PyExc_IOError, "not supported on UWP");
++    return NULL;
++#else
+     HWND wnd;
+     WNDCLASS windowClass;
+ 
+@@ -749,11 +785,16 @@ PyImaging_CreateWindowWin32(PyObject* self, PyObject* args)
+     Py_END_ALLOW_THREADS
+ 
+     return Py_BuildValue(F_HANDLE, wnd);
++#endif
+ }
+ 
+ PyObject*
+ PyImaging_EventLoopWin32(PyObject* self, PyObject* args)
+ {
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    PyErr_SetString(PyExc_IOError, "not supported on UWP");
++    return NULL;
++#else
+     MSG msg;
+ 
+     Py_BEGIN_ALLOW_THREADS
+@@ -765,6 +806,7 @@ PyImaging_EventLoopWin32(PyObject* self, PyObject* args)
+ 
+     Py_INCREF(Py_None);
+     return Py_None;
++#endif
+ }
+ 
+ /* -------------------------------------------------------------------- */
+@@ -775,6 +817,10 @@ PyImaging_EventLoopWin32(PyObject* self, PyObject* args)
+ PyObject *
+ PyImaging_DrawWmf(PyObject* self, PyObject* args)
+ {
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    PyErr_SetString(PyExc_IOError, "not supported on UWP");
++    return NULL;
++#else
+     HBITMAP bitmap;
+     HENHMETAFILE meta;
+     BITMAPCOREHEADER core;
+@@ -869,6 +915,7 @@ error:
+     DeleteDC(dc);
+ 
+     return buffer;
++#endif
+ }
+ 
+ #endif /* _WIN32 */
+diff --git a/libImaging/Dib.c b/libImaging/Dib.c
+index 5042902..269bb93 100644
+--- a/libImaging/Dib.c
++++ b/libImaging/Dib.c
+@@ -30,6 +30,10 @@
+ char*
+ ImagingGetModeDIB(int size_out[2])
+ {
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    PyErr_SetString(PyExc_NotImplementedError, "not implemented on UWP");
++    return "none";
++#else
+     /* Get device characteristics */
+ 
+     HDC dc;
+@@ -52,15 +56,20 @@ ImagingGetModeDIB(int size_out[2])
+     DeleteDC(dc);
+ 
+     return mode;
++#endif
+ }
+ 
+ 
+ ImagingDIB
+ ImagingNewDIB(const char *mode, int xsize, int ysize)
+ {
++    ImagingDIB dib = NULL;
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    PyErr_SetString(PyExc_NotImplementedError, "not implemented on UWP");
++    return dib;
++#else
+     /* Create a Windows bitmap */
+ 
+-    ImagingDIB dib;
+     RGBQUAD *palette;
+     int i;
+ 
+@@ -213,6 +222,7 @@ ImagingNewDIB(const char *mode, int xsize, int ysize)
+     }
+ 
+     return dib;
++#endif
+ }
+ 
+ void
+@@ -232,16 +242,23 @@ ImagingPasteDIB(ImagingDIB dib, Imaging im, int xy[4])
+ void
+ ImagingExposeDIB(ImagingDIB dib, void *dc)
+ {
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    PyErr_SetString(PyExc_NotImplementedError, "not implemented on UWP");
++#else
+     /* Copy bitmap to display */
+ 
+     if (dib->palette != 0)
+         SelectPalette((HDC) dc, dib->palette, FALSE);
+     BitBlt((HDC) dc, 0, 0, dib->xsize, dib->ysize, dib->dc, 0, 0, SRCCOPY);
++#endif
+ }
+ 
+ void
+ ImagingDrawDIB(ImagingDIB dib, void *dc, int dst[4], int src[4])
+ {
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    PyErr_SetString(PyExc_NotImplementedError, "not implemented on UWP");
++#else
+     /* Copy bitmap to printer/display */
+ 
+     if (GetDeviceCaps((HDC) dc, RASTERCAPS) & RC_STRETCHDIB) {
+@@ -257,11 +274,16 @@ ImagingDrawDIB(ImagingDIB dib, void *dc, int dst[4], int src[4])
+                    dib->dc, src[0], src[1], src[2]-src[0], src[3]-src[1],
+                    SRCCOPY);
+     }
++#endif
+ }
+ 
+ int
+ ImagingQueryPaletteDIB(ImagingDIB dib, void *dc)
+ {
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    PyErr_SetString(PyExc_NotImplementedError, "not implemented on UWP");
++    return -1;
++#else
+     /* Install bitmap palette */
+ 
+     int n;
+@@ -279,11 +301,15 @@ ImagingQueryPaletteDIB(ImagingDIB dib, void *dc)
+         n = 0;
+ 
+     return n; /* number of colours that was changed */
++#endif
+ }
+ 
+ void
+ ImagingDeleteDIB(ImagingDIB dib)
+ {
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    PyErr_SetString(PyExc_NotImplementedError, "not implemented on UWP");
++#else
+     /* Clean up */
+ 
+     if (dib->palette)
+@@ -295,6 +321,7 @@ ImagingDeleteDIB(ImagingDIB dib)
+     if (dib->dc)
+         DeleteDC(dib->dc);
+     free(dib->info);
++#endif
+ }
+ 
+ #endif /* _WIN32 */
+diff --git a/libImaging/Quant.c b/libImaging/Quant.c
+index 25aa7f0..7a196f2 100644
+--- a/libImaging/Quant.c
++++ b/libImaging/Quant.c
+@@ -1499,10 +1499,10 @@ ImagingQuantize(Imaging im, int colors, int mode, int kmeans)
+     int x, y, v;
+     UINT8* pp;
+     Pixel* p;
+-    Pixel* palette;
++    Pixel* palette = NULL;
+     uint32_t paletteLength;
+     int result;
+-    uint32_t* newData;
++    uint32_t* newData = NULL;
+     Imaging imOut;
+     int withAlpha = 0;
+     ImagingSectionCookie cookie;
+diff --git a/map.c b/map.c
+index 9d4751e..bf1ec87 100644
+--- a/map.c
++++ b/map.c
+@@ -64,6 +64,15 @@ PyImaging_MapperNew(const char* filename, int readonly)
+     mapper->hMap  = (HANDLE)-1;
+ 
+     /* FIXME: currently supports readonly mappings only */
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    mapper->hFile = CreateFile2(
++        filename,
++        GENERIC_READ,
++        FILE_SHARE_READ,
++        OPEN_EXISTING,
++        NULL
++        );
++#else
+     mapper->hFile = CreateFile(
+         filename,
+         GENERIC_READ,
+@@ -71,6 +80,7 @@ PyImaging_MapperNew(const char* filename, int readonly)
+         NULL, OPEN_EXISTING,
+         FILE_ATTRIBUTE_NORMAL,
+         NULL);
++#endif
+     if (mapper->hFile == (HANDLE)-1) {
+         PyErr_SetString(PyExc_IOError, "cannot open file");
+         Py_DECREF(mapper);
+@@ -93,7 +103,7 @@ PyImaging_MapperNew(const char* filename, int readonly)
+         FILE_MAP_READ,
+         0, 0, 0);
+ 
+-    mapper->size = GetFileSize(mapper->hFile, 0);
++    mapper->size = GetFileSizeEx(mapper->hFile, 0);
+ #endif
+ 
+     return mapper;
+-- 
+2.10.2.windows.1
+
