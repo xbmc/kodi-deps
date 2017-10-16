@@ -1,0 +1,53 @@
+diff --git a/src/lib/crypto/os_port.h b/src/lib/crypto/os_port.h
+index 97df211..a28d4f0 100644
+--- a/src/lib/crypto/os_port.h
++++ b/src/lib/crypto/os_port.h
+@@ -69,7 +69,13 @@ extern "C" {
+ #include <fcntl.h>
+ #endif      /* _WIN32_WCE */
+ 
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP)
+ #include <winsock.h>
++#else
++#define WIN32_LEAN_AND_MEAN
++#include <Windows.h>
++#include <winsock2.h>
++#endif
+ #include <direct.h>
+ #undef getpid
+ #undef open
+diff --git a/src/lib/dnssd.c b/src/lib/dnssd.c
+index 4859e32..e615050 100644
+--- a/src/lib/dnssd.c
++++ b/src/lib/dnssd.c
+@@ -144,7 +144,11 @@ dnssd_init(int *error)
+ 	}
+ 
+ #ifdef WIN32
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP)
+ 	dnssd->module = LoadLibraryA("dnssd.dll");
++#else
++  dnssd->module = LoadPackagedLibrary(L"dnssd.dll", 0);
++#endif
+ 	if (!dnssd->module) {
+ 		if (error) *error = DNSSD_ERROR_LIBNOTFOUND;
+ 		free(dnssd);
+diff --git a/src/lib/memalign.h b/src/lib/memalign.h
+index 33aafb6..73cd727 100644
+--- a/src/lib/memalign.h
++++ b/src/lib/memalign.h
+@@ -22,7 +22,15 @@
+ 	GetSystemInfo(&si);\
+ 	ret = si.dwPageSize;\
+ } while(0)
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP)
+ #define SYSTEM_GET_TIME(ret) ret = timeGetTime()
++#else
++#define SYSTEM_GET_TIME(ret) ret = (unsigned int)(GetTickCount64())
++#endif
+ 
+ #define ALIGNED_MALLOC(memptr, alignment, size) do {\
+ 	char *ptr = malloc(sizeof(void*) + (size) + (alignment)-1);\
+-- 
+2.10.2.windows.1
+

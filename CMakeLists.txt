@@ -765,7 +765,9 @@ ExternalProject_Add(shairplay
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://github.com/juhovh/shairplay/archive/ce80e00.tar.gz
 	URL_HASH SHA256=49ac0e0470ec6367f720c7b79a09165138f57b60f5949a2d9c38be5823d13294
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	PATCH_COMMAND 
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0001-fix-uwp-api.patch
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
