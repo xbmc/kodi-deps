@@ -1,0 +1,1827 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ebd78ee..5039b0e 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -6,6 +6,11 @@ find_package(iconv)
+ find_package(freetype 2.6 REQUIRED NO_MODULE)
+ find_package(fribidi REQUIRED NO_MODULE)
+ 
++if(MSVC)
++  add_definitions(-DWIN32)
++  add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
++endif()
++
+ add_library(libass
+   libass/ass_bitmap.c
+   libass/ass_bitmap.h
+@@ -73,6 +78,17 @@ if(MSVC)
+     CONFIG_DIRECTWRITE
+   )
+   target_link_libraries(libass PRIVATE dwrite.lib)
++  if (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++    target_include_directories(libass
++      PRIVATE
++        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/uwp>
++      INTERFACE
++        $<INSTALL_INTERFACE:include/ass>
++    )
++    target_compile_definitions(libass PRIVATE
++      HAVE_DIRENT_H
++    )
++  endif()
+ set(CMAKE_DEBUG_POSTFIX "d")
+ endif()
+ 
+diff --git a/libass/ass_directwrite.cpp b/libass/ass_directwrite.cpp
+index c8b330f..833170d 100644
+--- a/libass/ass_directwrite.cpp
++++ b/libass/ass_directwrite.cpp
+@@ -23,7 +23,9 @@
+ 
+ #include <initguid.h>
+ #include <ole2.h>
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP)
+ #include <shobjidl.h>
++#endif
+ #include <dwrite.h>
+ 
+ #include "ass_directwrite.h"
+diff --git a/uwp/dirent.h b/uwp/dirent.h
+new file mode 100644
+index 0000000..ad9d2b3
+--- /dev/null
++++ b/uwp/dirent.h
+@@ -0,0 +1,929 @@
++/*
++ * Dirent interface for Microsoft Visual Studio
++ * Version 1.21
++ *
++ * Copyright (C) 2006-2012 Toni Ronkko
++ * This file is part of dirent.  Dirent may be freely distributed
++ * under the MIT license.  For all details and documentation, see
++ * https://github.com/tronkko/dirent
++ */
++#ifndef DIRENT_H
++#define DIRENT_H
++
++/*
++ * Include windows.h without Windows Sockets 1.1 to prevent conflicts with
++ * Windows Sockets 2.0.
++ */
++#ifndef WIN32_LEAN_AND_MEAN
++#   define WIN32_LEAN_AND_MEAN
++#endif
++#include <windows.h>
++
++#include <stdio.h>
++#include <stdarg.h>
++#include <wchar.h>
++#include <string.h>
++#include <stdlib.h>
++#include <malloc.h>
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <errno.h>
++
++/* Indicates that d_type field is available in dirent structure */
++#define _DIRENT_HAVE_D_TYPE
++
++/* Indicates that d_namlen field is available in dirent structure */
++#define _DIRENT_HAVE_D_NAMLEN
++
++/* Entries missing from MSVC 6.0 */
++#if !defined(FILE_ATTRIBUTE_DEVICE)
++#   define FILE_ATTRIBUTE_DEVICE 0x40
++#endif
++
++/* File type and permission flags for stat(), general mask */
++#if !defined(S_IFMT)
++#   define S_IFMT _S_IFMT
++#endif
++
++/* Directory bit */
++#if !defined(S_IFDIR)
++#   define S_IFDIR _S_IFDIR
++#endif
++
++/* Character device bit */
++#if !defined(S_IFCHR)
++#   define S_IFCHR _S_IFCHR
++#endif
++
++/* Pipe bit */
++#if !defined(S_IFFIFO)
++#   define S_IFFIFO _S_IFFIFO
++#endif
++
++/* Regular file bit */
++#if !defined(S_IFREG)
++#   define S_IFREG _S_IFREG
++#endif
++
++/* Read permission */
++#if !defined(S_IREAD)
++#   define S_IREAD _S_IREAD
++#endif
++
++/* Write permission */
++#if !defined(S_IWRITE)
++#   define S_IWRITE _S_IWRITE
++#endif
++
++/* Execute permission */
++#if !defined(S_IEXEC)
++#   define S_IEXEC _S_IEXEC
++#endif
++
++/* Pipe */
++#if !defined(S_IFIFO)
++#   define S_IFIFO _S_IFIFO
++#endif
++
++/* Block device */
++#if !defined(S_IFBLK)
++#   define S_IFBLK 0
++#endif
++
++/* Link */
++#if !defined(S_IFLNK)
++#   define S_IFLNK 0
++#endif
++
++/* Socket */
++#if !defined(S_IFSOCK)
++#   define S_IFSOCK 0
++#endif
++
++/* Read user permission */
++#if !defined(S_IRUSR)
++#   define S_IRUSR S_IREAD
++#endif
++
++/* Write user permission */
++#if !defined(S_IWUSR)
++#   define S_IWUSR S_IWRITE
++#endif
++
++/* Execute user permission */
++#if !defined(S_IXUSR)
++#   define S_IXUSR 0
++#endif
++
++/* Read group permission */
++#if !defined(S_IRGRP)
++#   define S_IRGRP 0
++#endif
++
++/* Write group permission */
++#if !defined(S_IWGRP)
++#   define S_IWGRP 0
++#endif
++
++/* Execute group permission */
++#if !defined(S_IXGRP)
++#   define S_IXGRP 0
++#endif
++
++/* Read others permission */
++#if !defined(S_IROTH)
++#   define S_IROTH 0
++#endif
++
++/* Write others permission */
++#if !defined(S_IWOTH)
++#   define S_IWOTH 0
++#endif
++
++/* Execute others permission */
++#if !defined(S_IXOTH)
++#   define S_IXOTH 0
++#endif
++
++/* Maximum length of file name */
++#if !defined(PATH_MAX)
++#   define PATH_MAX MAX_PATH
++#endif
++#if !defined(FILENAME_MAX)
++#   define FILENAME_MAX MAX_PATH
++#endif
++#if !defined(NAME_MAX)
++#   define NAME_MAX FILENAME_MAX
++#endif
++
++/* File type flags for d_type */
++#define DT_UNKNOWN 0
++#define DT_REG S_IFREG
++#define DT_DIR S_IFDIR
++#define DT_FIFO S_IFIFO
++#define DT_SOCK S_IFSOCK
++#define DT_CHR S_IFCHR
++#define DT_BLK S_IFBLK
++#define DT_LNK S_IFLNK
++
++/* Macros for converting between st_mode and d_type */
++#define IFTODT(mode) ((mode) & S_IFMT)
++#define DTTOIF(type) (type)
++
++/*
++ * File type macros.  Note that block devices, sockets and links cannot be
++ * distinguished on Windows and the macros S_ISBLK, S_ISSOCK and S_ISLNK are
++ * only defined for compatibility.  These macros should always return false
++ * on Windows.
++ */
++#if !defined(S_ISFIFO)
++#   define S_ISFIFO(mode) (((mode) & S_IFMT) == S_IFIFO)
++#endif
++#if !defined(S_ISDIR)
++#   define S_ISDIR(mode) (((mode) & S_IFMT) == S_IFDIR)
++#endif
++#if !defined(S_ISREG)
++#   define S_ISREG(mode) (((mode) & S_IFMT) == S_IFREG)
++#endif
++#if !defined(S_ISLNK)
++#   define S_ISLNK(mode) (((mode) & S_IFMT) == S_IFLNK)
++#endif
++#if !defined(S_ISSOCK)
++#   define S_ISSOCK(mode) (((mode) & S_IFMT) == S_IFSOCK)
++#endif
++#if !defined(S_ISCHR)
++#   define S_ISCHR(mode) (((mode) & S_IFMT) == S_IFCHR)
++#endif
++#if !defined(S_ISBLK)
++#   define S_ISBLK(mode) (((mode) & S_IFMT) == S_IFBLK)
++#endif
++
++/* Return the exact length of d_namlen without zero terminator */
++#define _D_EXACT_NAMLEN(p) ((p)->d_namlen)
++
++/* Return number of bytes needed to store d_namlen */
++#define _D_ALLOC_NAMLEN(p) (PATH_MAX)
++
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++
++/* Wide-character version */
++struct _wdirent {
++    /* Always zero */
++    long d_ino;
++
++    /* Structure size */
++    unsigned short d_reclen;
++
++    /* Length of name without \0 */
++    size_t d_namlen;
++
++    /* File type */
++    int d_type;
++
++    /* File name */
++    wchar_t d_name[PATH_MAX];
++};
++typedef struct _wdirent _wdirent;
++
++struct _WDIR {
++    /* Current directory entry */
++    struct _wdirent ent;
++
++    /* Private file data */
++    WIN32_FIND_DATAW data;
++
++    /* True if data is valid */
++    int cached;
++
++    /* Win32 search handle */
++    HANDLE handle;
++
++    /* Initial directory name */
++    wchar_t *patt;
++};
++typedef struct _WDIR _WDIR;
++
++static _WDIR *_wopendir (const wchar_t *dirname);
++static struct _wdirent *_wreaddir (_WDIR *dirp);
++static int _wclosedir (_WDIR *dirp);
++static void _wrewinddir (_WDIR* dirp);
++
++
++/* For compatibility with Symbian */
++#define wdirent _wdirent
++#define WDIR _WDIR
++#define wopendir _wopendir
++#define wreaddir _wreaddir
++#define wclosedir _wclosedir
++#define wrewinddir _wrewinddir
++
++
++/* Multi-byte character versions */
++struct dirent {
++    /* Always zero */
++    long d_ino;
++
++    /* Structure size */
++    unsigned short d_reclen;
++
++    /* Length of name without \0 */
++    size_t d_namlen;
++
++    /* File type */
++    int d_type;
++
++    /* File name */
++    char d_name[PATH_MAX];
++};
++typedef struct dirent dirent;
++
++struct DIR {
++    struct dirent ent;
++    struct _WDIR *wdirp;
++};
++typedef struct DIR DIR;
++
++static DIR *opendir (const char *dirname);
++static struct dirent *readdir (DIR *dirp);
++static int closedir (DIR *dirp);
++static void rewinddir (DIR* dirp);
++
++
++/* Internal utility functions */
++static WIN32_FIND_DATAW *dirent_first (_WDIR *dirp);
++static WIN32_FIND_DATAW *dirent_next (_WDIR *dirp);
++
++static int dirent_mbstowcs_s(
++    size_t *pReturnValue,
++    wchar_t *wcstr,
++    size_t sizeInWords,
++    const char *mbstr,
++    size_t count);
++
++static int dirent_wcstombs_s(
++    size_t *pReturnValue,
++    char *mbstr,
++    size_t sizeInBytes,
++    const wchar_t *wcstr,
++    size_t count);
++
++static void dirent_set_errno (int error);
++
++/*
++ * Open directory stream DIRNAME for read and return a pointer to the
++ * internal working area that is used to retrieve individual directory
++ * entries.
++ */
++static _WDIR*
++_wopendir(
++    const wchar_t *dirname)
++{
++    _WDIR *dirp = NULL;
++    int error;
++
++    /* Must have directory name */
++    if (dirname == NULL  ||  dirname[0] == '\0') {
++        dirent_set_errno (ENOENT);
++        return NULL;
++    }
++
++    /* Allocate new _WDIR structure */
++    dirp = (_WDIR*) malloc (sizeof (struct _WDIR));
++    if (dirp != NULL) {
++        DWORD n;
++
++        /* Reset _WDIR structure */
++        dirp->handle = INVALID_HANDLE_VALUE;
++        dirp->patt = NULL;
++        dirp->cached = 0;
++
++        /* Compute the length of full path plus zero terminator
++         * 
++         * Note that on WinRT there's no way to convert relative paths
++         * into absolute paths, so just assume its an absolute path.
++         */
++#       if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_PHONE_APP)
++            n = wcslen(dirname);
++#       else
++            n = GetFullPathNameW (dirname, 0, NULL, NULL);
++#       endif
++
++        /* Allocate room for absolute directory name and search pattern */
++        dirp->patt = (wchar_t*) malloc (sizeof (wchar_t) * n + 16);
++        if (dirp->patt) {
++
++            /*
++             * Convert relative directory name to an absolute one.  This
++             * allows rewinddir() to function correctly even when current
++             * working directory is changed between opendir() and rewinddir().
++             * 
++             * Note that on WinRT there's no way to convert relative paths
++             * into absolute paths, so just assume its an absolute path.
++             */
++#           if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_PHONE_APP)
++                wcsncpy_s(dirp->patt, n+1, dirname, n);
++#           else
++                n = GetFullPathNameW (dirname, n, dirp->patt, NULL);
++#           endif
++            if (n > 0) {
++                wchar_t *p;
++
++                /* Append search pattern \* to the directory name */
++                p = dirp->patt + n;
++                if (dirp->patt < p) {
++                    switch (p[-1]) {
++                    case '\\':
++                    case '/':
++                    case ':':
++                        /* Directory ends in path separator, e.g. c:\temp\ */
++                        /*NOP*/;
++                        break;
++
++                    default:
++                        /* Directory name doesn't end in path separator */
++                        *p++ = '\\';
++                    }
++                }
++                *p++ = '*';
++                *p = '\0';
++
++                /* Open directory stream and retrieve the first entry */
++                if (dirent_first (dirp)) {
++                    /* Directory stream opened successfully */
++                    error = 0;
++                } else {
++                    /* Cannot retrieve first entry */
++                    error = 1;
++                    dirent_set_errno (ENOENT);
++                }
++
++            } else {
++                /* Cannot retrieve full path name */
++                dirent_set_errno (ENOENT);
++                error = 1;
++            }
++
++        } else {
++            /* Cannot allocate memory for search pattern */
++            error = 1;
++        }
++
++    } else {
++        /* Cannot allocate _WDIR structure */
++        error = 1;
++    }
++
++    /* Clean up in case of error */
++    if (error  &&  dirp) {
++        _wclosedir (dirp);
++        dirp = NULL;
++    }
++
++    return dirp;
++}
++
++/*
++ * Read next directory entry.  The directory entry is returned in dirent
++ * structure in the d_name field.  Individual directory entries returned by
++ * this function include regular files, sub-directories, pseudo-directories
++ * "." and ".." as well as volume labels, hidden files and system files.
++ */
++static struct _wdirent*
++_wreaddir(
++    _WDIR *dirp)
++{
++    WIN32_FIND_DATAW *datap;
++    struct _wdirent *entp;
++
++    /* Read next directory entry */
++    datap = dirent_next (dirp);
++    if (datap) {
++        size_t n;
++        DWORD attr;
++        
++        /* Pointer to directory entry to return */
++        entp = &dirp->ent;
++
++        /* 
++         * Copy file name as wide-character string.  If the file name is too
++         * long to fit in to the destination buffer, then truncate file name
++         * to PATH_MAX characters and zero-terminate the buffer.
++         */
++        n = 0;
++        while (n + 1 < PATH_MAX  &&  datap->cFileName[n] != 0) {
++            entp->d_name[n] = datap->cFileName[n];
++            n++;
++        }
++        dirp->ent.d_name[n] = 0;
++
++        /* Length of file name excluding zero terminator */
++        entp->d_namlen = n;
++
++        /* File type */
++        attr = datap->dwFileAttributes;
++        if ((attr & FILE_ATTRIBUTE_DEVICE) != 0) {
++            entp->d_type = DT_CHR;
++        } else if ((attr & FILE_ATTRIBUTE_DIRECTORY) != 0) {
++            entp->d_type = DT_DIR;
++        } else {
++            entp->d_type = DT_REG;
++        }
++
++        /* Reset dummy fields */
++        entp->d_ino = 0;
++        entp->d_reclen = sizeof (struct _wdirent);
++
++    } else {
++
++        /* Last directory entry read */
++        entp = NULL;
++
++    }
++
++    return entp;
++}
++
++/*
++ * Close directory stream opened by opendir() function.  This invalidates the
++ * DIR structure as well as any directory entry read previously by
++ * _wreaddir().
++ */
++static int
++_wclosedir(
++    _WDIR *dirp)
++{
++    int ok;
++    if (dirp) {
++
++        /* Release search handle */
++        if (dirp->handle != INVALID_HANDLE_VALUE) {
++            FindClose (dirp->handle);
++            dirp->handle = INVALID_HANDLE_VALUE;
++        }
++
++        /* Release search pattern */
++        if (dirp->patt) {
++            free (dirp->patt);
++            dirp->patt = NULL;
++        }
++
++        /* Release directory structure */
++        free (dirp);
++        ok = /*success*/0;
++
++    } else {
++        /* Invalid directory stream */
++        dirent_set_errno (EBADF);
++        ok = /*failure*/-1;
++    }
++    return ok;
++}
++
++/*
++ * Rewind directory stream such that _wreaddir() returns the very first
++ * file name again.
++ */
++static void
++_wrewinddir(
++    _WDIR* dirp)
++{
++    if (dirp) {
++        /* Release existing search handle */
++        if (dirp->handle != INVALID_HANDLE_VALUE) {
++            FindClose (dirp->handle);
++        }
++
++        /* Open new search handle */
++        dirent_first (dirp);
++    }
++}
++
++/* Get first directory entry (internal) */
++static WIN32_FIND_DATAW*
++dirent_first(
++    _WDIR *dirp)
++{
++    WIN32_FIND_DATAW *datap;
++
++    /* Open directory and retrieve the first entry */
++    dirp->handle = FindFirstFileExW(
++        dirp->patt, FindExInfoStandard, &dirp->data,
++        FindExSearchNameMatch, NULL, 0);
++    if (dirp->handle != INVALID_HANDLE_VALUE) {
++
++        /* a directory entry is now waiting in memory */
++        datap = &dirp->data;
++        dirp->cached = 1;
++
++    } else {
++
++        /* Failed to re-open directory: no directory entry in memory */
++        dirp->cached = 0;
++        datap = NULL;
++
++    }
++    return datap;
++}
++
++/* Get next directory entry (internal) */
++static WIN32_FIND_DATAW*
++dirent_next(
++    _WDIR *dirp)
++{
++    WIN32_FIND_DATAW *p;
++
++    /* Get next directory entry */
++    if (dirp->cached != 0) {
++
++        /* A valid directory entry already in memory */
++        p = &dirp->data;
++        dirp->cached = 0;
++
++    } else if (dirp->handle != INVALID_HANDLE_VALUE) {
++
++        /* Get the next directory entry from stream */
++        if (FindNextFileW (dirp->handle, &dirp->data) != FALSE) {
++            /* Got a file */
++            p = &dirp->data;
++        } else {
++            /* The very last entry has been processed or an error occured */
++            FindClose (dirp->handle);
++            dirp->handle = INVALID_HANDLE_VALUE;
++            p = NULL;
++        }
++
++    } else {
++
++        /* End of directory stream reached */
++        p = NULL;
++
++    }
++
++    return p;
++}
++
++/* 
++ * Open directory stream using plain old C-string.
++ */
++static DIR*
++opendir(
++    const char *dirname) 
++{
++    struct DIR *dirp;
++    int error;
++
++    /* Must have directory name */
++    if (dirname == NULL  ||  dirname[0] == '\0') {
++        dirent_set_errno (ENOENT);
++        return NULL;
++    }
++
++    /* Allocate memory for DIR structure */
++    dirp = (DIR*) malloc (sizeof (struct DIR));
++    if (dirp) {
++        wchar_t wname[PATH_MAX];
++        size_t n;
++
++        /* Convert directory name to wide-character string */
++        error = dirent_mbstowcs_s (&n, wname, PATH_MAX, dirname, PATH_MAX);
++        if (!error) {
++
++            /* Open directory stream using wide-character name */
++            dirp->wdirp = _wopendir (wname);
++            if (dirp->wdirp) {
++                /* Directory stream opened */
++                error = 0;
++            } else {
++                /* Failed to open directory stream */
++                error = 1;
++            }
++
++        } else {
++            /* 
++             * Cannot convert file name to wide-character string.  This
++             * occurs if the string contains invalid multi-byte sequences or
++             * the output buffer is too small to contain the resulting
++             * string.
++             */
++            error = 1;
++        }
++
++    } else {
++        /* Cannot allocate DIR structure */
++        error = 1;
++    }
++
++    /* Clean up in case of error */
++    if (error  &&  dirp) {
++        free (dirp);
++        dirp = NULL;
++    }
++
++    return dirp;
++}
++
++/*
++ * Read next directory entry.
++ *
++ * When working with text consoles, please note that file names returned by
++ * readdir() are represented in the default ANSI code page while any output to
++ * console is typically formatted on another code page.  Thus, non-ASCII
++ * characters in file names will not usually display correctly on console.  The
++ * problem can be fixed in two ways: (1) change the character set of console
++ * to 1252 using chcp utility and use Lucida Console font, or (2) use
++ * _cprintf function when writing to console.  The _cprinf() will re-encode
++ * ANSI strings to the console code page so many non-ASCII characters will
++ * display correcly.
++ */
++static struct dirent*
++readdir(
++    DIR *dirp) 
++{
++    WIN32_FIND_DATAW *datap;
++    struct dirent *entp;
++
++    /* Read next directory entry */
++    datap = dirent_next (dirp->wdirp);
++    if (datap) {
++        size_t n;
++        int error;
++
++        /* Attempt to convert file name to multi-byte string */
++        error = dirent_wcstombs_s(
++            &n, dirp->ent.d_name, PATH_MAX, datap->cFileName, PATH_MAX);
++
++        /* 
++         * If the file name cannot be represented by a multi-byte string,
++         * then attempt to use old 8+3 file name.  This allows traditional
++         * Unix-code to access some file names despite of unicode
++         * characters, although file names may seem unfamiliar to the user.
++         *
++         * Be ware that the code below cannot come up with a short file
++         * name unless the file system provides one.  At least
++         * VirtualBox shared folders fail to do this.
++         */
++        if (error  &&  datap->cAlternateFileName[0] != '\0') {
++            error = dirent_wcstombs_s(
++                &n, dirp->ent.d_name, PATH_MAX, 
++                datap->cAlternateFileName, PATH_MAX);
++        }
++
++        if (!error) {
++            DWORD attr;
++
++            /* Initialize directory entry for return */
++            entp = &dirp->ent;
++
++            /* Length of file name excluding zero terminator */
++            entp->d_namlen = n - 1;
++
++            /* File attributes */
++            attr = datap->dwFileAttributes;
++            if ((attr & FILE_ATTRIBUTE_DEVICE) != 0) {
++                entp->d_type = DT_CHR;
++            } else if ((attr & FILE_ATTRIBUTE_DIRECTORY) != 0) {
++                entp->d_type = DT_DIR;
++            } else {
++                entp->d_type = DT_REG;
++            }
++
++            /* Reset dummy fields */
++            entp->d_ino = 0;
++            entp->d_reclen = sizeof (struct dirent);
++
++        } else {
++            /* 
++             * Cannot convert file name to multi-byte string so construct
++             * an errornous directory entry and return that.  Note that
++             * we cannot return NULL as that would stop the processing
++             * of directory entries completely.
++             */
++            entp = &dirp->ent;
++            entp->d_name[0] = '?';
++            entp->d_name[1] = '\0';
++            entp->d_namlen = 1;
++            entp->d_type = DT_UNKNOWN;
++            entp->d_ino = 0;
++            entp->d_reclen = 0;
++        }
++
++    } else {
++        /* No more directory entries */
++        entp = NULL;
++    }
++
++    return entp;
++}
++
++/*
++ * Close directory stream.
++ */
++static int
++closedir(
++    DIR *dirp) 
++{
++    int ok;
++    if (dirp) {
++
++        /* Close wide-character directory stream */
++        ok = _wclosedir (dirp->wdirp);
++        dirp->wdirp = NULL;
++
++        /* Release multi-byte character version */
++        free (dirp);
++
++    } else {
++
++        /* Invalid directory stream */
++        dirent_set_errno (EBADF);
++        ok = /*failure*/-1;
++
++    }
++    return ok;
++}
++
++/*
++ * Rewind directory stream to beginning.
++ */
++static void
++rewinddir(
++    DIR* dirp) 
++{
++    /* Rewind wide-character string directory stream */
++    _wrewinddir (dirp->wdirp);
++}
++
++/* Convert multi-byte string to wide character string */
++static int
++dirent_mbstowcs_s(
++    size_t *pReturnValue,
++    wchar_t *wcstr,
++    size_t sizeInWords,
++    const char *mbstr,
++    size_t count)
++{
++    int error;
++
++#if defined(_MSC_VER)  &&  _MSC_VER >= 1400
++
++    /* Microsoft Visual Studio 2005 or later */
++    error = mbstowcs_s (pReturnValue, wcstr, sizeInWords, mbstr, count);
++
++#else
++
++    /* Older Visual Studio or non-Microsoft compiler */
++    size_t n;
++
++    /* Convert to wide-character string (or count characters) */
++    n = mbstowcs (wcstr, mbstr, sizeInWords);
++    if (!wcstr  ||  n < count) {
++
++        /* Zero-terminate output buffer */
++        if (wcstr  &&  sizeInWords) {
++            if (n >= sizeInWords) {
++                n = sizeInWords - 1;
++            }
++            wcstr[n] = 0;
++        }
++
++        /* Length of resuting multi-byte string WITH zero terminator */
++        if (pReturnValue) {
++            *pReturnValue = n + 1;
++        }
++
++        /* Success */
++        error = 0;
++
++    } else {
++
++        /* Could not convert string */
++        error = 1;
++
++    }
++
++#endif
++
++    return error;
++}
++
++/* Convert wide-character string to multi-byte string */
++static int
++dirent_wcstombs_s(
++    size_t *pReturnValue,
++    char *mbstr,
++    size_t sizeInBytes, /* max size of mbstr */
++    const wchar_t *wcstr,
++    size_t count)
++{
++    int error;
++
++#if defined(_MSC_VER)  &&  _MSC_VER >= 1400
++
++    /* Microsoft Visual Studio 2005 or later */
++    error = wcstombs_s (pReturnValue, mbstr, sizeInBytes, wcstr, count);
++
++#else
++
++    /* Older Visual Studio or non-Microsoft compiler */
++    size_t n;
++
++    /* Convert to multi-byte string (or count the number of bytes needed) */
++    n = wcstombs (mbstr, wcstr, sizeInBytes);
++    if (!mbstr  ||  n < count) {
++
++        /* Zero-terminate output buffer */
++        if (mbstr  &&  sizeInBytes) {
++            if (n >= sizeInBytes) {
++                n = sizeInBytes - 1;
++            }
++            mbstr[n] = '\0';
++        }
++
++        /* Length of resulting multi-bytes string WITH zero-terminator */
++        if (pReturnValue) {
++            *pReturnValue = n + 1;
++        }
++
++        /* Success */
++        error = 0;
++
++    } else {
++
++        /* Cannot convert string */
++        error = 1;
++
++    }
++
++#endif
++
++    return error;
++}
++
++/* Set errno variable */
++static void
++dirent_set_errno(
++    int error)
++{
++#if defined(_MSC_VER)  &&  _MSC_VER >= 1400
++
++    /* Microsoft Visual Studio 2005 and later */
++    _set_errno (error);
++
++#else
++
++    /* Non-Microsoft compiler or older Microsoft compiler */
++    errno = error;
++
++#endif
++}
++
++
++#ifdef __cplusplus
++}
++#endif
++#endif /*DIRENT_H*/
++
+diff --git a/uwp/getopt.h b/uwp/getopt.h
+new file mode 100644
+index 0000000..ff0251d
+--- /dev/null
++++ b/uwp/getopt.h
+@@ -0,0 +1,193 @@
++/* Declarations for getopt.
++   Copyright (C) 1989-1994,1996-1999,2001,2003,2004,2009
++   Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library; if not, write to the Free
++   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
++   02111-1307 USA.  */
++
++#ifndef _GETOPT_H
++
++#ifndef __need_getopt
++# define _GETOPT_H 1
++#endif
++
++/* If __GNU_LIBRARY__ is not already defined, either we are being used
++   standalone, or this is the first header included in the source file.
++   If we are being used with glibc, we need to include <features.h>, but
++   that does not exist if we are standalone.  So: if __GNU_LIBRARY__ is
++   not defined, include <ctype.h>, which will pull in <features.h> for us
++   if it's from glibc.  (Why ctype.h?  It's guaranteed to exist and it
++   doesn't flood the namespace with stuff the way some other headers do.)  */
++#if !defined __GNU_LIBRARY__
++# include <ctype.h>
++#endif
++
++#ifndef __THROW
++# ifndef __GNUC_PREREQ
++#  define __GNUC_PREREQ(maj, min) (0)
++# endif
++# if defined __cplusplus && __GNUC_PREREQ (2,8)
++#  define __THROW	throw ()
++# else
++#  define __THROW
++# endif
++#endif
++
++#ifdef	__cplusplus
++extern "C" {
++#endif
++
++/* For communication from `getopt' to the caller.
++   When `getopt' finds an option that takes an argument,
++   the argument value is returned here.
++   Also, when `ordering' is RETURN_IN_ORDER,
++   each non-option ARGV-element is returned here.  */
++
++extern char *optarg;
++
++/* Index in ARGV of the next element to be scanned.
++   This is used for communication to and from the caller
++   and for communication between successive calls to `getopt'.
++
++   On entry to `getopt', zero means this is the first call; initialize.
++
++   When `getopt' returns -1, this is the index of the first of the
++   non-option elements that the caller should itself scan.
++
++   Otherwise, `optind' communicates from one call to the next
++   how much of ARGV has been scanned so far.  */
++
++extern int optind;
++
++/* Callers store zero here to inhibit the error message `getopt' prints
++   for unrecognized options.  */
++
++extern int opterr;
++
++/* Set to an option character which was unrecognized.  */
++
++extern int optopt;
++
++#ifndef __need_getopt
++/* Describe the long-named options requested by the application.
++   The LONG_OPTIONS argument to getopt_long or getopt_long_only is a vector
++   of `struct option' terminated by an element containing a name which is
++   zero.
++
++   The field `has_arg' is:
++   no_argument		(or 0) if the option does not take an argument,
++   required_argument	(or 1) if the option requires an argument,
++   optional_argument 	(or 2) if the option takes an optional argument.
++
++   If the field `flag' is not NULL, it points to a variable that is set
++   to the value given in the field `val' when the option is found, but
++   left unchanged if the option is not found.
++
++   To have a long-named option do something other than set an `int' to
++   a compiled-in constant, such as set a value from `optarg', set the
++   option's `flag' field to zero and its `val' field to a nonzero
++   value (the equivalent single-letter option character, if there is
++   one).  For long options that have a zero `flag' field, `getopt'
++   returns the contents of the `val' field.  */
++
++struct option
++{
++  const char *name;
++  /* has_arg can't be an enum because some compilers complain about
++     type mismatches in all the code that assumes it is an int.  */
++  int has_arg;
++  int *flag;
++  int val;
++};
++
++/* Names for the values of the `has_arg' field of `struct option'.  */
++
++# define no_argument		0
++# define required_argument	1
++# define optional_argument	2
++#endif	/* need getopt */
++
++
++/* Get definitions and prototypes for functions to process the
++   arguments in ARGV (ARGC of them, minus the program name) for
++   options given in OPTS.
++
++   Return the option character from OPTS just read.  Return -1 when
++   there are no more options.  For unrecognized options, or options
++   missing arguments, `optopt' is set to the option letter, and '?' is
++   returned.
++
++   The OPTS string is a list of characters which are recognized option
++   letters, optionally followed by colons, specifying that that letter
++   takes an argument, to be placed in `optarg'.
++
++   If a letter in OPTS is followed by two colons, its argument is
++   optional.  This behavior is specific to the GNU `getopt'.
++
++   The argument `--' causes premature termination of argument
++   scanning, explicitly telling `getopt' that there are no more
++   options.
++
++   If OPTS begins with `--', then non-option arguments are treated as
++   arguments to the option '\0'.  This behavior is specific to the GNU
++   `getopt'.  */
++
++#ifdef __GNU_LIBRARY__
++/* Many other libraries have conflicting prototypes for getopt, with
++   differences in the consts, in stdlib.h.  To avoid compilation
++   errors, only prototype getopt for the GNU C library.  */
++extern int getopt (int ___argc, char *const *___argv, const char *__shortopts)
++       __THROW;
++
++# if defined __need_getopt && defined __USE_POSIX2 \
++  && !defined __USE_POSIX_IMPLICITLY && !defined __USE_GNU
++/* The GNU getopt has more functionality than the standard version.  The
++   additional functionality can be disable at runtime.  This redirection
++   helps to also do this at runtime.  */
++#  ifdef __REDIRECT
++  extern int __REDIRECT (getopt, (int ___argc, char *const *___argv,
++				  const char *__shortopts),
++			 __posix_getopt) __THROW;
++#  else
++extern int __posix_getopt (int ___argc, char *const *___argv,
++			   const char *__shortopts) __THROW;
++#   define getopt __posix_getopt
++#  endif
++# endif
++#else /* not __GNU_LIBRARY__ */
++extern int getopt ();
++#endif /* __GNU_LIBRARY__ */
++
++#ifndef __need_getopt
++extern int getopt_long (int ___argc, char *const *___argv,
++			const char *__shortopts,
++		        const struct option *__longopts, int *__longind)
++       __THROW;
++extern int getopt_long_only (int ___argc, char *const *___argv,
++			     const char *__shortopts,
++		             const struct option *__longopts, int *__longind)
++       __THROW;
++
++#endif
++
++#ifdef	__cplusplus
++}
++#endif
++
++/* Make sure we later can get all the definitions and declarations.  */
++#undef __need_getopt
++
++#endif /* getopt.h */
+diff --git a/uwp/inttypes.h b/uwp/inttypes.h
+new file mode 100644
+index 0000000..da18a0d
+--- /dev/null
++++ b/uwp/inttypes.h
+@@ -0,0 +1,306 @@
++// ISO C9x  compliant inttypes.h for Microsoft Visual Studio
++// Based on ISO/IEC 9899:TC2 Committee draft (May 6, 2005) WG14/N1124 
++// 
++//  Copyright (c) 2006-2013 Alexander Chemeris
++// 
++// Redistribution and use in source and binary forms, with or without
++// modification, are permitted provided that the following conditions are met:
++// 
++//   1. Redistributions of source code must retain the above copyright notice,
++//      this list of conditions and the following disclaimer.
++// 
++//   2. Redistributions in binary form must reproduce the above copyright
++//      notice, this list of conditions and the following disclaimer in the
++//      documentation and/or other materials provided with the distribution.
++// 
++//   3. Neither the name of the product nor the names of its contributors may
++//      be used to endorse or promote products derived from this software
++//      without specific prior written permission.
++// 
++// THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
++// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
++// EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
++// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
++// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
++// OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
++// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
++// OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
++// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++// 
++///////////////////////////////////////////////////////////////////////////////
++
++#ifndef _MSC_VER // [
++#error "Use this header only with Microsoft Visual C++ compilers!"
++#endif // _MSC_VER ]
++
++#ifndef _MSC_INTTYPES_H_ // [
++#define _MSC_INTTYPES_H_
++
++#if _MSC_VER > 1000
++#pragma once
++#endif
++
++#include "stdint.h"
++
++// 7.8 Format conversion of integer types
++
++typedef struct {
++  intmax_t quot;
++  intmax_t rem;
++} imaxdiv_t;
++
++// 7.8.1 Macros for format specifiers
++
++#if !defined(__cplusplus) || defined(__STDC_FORMAT_MACROS) // [   See footnote 185 at page 198
++
++// The fprintf macros for signed integers are:
++#define PRId8       "d"
++#define PRIi8       "i"
++#define PRIdLEAST8  "d"
++#define PRIiLEAST8  "i"
++#define PRIdFAST8   "d"
++#define PRIiFAST8   "i"
++
++#define PRId16       "hd"
++#define PRIi16       "hi"
++#define PRIdLEAST16  "hd"
++#define PRIiLEAST16  "hi"
++#define PRIdFAST16   "hd"
++#define PRIiFAST16   "hi"
++
++#define PRId32       "I32d"
++#define PRIi32       "I32i"
++#define PRIdLEAST32  "I32d"
++#define PRIiLEAST32  "I32i"
++#define PRIdFAST32   "I32d"
++#define PRIiFAST32   "I32i"
++
++#define PRId64       "I64d"
++#define PRIi64       "I64i"
++#define PRIdLEAST64  "I64d"
++#define PRIiLEAST64  "I64i"
++#define PRIdFAST64   "I64d"
++#define PRIiFAST64   "I64i"
++
++#define PRIdMAX     "I64d"
++#define PRIiMAX     "I64i"
++
++#define PRIdPTR     "Id"
++#define PRIiPTR     "Ii"
++
++// The fprintf macros for unsigned integers are:
++#define PRIo8       "o"
++#define PRIu8       "u"
++#define PRIx8       "x"
++#define PRIX8       "X"
++#define PRIoLEAST8  "o"
++#define PRIuLEAST8  "u"
++#define PRIxLEAST8  "x"
++#define PRIXLEAST8  "X"
++#define PRIoFAST8   "o"
++#define PRIuFAST8   "u"
++#define PRIxFAST8   "x"
++#define PRIXFAST8   "X"
++
++#define PRIo16       "ho"
++#define PRIu16       "hu"
++#define PRIx16       "hx"
++#define PRIX16       "hX"
++#define PRIoLEAST16  "ho"
++#define PRIuLEAST16  "hu"
++#define PRIxLEAST16  "hx"
++#define PRIXLEAST16  "hX"
++#define PRIoFAST16   "ho"
++#define PRIuFAST16   "hu"
++#define PRIxFAST16   "hx"
++#define PRIXFAST16   "hX"
++
++#define PRIo32       "I32o"
++#define PRIu32       "I32u"
++#define PRIx32       "I32x"
++#define PRIX32       "I32X"
++#define PRIoLEAST32  "I32o"
++#define PRIuLEAST32  "I32u"
++#define PRIxLEAST32  "I32x"
++#define PRIXLEAST32  "I32X"
++#define PRIoFAST32   "I32o"
++#define PRIuFAST32   "I32u"
++#define PRIxFAST32   "I32x"
++#define PRIXFAST32   "I32X"
++
++#define PRIo64       "I64o"
++#define PRIu64       "I64u"
++#define PRIx64       "I64x"
++#define PRIX64       "I64X"
++#define PRIoLEAST64  "I64o"
++#define PRIuLEAST64  "I64u"
++#define PRIxLEAST64  "I64x"
++#define PRIXLEAST64  "I64X"
++#define PRIoFAST64   "I64o"
++#define PRIuFAST64   "I64u"
++#define PRIxFAST64   "I64x"
++#define PRIXFAST64   "I64X"
++
++#define PRIoMAX     "I64o"
++#define PRIuMAX     "I64u"
++#define PRIxMAX     "I64x"
++#define PRIXMAX     "I64X"
++
++#define PRIoPTR     "Io"
++#define PRIuPTR     "Iu"
++#define PRIxPTR     "Ix"
++#define PRIXPTR     "IX"
++
++// The fscanf macros for signed integers are:
++#define SCNd8       "d"
++#define SCNi8       "i"
++#define SCNdLEAST8  "d"
++#define SCNiLEAST8  "i"
++#define SCNdFAST8   "d"
++#define SCNiFAST8   "i"
++
++#define SCNd16       "hd"
++#define SCNi16       "hi"
++#define SCNdLEAST16  "hd"
++#define SCNiLEAST16  "hi"
++#define SCNdFAST16   "hd"
++#define SCNiFAST16   "hi"
++
++#define SCNd32       "ld"
++#define SCNi32       "li"
++#define SCNdLEAST32  "ld"
++#define SCNiLEAST32  "li"
++#define SCNdFAST32   "ld"
++#define SCNiFAST32   "li"
++
++#define SCNd64       "I64d"
++#define SCNi64       "I64i"
++#define SCNdLEAST64  "I64d"
++#define SCNiLEAST64  "I64i"
++#define SCNdFAST64   "I64d"
++#define SCNiFAST64   "I64i"
++
++#define SCNdMAX     "I64d"
++#define SCNiMAX     "I64i"
++
++#ifdef _WIN64 // [
++#  define SCNdPTR     "I64d"
++#  define SCNiPTR     "I64i"
++#else  // _WIN64 ][
++#  define SCNdPTR     "ld"
++#  define SCNiPTR     "li"
++#endif  // _WIN64 ]
++
++// The fscanf macros for unsigned integers are:
++#define SCNo8       "o"
++#define SCNu8       "u"
++#define SCNx8       "x"
++#define SCNX8       "X"
++#define SCNoLEAST8  "o"
++#define SCNuLEAST8  "u"
++#define SCNxLEAST8  "x"
++#define SCNXLEAST8  "X"
++#define SCNoFAST8   "o"
++#define SCNuFAST8   "u"
++#define SCNxFAST8   "x"
++#define SCNXFAST8   "X"
++
++#define SCNo16       "ho"
++#define SCNu16       "hu"
++#define SCNx16       "hx"
++#define SCNX16       "hX"
++#define SCNoLEAST16  "ho"
++#define SCNuLEAST16  "hu"
++#define SCNxLEAST16  "hx"
++#define SCNXLEAST16  "hX"
++#define SCNoFAST16   "ho"
++#define SCNuFAST16   "hu"
++#define SCNxFAST16   "hx"
++#define SCNXFAST16   "hX"
++
++#define SCNo32       "lo"
++#define SCNu32       "lu"
++#define SCNx32       "lx"
++#define SCNX32       "lX"
++#define SCNoLEAST32  "lo"
++#define SCNuLEAST32  "lu"
++#define SCNxLEAST32  "lx"
++#define SCNXLEAST32  "lX"
++#define SCNoFAST32   "lo"
++#define SCNuFAST32   "lu"
++#define SCNxFAST32   "lx"
++#define SCNXFAST32   "lX"
++
++#define SCNo64       "I64o"
++#define SCNu64       "I64u"
++#define SCNx64       "I64x"
++#define SCNX64       "I64X"
++#define SCNoLEAST64  "I64o"
++#define SCNuLEAST64  "I64u"
++#define SCNxLEAST64  "I64x"
++#define SCNXLEAST64  "I64X"
++#define SCNoFAST64   "I64o"
++#define SCNuFAST64   "I64u"
++#define SCNxFAST64   "I64x"
++#define SCNXFAST64   "I64X"
++
++#define SCNoMAX     "I64o"
++#define SCNuMAX     "I64u"
++#define SCNxMAX     "I64x"
++#define SCNXMAX     "I64X"
++
++#ifdef _WIN64 // [
++#  define SCNoPTR     "I64o"
++#  define SCNuPTR     "I64u"
++#  define SCNxPTR     "I64x"
++#  define SCNXPTR     "I64X"
++#else  // _WIN64 ][
++#  define SCNoPTR     "lo"
++#  define SCNuPTR     "lu"
++#  define SCNxPTR     "lx"
++#  define SCNXPTR     "lX"
++#endif  // _WIN64 ]
++
++#endif // __STDC_FORMAT_MACROS ]
++
++// 7.8.2 Functions for greatest-width integer types
++
++// 7.8.2.1 The imaxabs function
++#define imaxabs _abs64
++
++// 7.8.2.2 The imaxdiv function
++
++// This is modified version of div() function from Microsoft's div.c found
++// in %MSVC.NET%\crt\src\div.c
++#ifdef STATIC_IMAXDIV // [
++static
++#else // STATIC_IMAXDIV ][
++_inline
++#endif // STATIC_IMAXDIV ]
++  imaxdiv_t __cdecl imaxdiv(intmax_t numer, intmax_t denom)
++{
++  imaxdiv_t result;
++
++  result.quot = numer / denom;
++  result.rem = numer % denom;
++
++  if (numer < 0 && result.rem > 0) {
++    // did division wrong; must fix up
++    ++result.quot;
++    result.rem -= denom;
++  }
++
++  return result;
++}
++
++// 7.8.2.3 The strtoimax and strtoumax functions
++#define strtoimax _strtoi64
++#define strtoumax _strtoui64
++
++// 7.8.2.4 The wcstoimax and wcstoumax functions
++#define wcstoimax _wcstoi64
++#define wcstoumax _wcstoui64
++
++
++#endif // _MSC_INTTYPES_H_ ]
+\ No newline at end of file
+diff --git a/uwp/stdint.h b/uwp/stdint.h
+new file mode 100644
+index 0000000..943e34f
+--- /dev/null
++++ b/uwp/stdint.h
+@@ -0,0 +1,253 @@
++// ISO C9x  compliant stdint.h for Microsoft Visual Studio
++// Based on ISO/IEC 9899:TC2 Committee draft (May 6, 2005) WG14/N1124 
++// 
++//  Copyright (c) 2006-2013 Alexander Chemeris
++// 
++// Redistribution and use in source and binary forms, with or without
++// modification, are permitted provided that the following conditions are met:
++// 
++//   1. Redistributions of source code must retain the above copyright notice,
++//      this list of conditions and the following disclaimer.
++// 
++//   2. Redistributions in binary form must reproduce the above copyright
++//      notice, this list of conditions and the following disclaimer in the
++//      documentation and/or other materials provided with the distribution.
++// 
++//   3. Neither the name of the product nor the names of its contributors may
++//      be used to endorse or promote products derived from this software
++//      without specific prior written permission.
++// 
++// THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
++// WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
++// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
++// EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
++// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
++// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
++// OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
++// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
++// OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
++// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++// 
++///////////////////////////////////////////////////////////////////////////////
++
++#ifndef _MSC_VER // [
++#error "Use this header only with Microsoft Visual C++ compilers!"
++#endif // _MSC_VER ]
++
++#ifndef _MSC_STDINT_H_ // [
++#define _MSC_STDINT_H_
++
++#if _MSC_VER > 1000
++#pragma once
++#endif
++
++#include <limits.h>
++
++// For Visual Studio 6 in C++ mode and for many Visual Studio versions when
++// compiling for ARM we should wrap <wchar.h> include with 'extern "C++" {}'
++// or compiler give many errors like this:
++//   error C2733: second C linkage of overloaded function 'wmemchr' not allowed
++#ifdef __cplusplus
++extern "C" {
++#endif
++#  include <wchar.h>
++#ifdef __cplusplus
++}
++#endif
++
++// Define _W64 macros to mark types changing their size, like intptr_t.
++#ifndef _W64
++#  if !defined(__midl) && (defined(_X86_) || defined(_M_IX86)) && _MSC_VER >= 1300
++#     define _W64 __w64
++#  else
++#     define _W64
++#  endif
++#endif
++
++
++// 7.18.1 Integer types
++
++// 7.18.1.1 Exact-width integer types
++
++// Visual Studio 6 and Embedded Visual C++ 4 doesn't
++// realize that, e.g. char has the same size as __int8
++// so we give up on __intX for them.
++#if (_MSC_VER < 1300)
++typedef signed char       int8_t;
++typedef signed short      int16_t;
++typedef signed int        int32_t;
++typedef unsigned char     uint8_t;
++typedef unsigned short    uint16_t;
++typedef unsigned int      uint32_t;
++#else
++typedef signed __int8     int8_t;
++typedef signed __int16    int16_t;
++typedef signed __int32    int32_t;
++typedef unsigned __int8   uint8_t;
++typedef unsigned __int16  uint16_t;
++typedef unsigned __int32  uint32_t;
++#endif
++typedef signed __int64       int64_t;
++typedef unsigned __int64     uint64_t;
++
++
++// 7.18.1.2 Minimum-width integer types
++typedef int8_t    int_least8_t;
++typedef int16_t   int_least16_t;
++typedef int32_t   int_least32_t;
++typedef int64_t   int_least64_t;
++typedef uint8_t   uint_least8_t;
++typedef uint16_t  uint_least16_t;
++typedef uint32_t  uint_least32_t;
++typedef uint64_t  uint_least64_t;
++
++// 7.18.1.3 Fastest minimum-width integer types
++typedef int8_t    int_fast8_t;
++typedef int16_t   int_fast16_t;
++typedef int32_t   int_fast32_t;
++typedef int64_t   int_fast64_t;
++typedef uint8_t   uint_fast8_t;
++typedef uint16_t  uint_fast16_t;
++typedef uint32_t  uint_fast32_t;
++typedef uint64_t  uint_fast64_t;
++
++// 7.18.1.4 Integer types capable of holding object pointers
++#ifdef _WIN64 // [
++typedef signed __int64    intptr_t;
++typedef unsigned __int64  uintptr_t;
++#else // _WIN64 ][
++typedef _W64 signed int   intptr_t;
++typedef _W64 unsigned int uintptr_t;
++#endif // _WIN64 ]
++
++// 7.18.1.5 Greatest-width integer types
++typedef int64_t   intmax_t;
++typedef uint64_t  uintmax_t;
++
++
++// 7.18.2 Limits of specified-width integer types
++
++#if !defined(__cplusplus) || defined(__STDC_LIMIT_MACROS) // [   See footnote 220 at page 257 and footnote 221 at page 259
++
++// 7.18.2.1 Limits of exact-width integer types
++#define INT8_MIN     ((int8_t)_I8_MIN)
++#define INT8_MAX     _I8_MAX
++#define INT16_MIN    ((int16_t)_I16_MIN)
++#define INT16_MAX    _I16_MAX
++#define INT32_MIN    ((int32_t)_I32_MIN)
++#define INT32_MAX    _I32_MAX
++#define INT64_MIN    ((int64_t)_I64_MIN)
++#define INT64_MAX    _I64_MAX
++#define UINT8_MAX    _UI8_MAX
++#define UINT16_MAX   _UI16_MAX
++#define UINT32_MAX   _UI32_MAX
++#define UINT64_MAX   _UI64_MAX
++
++// 7.18.2.2 Limits of minimum-width integer types
++#define INT_LEAST8_MIN    INT8_MIN
++#define INT_LEAST8_MAX    INT8_MAX
++#define INT_LEAST16_MIN   INT16_MIN
++#define INT_LEAST16_MAX   INT16_MAX
++#define INT_LEAST32_MIN   INT32_MIN
++#define INT_LEAST32_MAX   INT32_MAX
++#define INT_LEAST64_MIN   INT64_MIN
++#define INT_LEAST64_MAX   INT64_MAX
++#define UINT_LEAST8_MAX   UINT8_MAX
++#define UINT_LEAST16_MAX  UINT16_MAX
++#define UINT_LEAST32_MAX  UINT32_MAX
++#define UINT_LEAST64_MAX  UINT64_MAX
++
++// 7.18.2.3 Limits of fastest minimum-width integer types
++#define INT_FAST8_MIN    INT8_MIN
++#define INT_FAST8_MAX    INT8_MAX
++#define INT_FAST16_MIN   INT16_MIN
++#define INT_FAST16_MAX   INT16_MAX
++#define INT_FAST32_MIN   INT32_MIN
++#define INT_FAST32_MAX   INT32_MAX
++#define INT_FAST64_MIN   INT64_MIN
++#define INT_FAST64_MAX   INT64_MAX
++#define UINT_FAST8_MAX   UINT8_MAX
++#define UINT_FAST16_MAX  UINT16_MAX
++#define UINT_FAST32_MAX  UINT32_MAX
++#define UINT_FAST64_MAX  UINT64_MAX
++
++// 7.18.2.4 Limits of integer types capable of holding object pointers
++#ifdef _WIN64 // [
++#  define INTPTR_MIN   INT64_MIN
++#  define INTPTR_MAX   INT64_MAX
++#  define UINTPTR_MAX  UINT64_MAX
++#else // _WIN64 ][
++#  define INTPTR_MIN   INT32_MIN
++#  define INTPTR_MAX   INT32_MAX
++#  define UINTPTR_MAX  UINT32_MAX
++#endif // _WIN64 ]
++
++// 7.18.2.5 Limits of greatest-width integer types
++#define INTMAX_MIN   INT64_MIN
++#define INTMAX_MAX   INT64_MAX
++#define UINTMAX_MAX  UINT64_MAX
++
++// 7.18.3 Limits of other integer types
++
++#ifdef _WIN64 // [
++#  define PTRDIFF_MIN  _I64_MIN
++#  define PTRDIFF_MAX  _I64_MAX
++#else  // _WIN64 ][
++#  define PTRDIFF_MIN  _I32_MIN
++#  define PTRDIFF_MAX  _I32_MAX
++#endif  // _WIN64 ]
++
++#define SIG_ATOMIC_MIN  INT_MIN
++#define SIG_ATOMIC_MAX  INT_MAX
++
++#ifndef SIZE_MAX // [
++#  ifdef _WIN64 // [
++#     define SIZE_MAX  _UI64_MAX
++#  else // _WIN64 ][
++#     define SIZE_MAX  _UI32_MAX
++#  endif // _WIN64 ]
++#endif // SIZE_MAX ]
++
++// WCHAR_MIN and WCHAR_MAX are also defined in <wchar.h>
++#ifndef WCHAR_MIN // [
++#  define WCHAR_MIN  0
++#endif  // WCHAR_MIN ]
++#ifndef WCHAR_MAX // [
++#  define WCHAR_MAX  _UI16_MAX
++#endif  // WCHAR_MAX ]
++
++#define WINT_MIN  0
++#define WINT_MAX  _UI16_MAX
++
++#endif // __STDC_LIMIT_MACROS ]
++
++
++// 7.18.4 Limits of other integer types
++
++#if !defined(__cplusplus) || defined(__STDC_CONSTANT_MACROS) // [   See footnote 224 at page 260
++
++// 7.18.4.1 Macros for minimum-width integer constants
++
++#define INT8_C(val)  val##i8
++#define INT16_C(val) val##i16
++#define INT32_C(val) val##i32
++#define INT64_C(val) val##i64
++
++#define UINT8_C(val)  val##ui8
++#define UINT16_C(val) val##ui16
++#define UINT32_C(val) val##ui32
++#define UINT64_C(val) val##ui64
++
++// 7.18.4.2 Macros for greatest-width integer constants
++// These #ifndef's are needed to prevent collisions with <boost/cstdint.hpp>.
++// Check out Issue 9 for the details.
++#ifndef INTMAX_C //   [
++#  define INTMAX_C   INT64_C
++#endif // INTMAX_C    ]
++#ifndef UINTMAX_C //  [
++#  define UINTMAX_C  UINT64_C
++#endif // UINTMAX_C   ]
++
++#endif // __STDC_CONSTANT_MACROS ]
++
++#endif // _MSC_STDINT_H_ ]
+\ No newline at end of file
+diff --git a/uwp/strings.h b/uwp/strings.h
+new file mode 100644
+index 0000000..3d3669e
+--- /dev/null
++++ b/uwp/strings.h
+@@ -0,0 +1,10 @@
++/*
++ *
++ * strings.h maps
++ */
++
++#ifndef _STRINGS_H
++#define _STRINGS_H
++
++
++#endif /* _STRINGS_H */
+diff --git a/uwp/unistd.h b/uwp/unistd.h
+new file mode 100644
+index 0000000..4799c2b
+--- /dev/null
++++ b/uwp/unistd.h
+@@ -0,0 +1,47 @@
++/*
++ * This file is part of the Mingw32 package.
++ *
++ * unistd.h maps (roughly) to io.h
++ */
++
++#ifndef _UNISTD_H
++#define _UNISTD_H
++
++#include <io.h>
++#include <process.h>
++
++#define __UNISTD_GETOPT__
++#include <getopt.h>
++#undef __UNISTD_GETOPT__
++
++/* These are also defined in stdio.h. */
++#ifndef	SEEK_SET
++#define SEEK_SET 0
++#endif
++
++#ifndef	SEEK_CUR
++#define SEEK_CUR 1
++#endif
++
++#ifndef SEEK_END
++#define SEEK_END 2
++#endif
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++
++/* This is defined as a real library function to allow autoconf
++   to verify its existence. */
++//int ftruncate(int, off_t);
++//__CRT_INLINE int ftruncate(int __fd, off_t __length)
++//{
++//  return _chsize (__fd, __length);
++//}
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* _UNISTD_H */
+-- 
+2.10.2.windows.1
+

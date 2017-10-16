@@ -396,7 +396,9 @@ ExternalProject_Add(libass
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://github.com/libass/libass/releases/download/0.13.6/libass-0.13.6.tar.gz
 	URL_HASH SHA256=62070da83b2139c1875c9db65ece37f80f955097227b7d46ade680221efdff4b
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	PATCH_COMMAND 
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0001-fix-uwp.patch
 	INSTALL_COMMAND 
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
