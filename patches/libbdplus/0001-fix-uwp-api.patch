@@ -1,0 +1,190 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 20aa575..78f99b4 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,12 +1,17 @@
+ cmake_minimum_required(VERSION 3.0)
+ 
+-project(libbdplus VERSION 0.1.2 LANGUAGES C)
++project(libbdplus VERSION 0.1.2 LANGUAGES C CXX)
+ 
+ find_package(libpgp-error 1.2.7 REQUIRED NO_MODULE)
+ find_package(libgcrypt 1.7 REQUIRED NO_MODULE)
+ 
+ if(MSVC)
+   set(CMAKE_DEBUG_POSTFIX "d")
++  if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++    add_definitions(-D_WIN32_WINNT=0x0A00 -D_WINSOCK_DEPRECATED_NO_WARNINGS)
++  else()
++    add_definitions(-D_WIN32_WINNT=0x0600 -D_WIN32_IE=0x0600)
++  endif()
+ endif()
+ 
+ set(SRCS
+@@ -82,6 +87,17 @@ target_include_directories(libbdplus
+ 
+ target_link_libraries(libbdplus PRIVATE libpgp-error::libpgp-error libgcrypt::libgcrypt)
+ 
++if(MSVC AND CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++  target_sources(libbdplus PRIVATE
++    src/file/dirs_uwp.cpp
++  )
++  set_source_files_properties(src/file/dirs_uwp.cpp PROPERTIES COMPILE_FLAGS "/TP /ZW")
++  # fix libs order
++  set_target_properties(libbdplus PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/defaultlib:vccorlib.lib /defaultlib:msvcrt.lib")
++  set_target_properties(libbdplus PROPERTIES LINK_FLAGS_RELEASE "/defaultlib:vccorlib.lib /defaultlib:msvcrt.lib")
++  set_target_properties(libbdplus PROPERTIES LINK_FLAGS_DEBUG "/defaultlib:vccorlibd.lib /defaultlib:msvcrtd.lib")
++endif()
++
+ set(TEST_SRCS
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/examples/bdplus_test.c
+ )
+diff --git a/cmake/config.h b/cmake/config.h
+index 3be9089..cbe855d 100644
+--- a/cmake/config.h
++++ b/cmake/config.h
+@@ -98,14 +98,14 @@
+ 
+ #ifdef _M_IX86
+ /* Define to '0x0501' for IE 5.01. */
+-#define _WIN32_IE 0x0502
++//#define _WIN32_IE 0x0502
+ 
+ /* Define to '0x0500' for Windows XP APIs. */
+-#define _WIN32_WINNT 0x0502
++//#define _WIN32_WINNT 0x0502
+ #else
+ /* Define to '0x0600' for IE 6.0. */
+-#define _WIN32_IE 0x0600
++//#define _WIN32_IE 0x0600
+ 
+ /* Define to '0x0600' for Windows Vista APIs. */
+-#define _WIN32_WINNT 0x0600
++//#define _WIN32_WINNT 0x0600
+ #endif
+diff --git a/cmake/sys/time.h b/cmake/sys/time.h
+index 197b456..bf2dac1 100644
+--- a/cmake/sys/time.h
++++ b/cmake/sys/time.h
+@@ -54,13 +54,15 @@ static __inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
+     
+     if (NULL != tzp)
+     {
+-        if (!tzflag)
+-        {
+-          _tzset();
+-          tzflag++;
+-        }
+-        tzp->tz_minuteswest = _timezone / 60;
+-        tzp->tz_dsttime = _daylight;
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP)
++      if (!tzflag)
++      {
++			  _tzset();
++        tzflag++;
++      }
++#endif
++      tzp->tz_minuteswest = _timezone / 60;
++      tzp->tz_dsttime = _daylight;
+     }
+     return 0;
+ }
+diff --git a/src/file/configfile.c b/src/file/configfile.c
+index 42a2b08..ba3fe81 100644
+--- a/src/file/configfile.c
++++ b/src/file/configfile.c
+@@ -41,6 +41,9 @@
+ #endif
+ #endif
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++# define getenv(x) NULL
++#endif
+ 
+ #define BDPLUS_DIR "bdplus"
+ 
+diff --git a/src/file/dirs_uwp.cpp b/src/file/dirs_uwp.cpp
+new file mode 100644
+index 0000000..008cfc8
+--- /dev/null
++++ b/src/file/dirs_uwp.cpp
+@@ -0,0 +1,28 @@
++
++#include <windows.h>
++#include <malloc.h>
++
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++
++extern "C" {
++  char *file_get_data_home(void)
++  {
++    auto localFolder = Windows::Storage::ApplicationData::Current->LocalFolder;
++    int len = WideCharToMultiByte(CP_UTF8, 0, localFolder->Path->Data(), -1, NULL, 0, NULL, NULL);
++    char *appdir = (char *)malloc(len);
++    if (appdir) {
++      WideCharToMultiByte(CP_UTF8, 0, localFolder->Path->Data(), -1, appdir, len, NULL, NULL);
++    }
++    return appdir;
++  }
++
++  const char *file_get_config_system(const char *dir)
++  {
++    if (!dir) // first call
++      return file_get_data_home();
++
++    return NULL; // next call
++  }
++}
++
++#endif
+\ No newline at end of file
+diff --git a/src/file/dirs_win32.c b/src/file/dirs_win32.c
+index d73796a..86350a2 100644
+--- a/src/file/dirs_win32.c
++++ b/src/file/dirs_win32.c
+@@ -49,6 +49,7 @@ char *file_get_config_home(void)
+     return file_get_data_home();
+ }
+ 
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP)
+ char *file_get_data_home(void)
+ {
+     wchar_t wdir[MAX_PATH];
+@@ -67,12 +68,14 @@ char *file_get_data_home(void)
+     BD_DEBUG(DBG_FILE, "Can't find user configuration directory !\n");
+     return NULL;
+ }
++#endif
+ 
+ char *file_get_cache_home(void)
+ {
+     return file_get_data_home();
+ }
+ 
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP)
+ const char *file_get_config_system(const char *dir)
+ {
+     static char *appdir = NULL;
+@@ -104,3 +107,4 @@ const char *file_get_config_system(const char *dir)
+ 
+     return dir;
+ }
++#endif
+diff --git a/src/util/logging.c b/src/util/logging.c
+index 47a9616..e518575 100644
+--- a/src/util/logging.c
++++ b/src/util/logging.c
+@@ -28,6 +28,10 @@
+ #include <stdarg.h>
+ #include <string.h>
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++# define getenv(x) NULL
++#endif
++
+ uint32_t debug_mask = (uint32_t)-1; /* set all bits to make sure bd_debug() is called for initialization */
+ 
+ void bd_debug(const char *file, int line, uint32_t mask, const char *format, ...)
+-- 
+2.13.2.windows.1
+
