@@ -696,6 +696,8 @@ ExternalProject_Add(python
 	PATCH_COMMAND
 		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/python-cmake-buildsystem-b348a50.diff
 		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0001-uwp-changes.patch
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0002-fix-arm-build.patch
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}

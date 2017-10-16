@@ -1,0 +1,3998 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 5326fff..61f8d24 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -23,7 +23,7 @@ if(APPLE)
+   message(STATUS "${_msg} - ${MACOSX_DEPLOYMENT_TARGET}")
+ endif()
+ 
+-project(Python C ASM)
++project(Python C CXX ASM)
+ 
+ if(POLICY CMP0042)
+     cmake_policy(SET CMP0042 OLD)
+diff --git a/Include/fileobject.h b/Include/fileobject.h
+index 1b540f9..b06768e 100644
+--- a/Include/fileobject.h
++++ b/Include/fileobject.h
+@@ -70,7 +70,7 @@ size_t Py_UniversalNewlineFread(char *, size_t, FILE *, PyObject *);
+ */
+ int _PyFile_SanitizeMode(char *mode);
+ 
+-#if defined _MSC_VER && _MSC_VER >= 1400
++#if defined _MSC_VER && _MSC_VER >= 1400 && _MSC_VER < 1900
+ /* A routine to check if a file descriptor is valid on Windows.  Returns 0
+  * and sets errno to EBADF if it isn't.  This is to avoid Assertions
+  * from various functions in the Windows CRT beginning with
+diff --git a/Include/pyerrors.h b/Include/pyerrors.h
+index 51134ef..f56b1cd 100644
+--- a/Include/pyerrors.h
++++ b/Include/pyerrors.h
+@@ -197,8 +197,10 @@ PyAPI_FUNC(PyObject *) PyErr_Format(PyObject *, const char *, ...)
+                         Py_GCC_ATTRIBUTE((format(printf, 2, 3)));
+ 
+ #ifdef MS_WINDOWS
++#ifndef MS_UWP
+ PyAPI_FUNC(PyObject *) PyErr_SetFromWindowsErrWithFilenameObject(
+     int, const char *);
++#endif
+ PyAPI_FUNC(PyObject *) PyErr_SetFromWindowsErrWithFilename(
+     int, const char *);
+ PyAPI_FUNC(PyObject *) PyErr_SetFromWindowsErrWithUnicodeFilename(
+@@ -206,6 +208,8 @@ PyAPI_FUNC(PyObject *) PyErr_SetFromWindowsErrWithUnicodeFilename(
+ PyAPI_FUNC(PyObject *) PyErr_SetFromWindowsErr(int);
+ PyAPI_FUNC(PyObject *) PyErr_SetExcFromWindowsErrWithFilenameObject(
+     PyObject *,int, PyObject *);
++PyAPI_FUNC(PyObject *) PyErr_SetExcFromWindowsErrWithFilenameObjects(
++    PyObject *, int, PyObject *, PyObject *);
+ PyAPI_FUNC(PyObject *) PyErr_SetExcFromWindowsErrWithFilename(
+     PyObject *,int, const char *);
+ PyAPI_FUNC(PyObject *) PyErr_SetExcFromWindowsErrWithUnicodeFilename(
+diff --git a/Include/pyport.h b/Include/pyport.h
+index 0c78a1e..8dda7c6 100644
+--- a/Include/pyport.h
++++ b/Include/pyport.h
+@@ -397,6 +397,12 @@ typedef Py_intptr_t     Py_ssize_t;
+ #define S_IFMT (S_IFDIR|S_IFCHR|S_IFREG)
+ #endif
+ 
++#ifndef S_IFLNK
++/* Windows doesn't define S_IFLNK but posixmodule.c maps
++* IO_REPARSE_TAG_SYMLINK to S_IFLNK */
++#  define S_IFLNK 0120000
++#endif
++
+ #ifndef S_ISREG
+ #define S_ISREG(x) (((x) & S_IFMT) == S_IFREG)
+ #endif
+@@ -563,7 +569,7 @@ extern "C" {
+ #endif
+ 
+ /* get and set x87 control word for VisualStudio/x86 */
+-#if defined(_MSC_VER) && !defined(_WIN64) /* x87 not supported in 64-bit */
++#if defined(_MSC_VER) && !defined(_WIN64) && !defined(_M_ARM) /* x87 not supported in 64-bit */
+ #define HAVE_PY_SET_53BIT_PRECISION 1
+ #define _Py_SET_53BIT_PRECISION_HEADER \
+     unsigned int old_387controlword, new_387controlword, out_387controlword
+@@ -765,7 +771,7 @@ extern int fdatasync(int);
+ #endif
+ 
+ /* only get special linkage if built as shared or platform is Cygwin */
+-#if defined(Py_ENABLE_SHARED) || defined(__CYGWIN__)
++#if defined(Py_ENABLE_SHARED) || defined(MS_UWP) || defined(__CYGWIN__)
+ #       if defined(HAVE_DECLSPEC_DLL)
+ #               ifdef Py_BUILD_CORE
+ #                       define PyAPI_FUNC(RTYPE) __declspec(dllexport) RTYPE
+diff --git a/Include/pythonrun.h b/Include/pythonrun.h
+index cfb02b0..8599eb2 100644
+--- a/Include/pythonrun.h
++++ b/Include/pythonrun.h
+@@ -158,7 +158,7 @@ PyAPI_DATA(PyThreadState*) _PyOS_ReadlineTState;
+    to an 8k margin. */
+ #define PYOS_STACK_MARGIN 2048
+ 
+-#if defined(WIN32) && !defined(MS_WIN64) && defined(_MSC_VER) && _MSC_VER >= 1300
++#if defined(WIN32) && !defined(MS_WIN64) && !defined(MS_UWP) && defined(_MSC_VER) && _MSC_VER >= 1300
+ /* Enable stack checking under Microsoft C */
+ #define USE_STACKCHECK
+ #endif
+diff --git a/Modules/_ctypes/callbacks.c b/Modules/_ctypes/callbacks.c
+index ef1f001..f2d4d82 100644
+--- a/Modules/_ctypes/callbacks.c
++++ b/Modules/_ctypes/callbacks.c
+@@ -217,7 +217,7 @@ static void _CallPythonObject(void *mem,
+     PyObject *arglist = NULL;
+     Py_ssize_t nArgs;
+     PyObject *error_object = NULL;
+-    int *space;
++    int *space = NULL;
+ #ifdef WITH_THREAD
+     PyGILState_STATE state = PyGILState_Ensure();
+ #endif
+diff --git a/Modules/_ctypes/callproc.c b/Modules/_ctypes/callproc.c
+index 3a12eb6..0e794d0 100644
+--- a/Modules/_ctypes/callproc.c
++++ b/Modules/_ctypes/callproc.c
+@@ -225,6 +225,12 @@ set_errno(PyObject *self, PyObject *args)
+ #ifdef MS_WIN32
+ 
+ static PyObject *
++_kernel32_get_last_error(PyObject *self, PyObject *args)
++{
++    return PyInt_FromLong(GetLastError());
++}
++
++static PyObject *
+ get_last_error(PyObject *self, PyObject *args)
+ {
+     return get_error_internal(self, args, 1);
+@@ -242,7 +248,11 @@ static TCHAR *FormatError(DWORD code)
+ {
+     TCHAR *lpMsgBuf;
+     DWORD n;
+-    n = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
++    n = FormatMessage(
++#ifndef MS_UWP
++        FORMAT_MESSAGE_ALLOCATE_BUFFER |
++#endif
++        FORMAT_MESSAGE_FROM_SYSTEM,
+                       NULL,
+                       code,
+                       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), /* Default language */
+@@ -781,7 +791,7 @@ static int _call_function_pointer(int flags,
+     PyThreadState *_save = NULL; /* For Py_BLOCK_THREADS and Py_UNBLOCK_THREADS */
+ #endif
+     PyObject *error_object = NULL;
+-    int *space;
++    int *space = NULL;
+     ffi_cif cif;
+     int cc;
+ #ifdef MS_WIN32
+@@ -1002,6 +1012,7 @@ error:
+ static PyObject *
+ GetComError(HRESULT errcode, GUID *riid, IUnknown *pIunk)
+ {
++#ifndef MS_UWP
+     HRESULT hr;
+     ISupportErrorInfo *psei = NULL;
+     IErrorInfo *pei = NULL;
+@@ -1071,7 +1082,7 @@ GetComError(HRESULT errcode, GUID *riid, IUnknown *pIunk)
+         SysFreeString(helpfile);
+     if (source)
+         SysFreeString(source);
+-
++#endif
+     return NULL;
+ }
+ #endif
+@@ -1262,7 +1273,9 @@ static PyObject *format_error(PyObject *self, PyObject *args)
+     lpMsgBuf = FormatError(code);
+     if (lpMsgBuf) {
+         result = Py_BuildValue(PYBUILD_TSTR, lpMsgBuf);
++#if !defined(MS_UWP)
+         LocalFree(lpMsgBuf);
++#endif
+     } else {
+         result = Py_BuildValue("s", "<no description>");
+     }
+@@ -1304,7 +1317,11 @@ static PyObject *load_library(PyObject *self, PyObject *args)
+         return NULL;
+ #endif
+ 
++#ifdef MS_UWP
++    hMod = LoadPackagedLibrary(name, 0);
++#else
+     hMod = LoadLibrary(name);
++#endif
+     if (!hMod)
+         return PyErr_SetFromWindowsErr(GetLastError());
+ #ifdef _WIN64
+@@ -1936,6 +1953,7 @@ PyMethodDef _ctypes_module_methods[] = {
+     {"FreeLibrary", free_library, METH_VARARGS, free_library_doc},
+     {"call_commethod", call_commethod, METH_VARARGS },
+     {"_check_HRESULT", check_hresult, METH_VARARGS},
++    {"GetLastError", _kernel32_get_last_error, METH_NOARGS },
+ #else
+     {"dlopen", py_dl_open, METH_VARARGS,
+      "dlopen(name, flag={RTLD_GLOBAL|RTLD_LOCAL}) open a shared library"},
+diff --git a/Modules/_ctypes/cfield.c b/Modules/_ctypes/cfield.c
+index e033cd5..d0d024f 100644
+--- a/Modules/_ctypes/cfield.c
++++ b/Modules/_ctypes/cfield.c
+@@ -1372,7 +1372,7 @@ z_get(void *ptr, Py_ssize_t size)
+ {
+     /* XXX What about invalid pointers ??? */
+     if (*(void **)ptr) {
+-#if defined(MS_WIN32) && !defined(_WIN32_WCE)
++#if defined(MS_WIN32) && !defined(_WIN32_WCE) && !defined(MS_UWP)
+         if (IsBadStringPtrA(*(char **)ptr, -1)) {
+             PyErr_Format(PyExc_ValueError,
+                          "invalid string pointer %p",
+@@ -1465,7 +1465,7 @@ Z_get(void *ptr, Py_ssize_t size)
+     wchar_t *p;
+     p = *(wchar_t **)ptr;
+     if (p) {
+-#if defined(MS_WIN32) && !defined(_WIN32_WCE)
++#if defined(MS_WIN32) && !defined(_WIN32_WCE) && !defined(MS_UWP)
+         if (IsBadStringPtrW(*(wchar_t **)ptr, -1)) {
+             PyErr_Format(PyExc_ValueError,
+                          "invalid string pointer %p",
+diff --git a/Modules/_ctypes/libffi_msvc/arm.asm b/Modules/_ctypes/libffi_msvc/arm.asm
+new file mode 100644
+index 0000000..dc6e168
+--- /dev/null
++++ b/Modules/_ctypes/libffi_msvc/arm.asm
+@@ -0,0 +1,331 @@
++FFI_TYPE_VOID       EQU 0
++FFI_TYPE_INT        EQU 1
++FFI_TYPE_FLOAT      EQU 2
++FFI_TYPE_DOUBLE     EQU 3
++;FFI_TYPE_LONGDOUBLE EQU 4
++FFI_TYPE_UINT8      EQU 5
++FFI_TYPE_SINT8      EQU 6
++FFI_TYPE_UINT16     EQU 7
++FFI_TYPE_SINT16     EQU 8
++FFI_TYPE_UINT32     EQU 9
++FFI_TYPE_SINT32     EQU 10
++FFI_TYPE_UINT64     EQU 11
++FFI_TYPE_SINT64     EQU 12
++FFI_TYPE_STRUCT     EQU 13
++FFI_TYPE_POINTER    EQU 14
++
++    AREA |.text|, CODE, THUMB, READONLY     ; .text
++
++    ; r0:   ffi_prep_args
++    ; r1:   &ecif
++    ; r2:   cif->bytes
++    ; r3:   fig->flags
++    ; sp+0: ecif.rvalue
++    ; sp+4: fn
++
++    EXPORT |ffi_call_arm|
++
++|ffi_call_arm| PROC
++
++    ; Save registers
++    stmfd sp!, {r4-r8, r10, fp, lr}
++    mov   fp, sp
++
++    mov   r4, r0        ; ffi_prep_args
++    mov   r5, r1        ; &ecif
++    mov   r6, r2        ; cif->bytes
++    mov   r7, r3        ; fig->flags
++    ldr   r8, [sp, #32] ; ecif.rvalue   
++    ldr   r10, [sp, #36] ; fn
++
++    ; Make room for all of the new args.
++    sub   sp, sp, r2
++
++    ; Place all of the ffi_prep_args in position
++    mov   r0, sp
++    ;     r1 already set
++
++    ; And call
++    blx   r4            ; ffi_prep_args
++
++    ; move first 4 parameters in registers
++    ldr   r0, [sp, #0]
++    ldr   r1, [sp, #4]
++    ldr   r2, [sp, #8]
++    ldr   r3, [sp, #12]
++
++    ; and adjust stack
++    mov   ip, r6
++    cmp   ip, #16
++    blt   |$L1|
++    movs  ip, #16
++|$L1|
++    add   sp, sp, ip
++
++    ; call function
++    blx   r10
++
++    ; Remove the space we pushed for the args
++    mov   sp, fp
++
++    ; If the return value pointer is NULL, assume no return value.
++    cmp   r8, #0
++    beq   call_epilogue
++
++; return INT
++return_int
++    cmp   r7, #FFI_TYPE_INT
++    bne   return_float
++    str   r0, [r8]
++    beq   call_epilogue
++
++; return FLOAT
++return_float
++|$L_float|
++    cmp     r7, #FFI_TYPE_FLOAT
++    bne     return_double
++    vstr    s0, [r8]
++    beq     call_epilogue
++
++; return DOUBLE or LONGDOUBLE
++return_double
++|$L_double|
++    cmp     r7, #FFI_TYPE_DOUBLE
++    bne     return_sint64
++    vstr    d0, [r8]
++    beq     call_epilogue
++
++; return SINT64 or UINT64
++return_sint64
++    cmp     r7, #FFI_TYPE_SINT64
++    bne     call_epilogue
++    str     a1, [r8]
++    str     a2, [r8,#4]
++
++call_epilogue
++    mov     r0, #0
++    ldmfd   sp!, {r4-r8, r10, fp, pc}
++
++    ENDP
++
++;;;;;;;;;;;;;; set_float_registerX ;;;;;;;;;;;;;;;
++
++    EXPORT |set_float_register0|
++
++|set_float_register0| PROC
++    push    {lr}
++    vldr    s0, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_float_register1|
++
++|set_float_register1| PROC
++    push    {lr}
++    vldr    s1, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_float_register2|
++
++|set_float_register2| PROC
++    push    {lr}
++    vldr    s2, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_float_register3|
++
++|set_float_register3| PROC
++    push    {lr}
++    vldr    s3, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_float_register4|
++
++|set_float_register4| PROC
++    push    {lr}
++    vldr    s4, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_float_register5|
++
++|set_float_register5| PROC
++    push    {lr}
++    vldr    s5, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_float_register6|
++
++|set_float_register6| PROC
++    push    {lr}
++    vldr    s6, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_float_register7|
++
++|set_float_register7| PROC
++    push    {lr}
++    vldr    s7, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_float_register8|
++
++|set_float_register8| PROC
++    push    {lr}
++    vldr    s8, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_float_register9|
++
++|set_float_register9| PROC
++    push    {lr}
++    vldr    s9, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_float_register10|
++
++|set_float_register10| PROC
++    push    {lr}
++    vldr    s10, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_float_register11|
++
++|set_float_register11| PROC
++    push    {lr}
++    vldr    s11, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_float_register12|
++
++|set_float_register12| PROC
++    push    {lr}
++    vldr    s12, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_float_register13|
++
++|set_float_register13| PROC
++    push    {lr}
++    vldr    s13, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_float_register14|
++
++|set_float_register14| PROC
++    push    {lr}
++    vldr    s14, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_float_register15|
++
++|set_float_register15| PROC
++    push    {lr}
++    vldr    s15, [r0]
++    pop     {pc}
++
++    ENDP
++
++;;;;;;;;;;;;;; set_double_registerX ;;;;;;;;;;;;;;;
++
++    EXPORT |set_double_register0|
++
++|set_double_register0| PROC
++    push    {lr}
++    vldr    d0, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_double_register1|
++
++|set_double_register1| PROC
++    push    {lr}
++    vldr    d1, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_double_register2|
++
++|set_double_register2| PROC
++    push    {lr}
++    vldr    d2, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_double_register3|
++
++|set_double_register3| PROC
++    push    {lr}
++    vldr    d3, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_double_register4|
++
++|set_double_register4| PROC
++    push    {lr}
++    vldr    d4, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_double_register5|
++
++|set_double_register5| PROC
++    push    {lr}
++    vldr    d5, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_double_register6|
++
++|set_double_register6| PROC
++    push    {lr}
++    vldr    d6, [r0]
++    pop     {pc}
++
++    ENDP
++
++    EXPORT |set_double_register7|
++
++|set_double_register7| PROC
++    push    {lr}
++    vldr    d7, [r0]
++    pop     {pc}
++
++    ENDP
++
++    END
+\ No newline at end of file
+diff --git a/Modules/_ctypes/libffi_msvc/ffi.c b/Modules/_ctypes/libffi_msvc/ffi.c
+index 515d802..a48a0de 100644
+--- a/Modules/_ctypes/libffi_msvc/ffi.c
++++ b/Modules/_ctypes/libffi_msvc/ffi.c
+@@ -35,7 +35,7 @@
+    has been allocated for the function's arguments */
+ 
+ extern void Py_FatalError(const char *msg);
+-
++#if !defined(_M_ARM)
+ /*@-exportheader@*/
+ void ffi_prep_args(char *stack, extended_cif *ecif)
+ /*@=exportheader@*/
+@@ -65,37 +65,56 @@ void ffi_prep_args(char *stack, extended_cif *ecif)
+ 	argp = (char *) ALIGN(argp, sizeof(void *));
+ 
+       z = (*p_arg)->size;
+-      if (z < sizeof(int))
++      if (z < sizeof(intptr_t))
+ 	{
+-	  z = sizeof(int);
++	  z = sizeof(intptr_t);
+ 	  switch ((*p_arg)->type)
+ 	    {
+ 	    case FFI_TYPE_SINT8:
+-	      *(signed int *) argp = (signed int)*(SINT8 *)(* p_argv);
++	      *(intptr_t *)argp = (intptr_t)*(SINT8 *)(*p_argv);
+ 	      break;
+ 
+ 	    case FFI_TYPE_UINT8:
+-	      *(unsigned int *) argp = (unsigned int)*(UINT8 *)(* p_argv);
++	      *(uintptr_t *)argp = (uintptr_t)*(UINT8 *)(*p_argv);
+ 	      break;
+ 
+ 	    case FFI_TYPE_SINT16:
+-	      *(signed int *) argp = (signed int)*(SINT16 *)(* p_argv);
++	      *(intptr_t *)argp = (intptr_t)*(SINT16 *)(*p_argv);
+ 	      break;
+ 
+ 	    case FFI_TYPE_UINT16:
+-	      *(unsigned int *) argp = (unsigned int)*(UINT16 *)(* p_argv);
++	      *(uintptr_t *)argp = (uintptr_t)*(UINT16 *)(*p_argv);
+ 	      break;
+ 
+ 	    case FFI_TYPE_SINT32:
+-	      *(signed int *) argp = (signed int)*(SINT32 *)(* p_argv);
++	      *(intptr_t *)argp = (intptr_t)*(SINT32 *)(*p_argv);
+ 	      break;
+ 
+ 	    case FFI_TYPE_UINT32:
+-	      *(unsigned int *) argp = (unsigned int)*(UINT32 *)(* p_argv);
++	      *(uintptr_t *)argp = (uintptr_t)*(UINT32 *)(*p_argv);
++	      break;
++
++	    case FFI_TYPE_FLOAT:
++	      *(uintptr_t *)argp = 0;
++	      *(float *)argp = *(float *)(*p_argv);
++	      break;
++
++	    // 64-bit value cases should never be used for x86 and AMD64 builds
++	    case FFI_TYPE_SINT64:
++	      *(intptr_t *)argp = (intptr_t)*(SINT64 *)(*p_argv);
++	      break;
++
++	    case FFI_TYPE_UINT64:
++	      *(uintptr_t *)argp = (uintptr_t)*(UINT64 *)(*p_argv);
+ 	      break;
+ 
+ 	    case FFI_TYPE_STRUCT:
+-	      *(unsigned int *) argp = (unsigned int)*(UINT32 *)(* p_argv);
++	      *(uintptr_t *)argp = (uintptr_t)*(UINT32 *)(*p_argv);
++	      break;
++
++	    case FFI_TYPE_DOUBLE:
++	      *(uintptr_t *)argp = 0;
++	      *(double *)argp = *(double *)(*p_argv);
+ 	      break;
+ 
+ 	    default:
+@@ -119,12 +138,223 @@ void ffi_prep_args(char *stack, extended_cif *ecif)
+       argp += z;
+     }
+ 
+-  if (argp - stack > ecif->cif->bytes) 
++  if (argp >= stack && (unsigned)(argp - stack) > ecif->cif->bytes) 
+     {
+       Py_FatalError("FFI BUG: not enough stack space for arguments");
+     }
+   return;
+ }
++#else
++
++#define INVALID_REGISTER -1
++#define NUM_OF_FLOAT_REGISTERS 16
++
++static int get_next_float_register(char* register_state)
++{
++    for (int i = 0; i < NUM_OF_FLOAT_REGISTERS; i++)
++    {
++        if (!register_state[i]) 
++        {
++            register_state[i] = 1;
++            return i;
++        }
++    }
++    return INVALID_REGISTER;
++}
++
++static int get_next_double_register(char* register_state)
++{
++    for (int i = 0; i < NUM_OF_FLOAT_REGISTERS/2; i++)
++    {
++        if (!register_state[2*i] && !register_state[2*i+1])
++        {
++            register_state[2*i] = 1;
++            register_state[2*i+1] = 1;
++            return i;
++        }
++    }
++    return INVALID_REGISTER;
++}
++
++#define REGISTER_CASE(num,type) \
++        case num: \
++            extern void set_ ## type ## _register ## num ( type *); \
++            set_ ## type ## _register ## num (value); \
++            break; 
++
++void set_float_register(int num, float* value)
++{
++    switch(num)
++    {
++        REGISTER_CASE(0, float);
++        REGISTER_CASE(1, float);
++        REGISTER_CASE(2, float);
++        REGISTER_CASE(3, float);
++        REGISTER_CASE(4, float);
++        REGISTER_CASE(5, float);
++        REGISTER_CASE(6, float);
++        REGISTER_CASE(7, float);
++        REGISTER_CASE(8, float);
++        REGISTER_CASE(9, float);
++        REGISTER_CASE(10, float);
++        REGISTER_CASE(11, float);
++        REGISTER_CASE(12, float);
++        REGISTER_CASE(13, float);
++        REGISTER_CASE(14, float);
++        REGISTER_CASE(15, float);
++        default:
++            Py_FatalError("FFI BUG: invalid register number");
++    }
++}
++
++void set_double_register(int num, double* value)
++{
++    switch (num)
++    {
++        REGISTER_CASE(0, double);
++        REGISTER_CASE(1, double);
++        REGISTER_CASE(2, double);
++        REGISTER_CASE(3, double);
++        REGISTER_CASE(4, double);
++        REGISTER_CASE(5, double);
++        REGISTER_CASE(6, double);
++        REGISTER_CASE(7, double);
++    default:
++        Py_FatalError("FFI BUG: invalid register number");
++    }
++}
++
++#undef REGISTER_CASE
++
++extern void set_double_register(int num, double* value);
++
++/*@-exportheader@*/
++void ffi_prep_args(char *stack, extended_cif *ecif)
++/*@=exportheader@*/
++{
++    register unsigned int i;
++    register void **p_argv;
++    register char *argp;
++    register ffi_type **p_arg;
++
++    argp = stack;
++    if (ecif->cif->rtype->type == FFI_TYPE_STRUCT)
++    {
++        *(void **)argp = ecif->rvalue;
++        argp += sizeof(void *);
++    }
++
++    char register_state[NUM_OF_FLOAT_REGISTERS];
++    memset(register_state, 0, sizeof(register_state));
++
++    for (i = ecif->cif->nargs, p_arg = ecif->cif->arg_types, p_argv = ecif->avalue;
++            i != 0;
++            i--, p_arg++, p_argv++)
++    {
++        if ((*p_arg)->type == FFI_TYPE_FLOAT)
++        {
++            // float uses sX register
++            int register_num = get_next_float_register(register_state);
++            if (register_num != INVALID_REGISTER)
++            {
++                set_float_register(register_num, (float *)(*p_argv));
++                continue;
++            }
++            // else - No more registers.  Fall through and pass on stack
++        } 
++        else if ((*p_arg)->type == FFI_TYPE_DOUBLE)
++        {
++            // double uses dX register
++            int register_num = get_next_double_register(register_state);
++            if (register_num != INVALID_REGISTER)
++            {
++                set_double_register(register_num, (double *)(*p_argv));
++                continue;
++            }
++            // else - No more registers.  Fall through and pass on stack
++        }
++
++        size_t z;
++        size_t argalign = sizeof(void*);
++        if ((*p_arg)->alignment > argalign) {
++            argalign = (*p_arg)->alignment;
++        }
++
++        /* Align if necessary */
++        if ((argalign - 1) & (size_t)argp)
++            argp = (char *)ALIGN(argp, argalign);
++
++        z = (*p_arg)->size;
++        if (z < sizeof(intptr_t))
++        {
++            z = sizeof(intptr_t);
++            switch ((*p_arg)->type)
++            {
++            case FFI_TYPE_SINT8:
++                *(intptr_t *)argp = (intptr_t)*(char *)(*p_argv);
++                break;
++
++            case FFI_TYPE_UINT8:
++                *(uintptr_t *)argp = (uintptr_t)*(unsigned char *)(*p_argv);
++                break;
++
++            case FFI_TYPE_SINT16:
++                *(intptr_t *)argp = (intptr_t)*(short *)(*p_argv);
++                break;
++
++            case FFI_TYPE_UINT16:
++                *(uintptr_t *)argp = (uintptr_t)*(unsigned short *)(*p_argv);
++                break;
++
++            case FFI_TYPE_SINT32:
++                *(intptr_t *)argp = (intptr_t)*(SINT32 *)(*p_argv);
++                break;
++
++            case FFI_TYPE_UINT32:
++                *(uintptr_t *)argp = (uintptr_t)*(UINT32 *)(*p_argv);
++                break;
++
++            case FFI_TYPE_FLOAT:
++                *(uintptr_t *)argp = 0;
++                *(float *)argp = *(float *)(*p_argv);
++                break;
++
++                // 64-bit value cases should never be used for x86 and AMD64 builds
++            case FFI_TYPE_SINT64:
++                *(intptr_t *)argp = (intptr_t)*(SINT64 *)(*p_argv);
++                break;
++
++            case FFI_TYPE_UINT64:
++                *(uintptr_t *)argp = (uintptr_t)*(UINT64 *)(*p_argv);
++                break;
++
++            case FFI_TYPE_STRUCT:
++                *(uintptr_t *)argp = (uintptr_t)*(UINT32 *)(*p_argv);
++                break;
++
++            case FFI_TYPE_DOUBLE:
++                *(uintptr_t *)argp = 0;
++                *(double *)argp = *(double *)(*p_argv);
++                break;
++
++            default:
++                FFI_ASSERT(0);
++            }
++        }
++        else
++        {
++            memcpy(argp, *p_argv, z);
++        }
++        argp += z;
++    }
++
++    if (argp >= stack && (unsigned)(argp - stack) > ecif->cif->bytes)
++    {
++        Py_FatalError("FFI BUG: not enough stack space for arguments");
++    }
++    return;
++}
++#endif
+ 
+ /* Perform machine dependent cif processing */
+ ffi_status ffi_prep_cif_machdep(ffi_cif *cif)
+@@ -167,13 +397,22 @@ ffi_status ffi_prep_cif_machdep(ffi_cif *cif)
+   return FFI_OK;
+ }
+ 
+-#ifdef _WIN32
++#if defined(_WIN32)
++#if !defined(_M_ARM)
+ extern int
+ ffi_call_x86(void (*)(char *, extended_cif *), 
+ 	     /*@out@*/ extended_cif *, 
+ 	     unsigned, unsigned, 
+ 	     /*@out@*/ unsigned *, 
+ 	     void (*fn)());
++#else
++extern int
++ffi_call_arm(void(*)(char *, extended_cif *),
++    /*@out@*/ extended_cif *,
++    unsigned, unsigned,
++    /*@out@*/ unsigned *,
++    void(*fn)());
++#endif
+ #endif
+ 
+ #ifdef _WIN64
+@@ -213,12 +452,20 @@ ffi_call(/*@dependent@*/ ffi_cif *cif,
+   switch (cif->abi) 
+     {
+ #if !defined(_WIN64)
++#if !defined(_M_ARM)
+     case FFI_SYSV:
+     case FFI_STDCALL:
+       return ffi_call_x86(ffi_prep_args, &ecif, cif->bytes, 
+ 			  cif->flags, ecif.rvalue, fn);
+       break;
+ #else
++    // On Arm __stdcall is ignored by the compiler
++    case FFI_STDCALL:
++    case FFI_SYSV:
++      return ffi_call_arm(ffi_prep_args, &ecif, cif->bytes,
++            cif->flags, ecif.rvalue, fn);
++#endif
++#else
+     case FFI_SYSV:
+       /*@-usedef@*/
+       return ffi_call_AMD64(ffi_prep_args, &ecif, cif->bytes,
+@@ -273,7 +520,7 @@ ffi_closure_SYSV (ffi_closure *closure, char *argp)
+ 
+   rtype = cif->flags;
+ 
+-#if defined(_WIN32) && !defined(_WIN64)
++#if defined(_WIN32) && !defined(_M_ARM) && !defined(_WIN64)
+ #ifdef _MSC_VER
+   /* now, do a generic return based on the value of rtype */
+   if (rtype == FFI_TYPE_INT)
+diff --git a/Modules/_hotshot.c b/Modules/_hotshot.c
+index 33cd38d..8c26013 100644
+--- a/Modules/_hotshot.c
++++ b/Modules/_hotshot.c
+@@ -1462,9 +1462,13 @@ write_header(ProfilerObject *self)
+     pack_add_info(self, "observed-interval-gettimeofday", cwdbuffer);
+ #endif
+ 
++#ifdef MS_UWP
++    pack_add_info(self, "current-directory",
++        "UWP does not support getcwd");
++#else
+     pack_add_info(self, "current-directory",
+                   getcwd(cwdbuffer, sizeof cwdbuffer));
+-
++#endif
+     temp = PySys_GetObject("path");
+     if (temp == NULL || !PyList_Check(temp)) {
+         PyErr_SetString(PyExc_RuntimeError, "sys.path must be a list");
+diff --git a/Modules/_io/bufferedio.c b/Modules/_io/bufferedio.c
+index 5bef746..85476bf 100644
+--- a/Modules/_io/bufferedio.c
++++ b/Modules/_io/bufferedio.c
+@@ -454,7 +454,7 @@ buffered_closed_get(buffered *self, void *context)
+ static PyObject *
+ buffered_close(buffered *self, PyObject *args)
+ {
+-    PyObject *res = NULL, *exc = NULL, *val, *tb;
++    PyObject *res = NULL, *exc = NULL, *val = NULL, *tb = NULL;
+     int r;
+ 
+     CHECK_INITIALIZED(self)
+@@ -2189,7 +2189,7 @@ bufferedrwpair_writable(rwpair *self, PyObject *args)
+ static PyObject *
+ bufferedrwpair_close(rwpair *self, PyObject *args)
+ {
+-    PyObject *exc = NULL, *val, *tb;
++    PyObject *exc = NULL, *val = NULL, *tb = NULL;
+     PyObject *ret = _forward_call(self->writer, "close", args);
+     if (ret == NULL)
+         PyErr_Fetch(&exc, &val, &tb);
+diff --git a/Modules/_io/textio.c b/Modules/_io/textio.c
+index b4007c2..275195c 100644
+--- a/Modules/_io/textio.c
++++ b/Modules/_io/textio.c
+@@ -2472,7 +2472,7 @@ textiowrapper_close(textio *self, PyObject *args)
+         Py_RETURN_NONE; /* stream already closed */
+     }
+     else {
+-        PyObject *exc = NULL, *val, *tb;
++        PyObject *exc = NULL, *val = NULL, *tb = NULL;
+         res = PyObject_CallMethod((PyObject *)self, "flush", NULL);
+         if (res == NULL)
+             PyErr_Fetch(&exc, &val, &tb);
+diff --git a/Modules/_localemodule.c b/Modules/_localemodule.c
+index 7e2f1a9..9aff6fc 100644
+--- a/Modules/_localemodule.c
++++ b/Modules/_localemodule.c
+@@ -380,7 +380,7 @@ PyLocale_strxfrm(PyObject* self, PyObject* args)
+     return result;
+ }
+ 
+-#if defined(MS_WINDOWS)
++#if defined(MS_WINDOWS)  && !defined(MS_UWP)
+ static PyObject*
+ PyLocale_getdefaultlocale(PyObject* self)
+ {
+@@ -417,6 +417,30 @@ PyLocale_getdefaultlocale(PyObject* self)
+ }
+ #endif
+ 
++#if defined(MS_UWP)
++static PyObject*
++PyLocale_getdefaultlocale(PyObject* self)
++{
++    const wchar_t *encoding = L"utf8";
++    wchar_t locale[100];
++
++    if (GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT,
++        LOCALE_SISO639LANGNAME,
++        locale, (sizeof(locale) / sizeof(locale[0])))) {
++        Py_ssize_t i = wcslen(locale);
++        locale[i++] = '_';
++        if (GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT,
++            LOCALE_SISO3166CTRYNAME,
++            locale + i, (int)((sizeof(locale) / sizeof(locale[0])) - i)))
++            return Py_BuildValue("uu", locale, encoding);
++    }
++
++    /* cannot determine the language code (very unlikely) */
++    Py_INCREF(Py_None);
++    return Py_BuildValue("Os", Py_None, encoding);
++}
++#endif
++
+ #ifdef HAVE_LANGINFO_H
+ #define LANGINFO(X) {#X, X}
+ static struct langinfo_constant{
+diff --git a/Modules/_multiprocessing/multiprocessing.c b/Modules/_multiprocessing/multiprocessing.c
+index d192a07..4727ee7 100644
+--- a/Modules/_multiprocessing/multiprocessing.c
++++ b/Modules/_multiprocessing/multiprocessing.c
+@@ -295,7 +295,7 @@ init_multiprocessing(void)
+     PyModule_AddObject(module, "SemLock", (PyObject*)&SemLockType);
+ #endif
+ 
+-#ifdef MS_WINDOWS
++#if defined(MS_WINDOWS)  && defined(HAVE_PIPES)
+     /* Add PipeConnection to module */
+     if (PyType_Ready(&PipeConnectionType) < 0)
+         return;
+@@ -315,10 +315,12 @@ init_multiprocessing(void)
+         PyErr_SetFromWindowsErr(0);
+         return;
+     }
++#ifndef MS_UWP
+     if (!SetConsoleCtrlHandler(ProcessingCtrlHandler, TRUE)) {
+         PyErr_SetFromWindowsErr(0);
+         return;
+     }
++#endif /* MS_UWP */
+ #endif
+ 
+     /* Add configuration macros */
+diff --git a/Modules/_multiprocessing/multiprocessing.h b/Modules/_multiprocessing/multiprocessing.h
+index 14425de..595a9b8 100644
+--- a/Modules/_multiprocessing/multiprocessing.h
++++ b/Modules/_multiprocessing/multiprocessing.h
+@@ -18,6 +18,9 @@
+  */
+ 
+ #ifdef MS_WINDOWS
++#ifndef MS_UWP
++#define HAVE_PIPES
++#endif
+ #  define WIN32_LEAN_AND_MEAN
+ #  include <windows.h>
+ #  include <winsock2.h>
+@@ -136,7 +139,9 @@ extern PyObject *pickle_protocol;
+ extern PyObject *BufferTooShort;
+ extern PyTypeObject SemLockType;
+ extern PyTypeObject ConnectionType;
++#if HAVE_PIPES
+ extern PyTypeObject PipeConnectionType;
++#endif
+ extern HANDLE sigint_event;
+ 
+ /*
+diff --git a/Modules/_multiprocessing/pipe_connection.c b/Modules/_multiprocessing/pipe_connection.c
+index 05dde0c..44eafc8 100644
+--- a/Modules/_multiprocessing/pipe_connection.c
++++ b/Modules/_multiprocessing/pipe_connection.c
+@@ -37,7 +37,7 @@ conn_send_string(ConnectionObject *conn, char *string, size_t length)
+  *
+  * Returns number of bytes read.  Assumes in message oriented mode.
+  */
+-
++#ifdef HAVE_PIPES
+ static Py_ssize_t
+ conn_recv_string(ConnectionObject *conn, char *buffer,
+                  size_t buflength, char **newbuffer, size_t maxlength)
+@@ -84,6 +84,7 @@ conn_recv_string(ConnectionObject *conn, char *buffer,
+         return MP_STANDARD_ERROR;
+     }
+ }
++#endif
+ 
+ /*
+  * Check whether any data is available for reading
+diff --git a/Modules/_multiprocessing/semaphore.c b/Modules/_multiprocessing/semaphore.c
+index fc42754..1b245e9 100644
+--- a/Modules/_multiprocessing/semaphore.c
++++ b/Modules/_multiprocessing/semaphore.c
+@@ -24,6 +24,15 @@ typedef struct {
+ 
+ #ifdef MS_WINDOWS
+ 
++#ifdef MS_UWP
++int GetTickCount(void)
++{
++    LARGE_INTEGER t;
++    return(int)(QueryPerformanceCounter(&t) ? t.QuadPart : 0);
++}
++#endif
++
++
+ /*
+  * Windows definitions
+  */
+diff --git a/Modules/_multiprocessing/win32_functions.c b/Modules/_multiprocessing/win32_functions.c
+index 9425929..8d82bf6 100644
+--- a/Modules/_multiprocessing/win32_functions.c
++++ b/Modules/_multiprocessing/win32_functions.c
+@@ -35,6 +35,7 @@ win32_CloseHandle(PyObject *self, PyObject *args)
+     Py_RETURN_NONE;
+ }
+ 
++#ifdef HAVE_PIPES
+ static PyObject *
+ win32_ConnectNamedPipe(PyObject *self, PyObject *args)
+ {
+@@ -55,6 +56,7 @@ win32_ConnectNamedPipe(PyObject *self, PyObject *args)
+ 
+     Py_RETURN_NONE;
+ }
++#endif
+ 
+ static PyObject *
+ win32_CreateFile(PyObject *self, PyObject *args)
+@@ -76,10 +78,16 @@ win32_CreateFile(PyObject *self, PyObject *args)
+         return NULL;
+ 
+     Py_BEGIN_ALLOW_THREADS
++#ifdef MS_UWP
++    handle = CreateFile2(lpFileName, dwDesiredAccess, dwShareMode, OPEN_EXISTING, NULL);
++#else
+     handle = CreateFile(lpFileName, dwDesiredAccess,
+                         dwShareMode, lpSecurityAttributes,
+                         dwCreationDisposition,
+                         dwFlagsAndAttributes, hTemplateFile);
++#endif
++
++
+     Py_END_ALLOW_THREADS
+ 
+     if (handle == INVALID_HANDLE_VALUE)
+@@ -88,6 +96,7 @@ win32_CreateFile(PyObject *self, PyObject *args)
+     return Py_BuildValue(F_HANDLE, handle);
+ }
+ 
++#ifdef HAVE_PIPES
+ static PyObject *
+ win32_CreateNamedPipe(PyObject *self, PyObject *args)
+ {
+@@ -121,10 +130,17 @@ win32_CreateNamedPipe(PyObject *self, PyObject *args)
+ 
+     return Py_BuildValue(F_HANDLE, handle);
+ }
++#endif
+ 
+ static PyObject *
+ win32_ExitProcess(PyObject *self, PyObject *args)
+ {
++#ifdef MS_UWP
++    PyErr_WarnEx(PyExc_DeprecationWarning,
++        "win32_ExitProcess has been deprecated for UWP apps, "
++        "use absolute paths instead.",
++        0);
++#else
+     UINT uExitCode;
+ 
+     if (!PyArg_ParseTuple(args, "I", &uExitCode))
+@@ -137,6 +153,7 @@ win32_ExitProcess(PyObject *self, PyObject *args)
+ 
+ 
+     ExitProcess(uExitCode);
++#endif
+ 
+     return NULL;
+ }
+@@ -166,6 +183,8 @@ win32_OpenProcess(PyObject *self, PyObject *args)
+     return Py_BuildValue(F_HANDLE, handle);
+ }
+ 
++#ifdef HAVE_PIPES
++
+ static PyObject *
+ win32_SetNamedPipeHandleState(PyObject *self, PyObject *args)
+ {
+@@ -214,17 +233,22 @@ win32_WaitNamedPipe(PyObject *self, PyObject *args)
+ 
+     Py_RETURN_NONE;
+ }
++#endif
+ 
+ static PyMethodDef win32_methods[] = {
+     WIN32_FUNCTION(CloseHandle),
+     WIN32_FUNCTION(GetLastError),
+     WIN32_FUNCTION(OpenProcess),
+     WIN32_FUNCTION(ExitProcess),
++#ifdef HAVE_PIPES
+     WIN32_FUNCTION(ConnectNamedPipe),
++#endif
+     WIN32_FUNCTION(CreateFile),
++#ifdef HAVE_PIPES
+     WIN32_FUNCTION(CreateNamedPipe),
+     WIN32_FUNCTION(SetNamedPipeHandleState),
+     WIN32_FUNCTION(WaitNamedPipe),
++#endif
+     {NULL}
+ };
+ 
+diff --git a/Modules/audioop.c b/Modules/audioop.c
+index a4d1375..526f208 100644
+--- a/Modules/audioop.c
++++ b/Modules/audioop.c
+@@ -25,7 +25,7 @@ typedef short PyInt16;
+ #endif
+ 
+ static const int maxvals[] = {0, 0x7F, 0x7FFF, 0x7FFFFF, 0x7FFFFFFF};
+-static const int minvals[] = {0, -0x80, -0x8000, -0x800000, -0x80000000};
++static const int minvals[] = { 0, -0x80, -0x8000, -0x800000, -0x7FFFFFFF - 1 };
+ static const unsigned int masks[] = {0, 0xFF, 0xFFFF, 0xFFFFFF, 0xFFFFFFFF};
+ 
+ static int
+@@ -386,7 +386,9 @@ audioop_minmax(PyObject *self, PyObject *args)
+     signed char *cp;
+     int len, size, val = 0;
+     int i;
+-    int min = 0x7fffffff, max = -0x80000000;
++    /* -1 trick below is needed on Windows to support -0x80000000 without
++    a warning */
++    int min = 0x7fffffff, max = -0x7FFFFFFF-1;
+ 
+     if (!PyArg_ParseTuple(args, "s#i:minmax", &cp, &len, &size))
+         return NULL;
+diff --git a/Modules/cPickle.c b/Modules/cPickle.c
+index 845ad8f..a080cbc 100644
+--- a/Modules/cPickle.c
++++ b/Modules/cPickle.c
+@@ -614,7 +614,7 @@ static Py_ssize_t
+ read_cStringIO(Unpicklerobject *self, char **s, Py_ssize_t  n)
+ {
+     Py_ssize_t len = n;
+-    char *start, *end = NULL;
++    char *start = NULL, *end = NULL;
+ 
+     while (1) {
+         int k;
+diff --git a/Modules/main.c b/Modules/main.c
+index 44217c6..992ad2d 100644
+--- a/Modules/main.c
++++ b/Modules/main.c
+@@ -15,6 +15,16 @@
+ #endif
+ #endif
+ 
++#if defined(MS_UWP)
++/* UWP apps do not have environment variables */
++extern char* win10_getenv(const char* n);
++#define getenv(v) win10_getenv
++#undef environ
++#define environ (NULL)
++/* getpid is not available, but GetCurrentProcessId is */
++#define getpid GetCurrentProcessId
++#endif
++
+ #if (defined(PYOS_OS2) && !defined(PYCC_GCC)) || defined(MS_WINDOWS)
+ #define PYTHONHOMEHELP "<prefix>\\lib"
+ #else
+diff --git a/Modules/mmapmodule.c b/Modules/mmapmodule.c
+index 0dc4805..e306122 100644
+--- a/Modules/mmapmodule.c
++++ b/Modules/mmapmodule.c
+@@ -395,6 +395,19 @@ mmap_size_method(mmap_object *self,
+     if (self->file_handle != INVALID_HANDLE_VALUE) {
+         DWORD low,high;
+         PY_LONG_LONG size;
++#ifdef MS_UWP
++        FILE_STANDARD_INFO fileStandardInfo;
++        if (!GetFileInformationByHandleEx(self->file_handle, FileStandardInfo, &fileStandardInfo, sizeof(fileStandardInfo)))
++        {
++            /* It might be that the function appears to have failed,
++            when indeed its size equals INVALID_FILE_SIZE */
++            DWORD error = GetLastError();
++            if (error != NO_ERROR)
++                return PyErr_SetFromWindowsErr(error);
++        }
++        high = fileStandardInfo.EndOfFile.HighPart;
++        low = fileStandardInfo.EndOfFile.LowPart;
++#else
+         low = GetFileSize(self->file_handle, &high);
+         if (low == INVALID_FILE_SIZE) {
+             /* It might be that the function appears to have failed,
+@@ -403,6 +416,7 @@ mmap_size_method(mmap_object *self,
+             if (error != NO_ERROR)
+                 return PyErr_SetFromWindowsErr(error);
+         }
++#endif
+         if (!high && low < LONG_MAX)
+             return PyInt_FromLong((long)low);
+         size = (((PY_LONG_LONG)high)<<32) + low;
+@@ -454,6 +468,9 @@ mmap_resize_method(mmap_object *self,
+ 
+     {
+ #ifdef MS_WINDOWS
++#ifdef MS_UWP
++        return NULL;
++#else
+         DWORD dwErrCode = 0;
+         DWORD off_hi, off_lo, newSizeLow, newSizeHigh;
+         /* First, unmap the file view */
+@@ -499,6 +516,7 @@ mmap_resize_method(mmap_object *self,
+         }
+         PyErr_SetFromWindowsErr(dwErrCode);
+         return NULL;
++#endif /* MS_UWP */
+ #endif /* MS_WINDOWS */
+ 
+ #ifdef UNIX
+@@ -1258,6 +1276,7 @@ new_mmap_object(PyTypeObject *type, PyObject *args, PyObject *kwdict)
+ static PyObject *
+ new_mmap_object(PyTypeObject *type, PyObject *args, PyObject *kwdict)
+ {
++#ifndef MS_UWP
+     mmap_object *m_obj;
+     Py_ssize_t map_size;
+     PY_LONG_LONG offset = 0, size;
+@@ -1447,6 +1466,7 @@ new_mmap_object(PyTypeObject *type, PyObject *args, PyObject *kwdict)
+         dwErr = GetLastError();
+     Py_DECREF(m_obj);
+     PyErr_SetFromWindowsErr(dwErr);
++#endif /* MS_UWP */
+     return NULL;
+ }
+ #endif /* MS_WINDOWS */
+diff --git a/Modules/posixmodule.c b/Modules/posixmodule.c
+index de0b8ec..4e052c5 100644
+--- a/Modules/posixmodule.c
++++ b/Modules/posixmodule.c
+@@ -31,6 +31,15 @@
+ #include "posixmodule.h"
+ #endif
+ 
++#if defined(MS_UWP)
++extern char* win10_getenv(const char* n);
++#define getenv(v) win10_getenv
++#undef environ
++#define environ (NULL)
++/* getpid is not available, but GetCurrentProcessId is */
++#define getpid GetCurrentProcessId
++#endif
++
+ #if defined(__VMS)
+ #    include <unixio.h>
+ #endif /* defined(__VMS) */
+@@ -121,7 +130,11 @@ corresponding Unix manual entries for more information on calls.");
+ #define HAVE_SYSTEM     1
+ #define HAVE_WAIT       1
+ #else
+-#ifdef _MSC_VER         /* Microsoft compiler */
++#if defined(MS_UWP)   /* Microsoft compiler for UWP apps */
++#define HAVE_GETCWD     1 /* uses a fake getcwd */
++#define HAVE_FSYNC      1
++#define fsync _commit
++#elif defined(_MSC_VER) /* Microsoft compiler */
+ #define HAVE_GETCWD     1
+ #define HAVE_SPAWNV     1
+ #define HAVE_EXECV      1
+@@ -272,7 +285,9 @@ extern int lstat(const char *, struct stat *);
+ #include "osdefs.h"
+ #include <malloc.h>
+ #include <windows.h>
++#ifndef MS_UWP
+ #include <shellapi.h>   /* for ShellExecute() */
++#endif
+ #define popen   _popen
+ #define pclose  _pclose
+ #endif /* _MSC_VER */
+@@ -529,7 +544,7 @@ _PyInt_FromDev(PY_LONG_LONG v)
+ #endif
+ 
+ 
+-#if defined _MSC_VER && _MSC_VER >= 1400
++#if defined _MSC_VER && _MSC_VER >= 1400 && _MSC_VER < 1900
+ /* Microsoft CRT in VS2005 and higher will verify that a filehandle is
+  * valid and raise an assertion if it isn't.
+  * Normally, an invalid fd is likely to be a C program error and therefore
+@@ -945,6 +960,20 @@ win32_1str(PyObject* args, char* func,
+ 
+ }
+ 
++#ifdef MS_UWP
++/* Changing the current directory is not supported for UWP apps,
++so these are implemented to provide warnings only. */
++
++static BOOL __stdcall
++win32_chdir(LPCSTR path)
++{
++    PyErr_WarnEx(PyExc_DeprecationWarning,
++        "os.chdir has been deprecated for UWP apps, "
++        "use absolute paths instead.",
++        0);
++    return TRUE;
++}
++#else
+ /* This is a reimplementation of the C library's chdir function,
+    but one that produces Win32 errors instead of DOS error codes.
+    chdir is essentially a wrapper around SetCurrentDirectory; however,
+@@ -972,6 +1001,8 @@ win32_chdir(LPCSTR path)
+     env[1] = new_path[0];
+     return SetEnvironmentVariableA(env, new_path);
+ }
++#endif
++
+ 
+ /* The Unicode version differs from the ANSI version
+    since the current directory might exceed MAX_PATH characters */
+@@ -999,6 +1030,7 @@ win32_wchdir(LPCWSTR path)
+             return FALSE;
+         }
+     }
++#ifndef MS_UWP
+     if (wcsncmp(new_path, L"\\\\", 2) == 0 ||
+         wcsncmp(new_path, L"//", 2) == 0)
+         /* UNC path, nothing to do. */
+@@ -1007,6 +1039,7 @@ win32_wchdir(LPCWSTR path)
+     result = SetEnvironmentVariableW(env, new_path);
+     if (new_path != _new_path)
+         free(new_path);
++#endif
+     return result;
+ }
+ #endif
+@@ -1054,6 +1087,14 @@ struct win32_stat{
+ static __int64 secs_between_epochs = 11644473600; /* Seconds between 1.1.1601 and 1.1.1970 */
+ 
+ static void
++longlong_to_time_t_nsec(LONGLONG in, time_t *time_out, int* nsec_out)
++{
++    *nsec_out = (int)(in % 10000000) * 100; /* FILETIME is in units of 100 nsec. */
++    *time_out = Py_SAFE_DOWNCAST((in / 10000000) - secs_between_epochs, __int64, time_t);
++}
++
++
++static void
+ FILE_TIME_to_time_t_nsec(FILETIME *in_ptr, time_t *time_out, int* nsec_out)
+ {
+     /* XXX endianness. Shouldn't matter, as all Windows implementations are little-endian */
+@@ -1217,6 +1258,69 @@ win32_wstat(const wchar_t* path, struct win32_stat *result)
+     return code;
+ }
+ 
++#ifdef MS_UWP
++
++static int
++win32_fstat(int file_number, struct win32_stat *result)
++{
++    FILE_ID_BOTH_DIR_INFO info;
++    FILE_STANDARD_INFO sInfo;
++
++    HANDLE h;
++    int type;
++
++    h = (HANDLE)_get_osfhandle(file_number);
++
++    /* Protocol violation: we explicitly clear errno, instead of
++    setting it to a POSIX error. Callers should use GetLastError. */
++    errno = 0;
++
++    if (h == INVALID_HANDLE_VALUE) {
++        /* This is really a C library error (invalid file handle).
++        We set the Win32 error to the closes one matching. */
++        SetLastError(ERROR_INVALID_HANDLE);
++        return -1;
++    }
++    memset(result, 0, sizeof(*result));
++
++    type = GetFileType(h);
++    if (type == FILE_TYPE_UNKNOWN) {
++        DWORD error = GetLastError();
++        if (error != 0) {
++            return -1;
++        }
++        /* else: valid but unknown file */
++    }
++
++    if (type != FILE_TYPE_DISK) {
++        if (type == FILE_TYPE_CHAR)
++            result->st_mode = _S_IFCHR;
++        else if (type == FILE_TYPE_PIPE)
++            result->st_mode = _S_IFIFO;
++        return 0;
++    }
++
++
++    if (!GetFileInformationByHandleEx(h, FileIdBothDirectoryInfo, &info, sizeof(info))) {
++        return -1;
++    }
++
++    if (!GetFileInformationByHandleEx(h, FileStandardInfo, &sInfo, sizeof(sInfo))) {
++        return -1;
++    }
++
++    /* similar to stat() */
++    result->st_mode = attributes_to_mode(info.FileAttributes);
++    result->st_size = (__int64)info.EndOfFile.QuadPart;
++    longlong_to_time_t_nsec(info.CreationTime.QuadPart, &result->st_ctime, &result->st_ctime_nsec);
++    longlong_to_time_t_nsec(info.LastWriteTime.QuadPart, &result->st_mtime, &result->st_mtime_nsec);
++    longlong_to_time_t_nsec(info.LastAccessTime.QuadPart, &result->st_atime, &result->st_atime_nsec);
++    /* specific to fstat() */
++    result->st_nlink = sInfo.NumberOfLinks;
++    result->st_ino = info.FileIndex;
++    return 0;
++}
++#else
+ static int
+ win32_fstat(int file_number, struct win32_stat *result)
+ {
+@@ -1270,7 +1374,7 @@ win32_fstat(int file_number, struct win32_stat *result)
+     result->st_ino = (((__int64)info.nFileIndexHigh)<<32) + info.nFileIndexLow;
+     return 0;
+ }
+-
++#endif /* MS_UWP */
+ #endif /* MS_WINDOWS */
+ 
+ PyDoc_STRVAR(stat_result__doc__,
+@@ -1702,7 +1806,7 @@ posix_access(PyObject *self, PyObject *args)
+     char *path;
+     int mode;
+ 
+-#ifdef MS_WINDOWS
++#if defined(MS_WINDOWS) && !defined(MS_UWP)
+     DWORD attr;
+     Py_UNICODE *wpath;
+     if (PyArg_ParseTuple(args, "ui:access", &wpath, &mode)) {
+@@ -1852,7 +1956,7 @@ posix_chmod(PyObject *self, PyObject *args)
+     char *path = NULL;
+     int i;
+     int res;
+-#ifdef MS_WINDOWS
++#if defined(MS_WINDOWS) && !defined(MS_UWP)
+     DWORD attr;
+     Py_UNICODE *wpath;
+     if (PyArg_ParseTuple(args, "ui|:chmod", &wpath, &i)) {
+@@ -2184,7 +2288,7 @@ posix_getcwd(PyObject *self, PyObject *noargs)
+ #if defined(PYOS_OS2) && defined(PYCC_GCC)
+         res = _getcwd2(tmpbuf, bufsize);
+ #else
+-        res = getcwd(tmpbuf, bufsize);
++        res = _getcwd(tmpbuf, bufsize);
+ #endif
+ 
+         if (res == NULL) {
+@@ -2247,7 +2351,7 @@ posix_getcwdu(PyObject *self, PyObject *noargs)
+ #if defined(PYOS_OS2) && defined(PYCC_GCC)
+     res = _getcwd2(buf, sizeof buf);
+ #else
+-    res = getcwd(buf, sizeof buf);
++    res = _getcwd(buf, sizeof buf);
+ #endif
+     Py_END_ALLOW_THREADS
+     if (res == NULL)
+@@ -2270,9 +2374,8 @@ posix_link(PyObject *self, PyObject *args)
+ }
+ #endif /* HAVE_LINK */
+ 
+-
+ PyDoc_STRVAR(posix_listdir__doc__,
+-"listdir(path) -> list_of_strings\n\n\
++    "listdir(path) -> list_of_strings\n\n\
+ Return a list containing the names of the entries in the directory.\n\
+ \n\
+     path: path of directory to list\n\
+@@ -2280,20 +2383,136 @@ Return a list containing the names of the entries in the directory.\n\
+ The list is in arbitrary order.  It does not include the special\n\
+ entries '.' and '..' even if they are present in the directory.");
+ 
++#ifdef MS_UWP
++static PyObject *
++posix_listdir(PyObject *self, PyObject *args)
++{
++    /* XXX Should redo this putting the (now four) versions of opendir
++    in separate files instead of having them all here... */
++
++    PyObject *d = NULL, *v = NULL;
++    HANDLE hFindFile = NULL;
++    BOOL result;
++    char inbuf[MAX_PATH * 2];
++    char *inbufp = inbuf;
++    Py_ssize_t insize = sizeof(inbuf);
++
++    char namebuf[MAX_PATH + 5]; /* Overallocate for \\*.*\0 */
++    char *bufptr = namebuf;
++    Py_ssize_t len = sizeof(namebuf) - 5; /* only claim to have space for MAX_PATH */
++
++    PyObject *po;
++    if (!PyArg_ParseTuple(args, "U:listdir", &po)) {
++        /* Drop the argument parsing error as narrow strings
++        are also valid. */
++        PyErr_Clear();
++
++        if (!PyArg_ParseTuple(args, "et#:listdir",
++            Py_FileSystemDefaultEncoding, &inbufp,
++            &insize))
++            return NULL;
++
++        po = PyUnicode_FromStringAndSize(inbufp, insize);
++        if (!po)
++        {
++            return NULL;
++        }
++    }
++    
++
++    WIN32_FIND_DATAW wFileData;
++    Py_UNICODE *wnamebuf;
++    /* Overallocate for \\*.*\0 */
++    len = PyUnicode_GET_SIZE(po);
++    wnamebuf = malloc((len + 5) * sizeof(wchar_t));
++    if (!wnamebuf) {
++        PyErr_NoMemory();
++        return NULL;
++    }
++    wcscpy(wnamebuf, PyUnicode_AS_UNICODE(po));
++    if (len > 0) {
++        Py_UNICODE wch = wnamebuf[len - 1];
++        if (wch != L'/' && wch != L'\\' && wch != L':')
++            wnamebuf[len++] = L'\\';
++        wcscpy(wnamebuf + len, L"*.*");
++    }
++    if ((d = PyList_New(0)) == NULL) {
++        free(wnamebuf);
++        return NULL;
++    }
++    Py_BEGIN_ALLOW_THREADS
++        hFindFile = FindFirstFileExW(wnamebuf, FindExInfoBasic, &wFileData, FindExSearchNameMatch, NULL, 0);
++
++    Py_END_ALLOW_THREADS
++        if (hFindFile == INVALID_HANDLE_VALUE) {
++            int error = GetLastError();
++            if (error == ERROR_FILE_NOT_FOUND) {
++                free(wnamebuf);
++                return d;
++            }
++            Py_DECREF(d);
++            win32_error_unicode("FindFirstFileW", wnamebuf);
++            free(wnamebuf);
++            return NULL;
++        }
++    do {
++        /* Skip over . and .. */
++        if (wcscmp(wFileData.cFileName, L".") != 0 &&
++            wcscmp(wFileData.cFileName, L"..") != 0) {
++            v = PyUnicode_FromUnicode(wFileData.cFileName, wcslen(wFileData.cFileName));
++            if (v == NULL) {
++                Py_DECREF(d);
++                d = NULL;
++                break;
++            }
++            if (PyList_Append(d, v) != 0) {
++                Py_DECREF(v);
++                Py_DECREF(d);
++                d = NULL;
++                break;
++            }
++            Py_DECREF(v);
++        }
++        Py_BEGIN_ALLOW_THREADS
++            result = FindNextFileW(hFindFile, &wFileData);
++        Py_END_ALLOW_THREADS
++            /* FindNextFile sets error to ERROR_NO_MORE_FILES if
++            it got to the end of the directory. */
++            if (!result && GetLastError() != ERROR_NO_MORE_FILES) {
++                Py_DECREF(d);
++                win32_error_unicode("FindNextFileW", wnamebuf);
++                FindClose(hFindFile);
++                free(wnamebuf);
++                return NULL;
++            }
++    } while (result == TRUE);
++
++    if (FindClose(hFindFile) == FALSE) {
++        Py_DECREF(d);
++        win32_error_unicode("FindClose", wnamebuf);
++        free(wnamebuf);
++        return NULL;
++    }
++    free(wnamebuf);
++    return d;
++}
++
++
++#else
+ static PyObject *
+ posix_listdir(PyObject *self, PyObject *args)
+ {
+     /* XXX Should redo this putting the (now four) versions of opendir
+-       in separate files instead of having them all here... */
++    in separate files instead of having them all here... */
+ #if defined(MS_WINDOWS) && !defined(HAVE_OPENDIR)
+ 
+     PyObject *d, *v;
+     HANDLE hFindFile;
+     BOOL result;
+     WIN32_FIND_DATA FileData;
+-    char namebuf[MAX_PATH+5]; /* Overallocate for \\*.*\0 */
++    char namebuf[MAX_PATH + 5]; /* Overallocate for \\*.*\0 */
+     char *bufptr = namebuf;
+-    Py_ssize_t len = sizeof(namebuf)-5; /* only claim to have space for MAX_PATH */
++    Py_ssize_t len = sizeof(namebuf) - 5; /* only claim to have space for MAX_PATH */
+ 
+     Py_UNICODE *wpath;
+     if (PyArg_ParseTuple(args, "u:listdir", &wpath)) {
+@@ -2308,7 +2527,7 @@ posix_listdir(PyObject *self, PyObject *args)
+         }
+         wcscpy(wnamebuf, wpath);
+         if (len > 0) {
+-            Py_UNICODE wch = wnamebuf[len-1];
++            Py_UNICODE wch = wnamebuf[len - 1];
+             if (wch != L'/' && wch != L'\\' && wch != L':')
+                 wnamebuf[len++] = L'\\';
+             wcscpy(wnamebuf + len, L"*.*");
+@@ -2318,19 +2537,19 @@ posix_listdir(PyObject *self, PyObject *args)
+             return NULL;
+         }
+         Py_BEGIN_ALLOW_THREADS
+-        hFindFile = FindFirstFileW(wnamebuf, &wFileData);
++            hFindFile = FindFirstFileW(wnamebuf, &wFileData);
+         Py_END_ALLOW_THREADS
+-        if (hFindFile == INVALID_HANDLE_VALUE) {
+-            int error = GetLastError();
+-            if (error == ERROR_FILE_NOT_FOUND) {
++            if (hFindFile == INVALID_HANDLE_VALUE) {
++                int error = GetLastError();
++                if (error == ERROR_FILE_NOT_FOUND) {
++                    free(wnamebuf);
++                    return d;
++                }
++                Py_DECREF(d);
++                win32_error_unicode("FindFirstFileW", wnamebuf);
+                 free(wnamebuf);
+-                return d;
++                return NULL;
+             }
+-            Py_DECREF(d);
+-            win32_error_unicode("FindFirstFileW", wnamebuf);
+-            free(wnamebuf);
+-            return NULL;
+-        }
+         do {
+             /* Skip over . and .. */
+             if (wcscmp(wFileData.cFileName, L".") != 0 &&
+@@ -2350,17 +2569,17 @@ posix_listdir(PyObject *self, PyObject *args)
+                 Py_DECREF(v);
+             }
+             Py_BEGIN_ALLOW_THREADS
+-            result = FindNextFileW(hFindFile, &wFileData);
++                result = FindNextFileW(hFindFile, &wFileData);
+             Py_END_ALLOW_THREADS
+-            /* FindNextFile sets error to ERROR_NO_MORE_FILES if
+-               it got to the end of the directory. */
+-            if (!result && GetLastError() != ERROR_NO_MORE_FILES) {
+-                Py_DECREF(d);
+-                win32_error_unicode("FindNextFileW", wnamebuf);
+-                FindClose(hFindFile);
+-                free(wnamebuf);
+-                return NULL;
+-            }
++                /* FindNextFile sets error to ERROR_NO_MORE_FILES if
++                it got to the end of the directory. */
++                if (!result && GetLastError() != ERROR_NO_MORE_FILES) {
++                    Py_DECREF(d);
++                    win32_error_unicode("FindNextFileW", wnamebuf);
++                    FindClose(hFindFile);
++                    free(wnamebuf);
++                    return NULL;
++                }
+         } while (result == TRUE);
+ 
+         if (FindClose(hFindFile) == FALSE) {
+@@ -2373,14 +2592,14 @@ posix_listdir(PyObject *self, PyObject *args)
+         return d;
+     }
+     /* Drop the argument parsing error as narrow strings
+-       are also valid. */
++    are also valid. */
+     PyErr_Clear();
+ 
+     if (!PyArg_ParseTuple(args, "et#:listdir",
+-                          Py_FileSystemDefaultEncoding, &bufptr, &len))
++        Py_FileSystemDefaultEncoding, &bufptr, &len))
+         return NULL;
+     if (len > 0) {
+-        char ch = namebuf[len-1];
++        char ch = namebuf[len - 1];
+         if (ch != SEP && ch != ALTSEP && ch != ':')
+             namebuf[len++] = '/';
+         strcpy(namebuf + len, "*.*");
+@@ -2390,15 +2609,15 @@ posix_listdir(PyObject *self, PyObject *args)
+         return NULL;
+ 
+     Py_BEGIN_ALLOW_THREADS
+-    hFindFile = FindFirstFile(namebuf, &FileData);
++        hFindFile = FindFirstFile(namebuf, &FileData);
+     Py_END_ALLOW_THREADS
+-    if (hFindFile == INVALID_HANDLE_VALUE) {
+-        int error = GetLastError();
+-        if (error == ERROR_FILE_NOT_FOUND)
+-            return d;
+-        Py_DECREF(d);
+-        return win32_error("FindFirstFile", namebuf);
+-    }
++        if (hFindFile == INVALID_HANDLE_VALUE) {
++            int error = GetLastError();
++            if (error == ERROR_FILE_NOT_FOUND)
++                return d;
++            Py_DECREF(d);
++            return win32_error("FindFirstFile", namebuf);
++        }
+     do {
+         /* Skip over . and .. */
+         if (strcmp(FileData.cFileName, ".") != 0 &&
+@@ -2418,16 +2637,16 @@ posix_listdir(PyObject *self, PyObject *args)
+             Py_DECREF(v);
+         }
+         Py_BEGIN_ALLOW_THREADS
+-        result = FindNextFile(hFindFile, &FileData);
++            result = FindNextFile(hFindFile, &FileData);
+         Py_END_ALLOW_THREADS
+-        /* FindNextFile sets error to ERROR_NO_MORE_FILES if
+-           it got to the end of the directory. */
+-        if (!result && GetLastError() != ERROR_NO_MORE_FILES) {
+-            Py_DECREF(d);
+-            win32_error("FindNextFile", namebuf);
+-            FindClose(hFindFile);
+-            return NULL;
+-        }
++            /* FindNextFile sets error to ERROR_NO_MORE_FILES if
++            it got to the end of the directory. */
++            if (!result && GetLastError() != ERROR_NO_MORE_FILES) {
++                Py_DECREF(d);
++                win32_error("FindNextFile", namebuf);
++                FindClose(hFindFile);
++                return NULL;
++            }
+     } while (result == TRUE);
+ 
+     if (FindClose(hFindFile) == FALSE) {
+@@ -2445,7 +2664,7 @@ posix_listdir(PyObject *self, PyObject *args)
+     char *name, *pt;
+     Py_ssize_t len;
+     PyObject *d, *v;
+-    char namebuf[MAX_PATH+5];
++    char namebuf[MAX_PATH + 5];
+     HDIR  hdir = 1;
+     ULONG srchcnt = 1;
+     FILEFINDBUF3   ep;
+@@ -2461,7 +2680,7 @@ posix_listdir(PyObject *self, PyObject *args)
+     for (pt = namebuf; *pt; pt++)
+         if (*pt == ALTSEP)
+             *pt = SEP;
+-    if (namebuf[len-1] != SEP)
++    if (namebuf[len - 1] != SEP)
+         namebuf[len++] = SEP;
+     strcpy(namebuf + len, "*.*");
+ 
+@@ -2469,11 +2688,11 @@ posix_listdir(PyObject *self, PyObject *args)
+         return NULL;
+ 
+     rc = DosFindFirst(namebuf,         /* Wildcard Pattern to Match */
+-                      &hdir,           /* Handle to Use While Search Directory */
+-                      FILE_READONLY | FILE_HIDDEN | FILE_SYSTEM | FILE_DIRECTORY,
+-                      &ep, sizeof(ep), /* Structure to Receive Directory Entry */
+-                      &srchcnt,        /* Max and Actual Count of Entries Per Iteration */
+-                      FIL_STANDARD);   /* Format of Entry (EAs or Not) */
++        &hdir,           /* Handle to Use While Search Directory */
++        FILE_READONLY | FILE_HIDDEN | FILE_SYSTEM | FILE_DIRECTORY,
++        &ep, sizeof(ep), /* Structure to Receive Directory Entry */
++        &srchcnt,        /* Max and Actual Count of Entries Per Iteration */
++        FIL_STANDARD);   /* Format of Entry (EAs or Not) */
+ 
+     if (rc != NO_ERROR) {
+         errno = ENOENT;
+@@ -2483,7 +2702,7 @@ posix_listdir(PyObject *self, PyObject *args)
+     if (srchcnt > 0) { /* If Directory is NOT Totally Empty, */
+         do {
+             if (ep.achName[0] == '.'
+-            && (ep.achName[1] == '\0' || (ep.achName[1] == '.' && ep.achName[2] == '\0')))
++                && (ep.achName[1] == '\0' || (ep.achName[1] == '.' && ep.achName[2] == '\0')))
+                 continue; /* Skip Over "." and ".." Names */
+ 
+             strcpy(namebuf, ep.achName);
+@@ -2524,37 +2743,38 @@ posix_listdir(PyObject *self, PyObject *args)
+     if (!PyArg_ParseTuple(args, "et:listdir", Py_FileSystemDefaultEncoding, &name))
+         return NULL;
+     Py_BEGIN_ALLOW_THREADS
+-    dirp = opendir(name);
++        dirp = opendir(name);
+     Py_END_ALLOW_THREADS
+-    if (dirp == NULL) {
+-        return posix_error_with_allocated_filename(name);
+-    }
++        if (dirp == NULL) {
++            return posix_error_with_allocated_filename(name);
++        }
+     if ((d = PyList_New(0)) == NULL) {
+         Py_BEGIN_ALLOW_THREADS
+-        closedir(dirp);
++            closedir(dirp);
+         Py_END_ALLOW_THREADS
+-        PyMem_Free(name);
++            PyMem_Free(name);
+         return NULL;
+     }
+     for (;;) {
+         errno = 0;
+         Py_BEGIN_ALLOW_THREADS
+-        ep = readdir(dirp);
++            ep = readdir(dirp);
+         Py_END_ALLOW_THREADS
+-        if (ep == NULL) {
+-            if (errno == 0) {
+-                break;
+-            } else {
+-                Py_BEGIN_ALLOW_THREADS
+-                closedir(dirp);
+-                Py_END_ALLOW_THREADS
+-                Py_DECREF(d);
+-                return posix_error_with_allocated_filename(name);
++            if (ep == NULL) {
++                if (errno == 0) {
++                    break;
++                }
++                else {
++                    Py_BEGIN_ALLOW_THREADS
++                        closedir(dirp);
++                    Py_END_ALLOW_THREADS
++                        Py_DECREF(d);
++                    return posix_error_with_allocated_filename(name);
++                }
+             }
+-        }
+         if (ep->d_name[0] == '.' &&
+             (NAMLEN(ep) == 1 ||
+-             (ep->d_name[1] == '.' && NAMLEN(ep) == 2)))
++            (ep->d_name[1] == '.' && NAMLEN(ep) == 2)))
+             continue;
+         v = PyString_FromStringAndSize(ep->d_name, NAMLEN(ep));
+         if (v == NULL) {
+@@ -2567,15 +2787,15 @@ posix_listdir(PyObject *self, PyObject *args)
+             PyObject *w;
+ 
+             w = PyUnicode_FromEncodedObject(v,
+-                                            Py_FileSystemDefaultEncoding,
+-                                            "strict");
++                Py_FileSystemDefaultEncoding,
++                "strict");
+             if (w != NULL) {
+                 Py_DECREF(v);
+                 v = w;
+             }
+             else {
+                 /* fall back to the original byte string, as
+-                   discussed in patch #683592 */
++                discussed in patch #683592 */
+                 PyErr_Clear();
+             }
+         }
+@@ -2589,37 +2809,122 @@ posix_listdir(PyObject *self, PyObject *args)
+         Py_DECREF(v);
+     }
+     Py_BEGIN_ALLOW_THREADS
+-    closedir(dirp);
++        closedir(dirp);
+     Py_END_ALLOW_THREADS
+-    PyMem_Free(name);
++        PyMem_Free(name);
+ 
+     return d;
+ 
+ #endif /* which OS */
+ }  /* end of posix_listdir */
++#endif /* MS_UWP */
+ 
+ #ifdef MS_WINDOWS
++#ifdef MS_UWP
++
++  /* A helper function to get a wchar_t string from a python unicde object
++     caller must call PyMem_FREE on returned wchar_t* */
++static wchar_t *
++posix__pyunicode_to_wchar(PyObject *ob, Py_ssize_t* size)
++{
++    wchar_t *ws1 = NULL;
++    Py_ssize_t len1  = 0;
++
++    /* Convert the unicode strings to wchar[]. */
++    len1 = PyUnicode_GET_SIZE(ob) + 1;
++    ws1 = PyMem_NEW(wchar_t, len1);
++    if (!ws1) {
++        PyErr_NoMemory();
++        goto done;
++    }
++
++    if (PyUnicode_AsWideChar((PyUnicodeObject*)ob, ws1, len1) == -1) {
++        goto done;
++    }
++
++    ws1[len1 - 1] = 0;
++
++done:
++    *size = len1;
++    return ws1;
++}
++
+ /* A helper function for abspath on win32 */
+ static PyObject *
+ posix__getfullpathname(PyObject *self, PyObject *args)
+ {
+     /* assume encoded strings won't more than double no of chars */
+-    char inbuf[MAX_PATH*2];
++    char inbuf[MAX_PATH * 2];
+     char *inbufp = inbuf;
+     Py_ssize_t insize = sizeof(inbuf);
+-    char outbuf[MAX_PATH*2];
++    char *temp = NULL;
++    PyObject *po = NULL;
++
++    if (!PyArg_ParseTuple(args, "U|:_getfullpathname", &po)) {
++
++        /* Drop the argument parsing error as narrow strings
++        are also valid. */
++        PyErr_Clear();
++        
++        if (!PyArg_ParseTuple(args, "et#:_getfullpathname",
++            Py_FileSystemDefaultEncoding, &inbufp,
++            &insize))
++            return NULL;
++        
++
++
++        po = PyUnicode_FromStringAndSize(inbufp, insize);
++        if (!po)
++        {
++            return NULL;
++        }
++    }
++
++    Py_UNICODE *wpath = PyUnicode_AS_UNICODE(po);
++    Py_UNICODE woutbuf[MAX_PATH * 2], *woutbufp = woutbuf;
++    Py_UNICODE *wtemp;
++    DWORD result;
++    PyObject *v;
++    result = GetFullPathNameW(wpath,
++        sizeof(woutbuf) / sizeof(woutbuf[0]),
++        woutbuf, &wtemp);
++    if (result > sizeof(woutbuf) / sizeof(woutbuf[0])) {
++        woutbufp = malloc(result * sizeof(Py_UNICODE));
++        if (!woutbufp)
++            return PyErr_NoMemory();
++        result = GetFullPathNameW(wpath, result, woutbufp, &wtemp);
++    }
++    if (result)
++        v = PyUnicode_FromUnicode(woutbufp, wcslen(woutbufp));
++    else
++        v = win32_error_unicode("GetFullPathNameW", wpath);
++    if (woutbufp != woutbuf)
++        free(woutbufp);
++
++    return v;
++} /* end of posix__getfullpathname */
++#else /* MS_WINDOWS */
++   /* A helper function for abspath on win32 */
++static PyObject *
++posix__getfullpathname(PyObject *self, PyObject *args)
++{
++    /* assume encoded strings won't more than double no of chars */
++    char inbuf[MAX_PATH * 2];
++    char *inbufp = inbuf;
++    Py_ssize_t insize = sizeof(inbuf);
++    char outbuf[MAX_PATH * 2];
+     char *temp;
+ 
+     Py_UNICODE *wpath;
+     if (PyArg_ParseTuple(args, "u|:_getfullpathname", &wpath)) {
+-        Py_UNICODE woutbuf[MAX_PATH*2], *woutbufp = woutbuf;
++        Py_UNICODE woutbuf[MAX_PATH * 2], *woutbufp = woutbuf;
+         Py_UNICODE *wtemp;
+         DWORD result;
+         PyObject *v;
+         result = GetFullPathNameW(wpath,
+-                                  sizeof(woutbuf)/sizeof(woutbuf[0]),
+-                                  woutbuf, &wtemp);
+-        if (result > sizeof(woutbuf)/sizeof(woutbuf[0])) {
++            sizeof(woutbuf) / sizeof(woutbuf[0]),
++            woutbuf, &wtemp);
++        if (result > sizeof(woutbuf) / sizeof(woutbuf[0])) {
+             woutbufp = malloc(result * sizeof(Py_UNICODE));
+             if (!woutbufp)
+                 return PyErr_NoMemory();
+@@ -2634,22 +2939,23 @@ posix__getfullpathname(PyObject *self, PyObject *args)
+         return v;
+     }
+     /* Drop the argument parsing error as narrow strings
+-       are also valid. */
++    are also valid. */
+     PyErr_Clear();
+ 
+-    if (!PyArg_ParseTuple (args, "et#:_getfullpathname",
+-                           Py_FileSystemDefaultEncoding, &inbufp,
+-                           &insize))
++    if (!PyArg_ParseTuple(args, "et#:_getfullpathname",
++        Py_FileSystemDefaultEncoding, &inbufp,
++        &insize))
+         return NULL;
+-    if (!GetFullPathName(inbuf, sizeof(outbuf)/sizeof(outbuf[0]),
+-                         outbuf, &temp))
++    if (!GetFullPathName(inbuf, sizeof(outbuf) / sizeof(outbuf[0]),
++        outbuf, &temp))
+         return win32_error("GetFullPathName", inbuf);
+     if (PyUnicode_Check(PyTuple_GetItem(args, 0))) {
+         return PyUnicode_Decode(outbuf, strlen(outbuf),
+-                                Py_FileSystemDefaultEncoding, NULL);
++            Py_FileSystemDefaultEncoding, NULL);
+     }
+     return PyString_FromString(outbuf);
+ } /* end of posix__getfullpathname */
++#endif /* MS_UWP */
+ #endif /* MS_WINDOWS */
+ 
+ PyDoc_STRVAR(posix_mkdir__doc__,
+@@ -2763,8 +3069,10 @@ posix_rename(PyObject *self, PyObject *args)
+ {
+ #ifdef MS_WINDOWS
+     PyObject *o1, *o2;
++#ifndef MS_UWP
+     char *p1, *p2;
+-    BOOL result;
++#endif
++    BOOL result = FALSE;
+     if (!PyArg_ParseTuple(args, "OO:rename", &o1, &o2))
+         goto error;
+     if (!convert_to_unicode(&o1))
+@@ -2774,8 +3082,12 @@ posix_rename(PyObject *self, PyObject *args)
+         goto error;
+     }
+     Py_BEGIN_ALLOW_THREADS
++#ifdef MS_UWP
++    result = MoveFileEx(PyUnicode_AsUnicode(o1),PyUnicode_AsUnicode(o2), 0);
++#else
+     result = MoveFileW(PyUnicode_AsUnicode(o1),
+                        PyUnicode_AsUnicode(o2));
++#endif
+     Py_END_ALLOW_THREADS
+     Py_DECREF(o1);
+     Py_DECREF(o2);
+@@ -2784,12 +3096,14 @@ posix_rename(PyObject *self, PyObject *args)
+     Py_INCREF(Py_None);
+     return Py_None;
+ error:
++#ifndef MS_UWP
+     PyErr_Clear();
+     if (!PyArg_ParseTuple(args, "ss:rename", &p1, &p2))
+         return NULL;
+     Py_BEGIN_ALLOW_THREADS
+     result = MoveFileA(p1, p2);
+     Py_END_ALLOW_THREADS
++#endif
+     if (!result)
+         return win32_error("rename", NULL);
+     Py_INCREF(Py_None);
+@@ -2961,7 +3275,7 @@ posix_utime(PyObject *self, PyObject *args)
+     PyObject *arg;
+     wchar_t *wpath = NULL;
+     char *apath = NULL;
+-    HANDLE hFile;
++    HANDLE hFile = NULL;
+     time_t atimesec, mtimesec;
+     long ausec, musec;
+     FILETIME atime, mtime;
+@@ -2969,9 +3283,13 @@ posix_utime(PyObject *self, PyObject *args)
+ 
+     if (PyArg_ParseTuple(args, "uO|:utime", &wpath, &arg)) {
+         Py_BEGIN_ALLOW_THREADS
++#if defined(MS_UWP)
++        hFile = CreateFile2(wpath, FILE_WRITE_ATTRIBUTES, 0, OPEN_EXISTING, NULL);
++#else
+         hFile = CreateFileW(wpath, FILE_WRITE_ATTRIBUTES, 0,
+                             NULL, OPEN_EXISTING,
+                             FILE_FLAG_BACKUP_SEMANTICS, NULL);
++#endif
+         Py_END_ALLOW_THREADS
+         if (hFile == INVALID_HANDLE_VALUE)
+             return win32_error_unicode("utime", wpath);
+@@ -2980,6 +3298,7 @@ posix_utime(PyObject *self, PyObject *args)
+            are also valid. */
+         PyErr_Clear();
+ 
++#if !defined(MS_UWP)
+     if (!wpath) {
+         if (!PyArg_ParseTuple(args, "etO:utime",
+                               Py_FileSystemDefaultEncoding, &apath, &arg))
+@@ -2996,6 +3315,7 @@ posix_utime(PyObject *self, PyObject *args)
+         }
+         PyMem_Free(apath);
+     }
++#endif
+ 
+     if (arg == Py_None) {
+         SYSTEMTIME now;
+@@ -4376,7 +4696,8 @@ posix_killpg(PyObject *self, PyObject *args)
+ }
+ #endif
+ 
+-#ifdef MS_WINDOWS
++#if defined(MS_WINDOWS)
++#if !defined(MS_UWP)
+ PyDoc_STRVAR(win32_kill__doc__,
+ "kill(pid, sig)\n\n\
+ Kill a process with a signal.");
+@@ -4422,12 +4743,60 @@ win32_kill(PyObject *self, PyObject *args)
+     return result;
+ }
+ 
++#endif
+ PyDoc_STRVAR(posix__isdir__doc__,
+ "Return true if the pathname refers to an existing directory.");
+ 
++#ifdef MS_UWP
+ static PyObject *
+ posix__isdir(PyObject *self, PyObject *args)
+ {
++    PyObject *po;
++    DWORD attributes;
++    char inbuf[MAX_PATH * 2];
++    char *inbufp = inbuf;
++    Py_ssize_t insize = sizeof(inbuf);
++
++    if (!PyArg_ParseTuple(args, "U|:_isdir", &po)) {
++
++        /* Drop the argument parsing error as narrow strings
++        are also valid. */
++        PyErr_Clear();
++        
++        if (!PyArg_ParseTuple(args, "et#:_isdir",
++            Py_FileSystemDefaultEncoding, &inbufp,
++            &insize))
++            return NULL;
++
++        po = PyUnicode_FromStringAndSize(inbufp, insize);
++        if (!po)
++        {
++            return NULL;
++        }
++    }
++
++    Py_UNICODE *wpath = PyUnicode_AS_UNICODE(po);
++
++    WIN32_FILE_ATTRIBUTE_DATA fad;
++    if (!GetFileAttributesEx(wpath, GetFileExInfoStandard, &fad))
++    {
++        Py_RETURN_FALSE;
++    }
++    attributes = fad.dwFileAttributes;
++
++    if (attributes == INVALID_FILE_ATTRIBUTES)
++        Py_RETURN_FALSE;
++
++    if (attributes & FILE_ATTRIBUTE_DIRECTORY)
++        Py_RETURN_TRUE;
++    else
++        Py_RETURN_FALSE;
++}
++#else
++static PyObject *
++posix__isdir(PyObject *self, PyObject *args)
++{
++    PyObject *opath;
+     char *path;
+     Py_UNICODE *wpath;
+     DWORD attributes;
+@@ -4439,11 +4808,11 @@ posix__isdir(PyObject *self, PyObject *args)
+         goto check;
+     }
+     /* Drop the argument parsing error as narrow strings
+-       are also valid. */
++    are also valid. */
+     PyErr_Clear();
+ 
+     if (!PyArg_ParseTuple(args, "et:_isdir",
+-                          Py_FileSystemDefaultEncoding, &path))
++        Py_FileSystemDefaultEncoding, &path))
+         return NULL;
+ 
+     attributes = GetFileAttributesA(path);
+@@ -4457,6 +4826,7 @@ check:
+     else
+         Py_RETURN_FALSE;
+ }
++#endif /* MS_UWP */
+ #endif /* MS_WINDOWS */
+ 
+ #ifdef HAVE_PLOCK
+@@ -6448,6 +6818,16 @@ posix_times(PyObject *self, PyObject *noargs)
+ static PyObject *
+ posix_times(PyObject *self, PyObject *noargs)
+ {
++#ifdef MS_UWP
++    /* No process times are available to Store apps */
++    return Py_BuildValue(
++        "ddddd",
++        (double)0,
++        (double)0,
++        (double)0,
++        (double)0,
++        (double)0);
++#else
+     FILETIME create, exit, kernel, user;
+     HANDLE hProc;
+     hProc = GetCurrentProcess();
+@@ -6466,6 +6846,7 @@ posix_times(PyObject *self, PyObject *noargs)
+         (double)0,
+         (double)0,
+         (double)0);
++#endif
+ }
+ #endif /* MS_WINDOWS */
+ 
+@@ -8643,6 +9024,10 @@ The filepath is relative to the current directory.  If you want to use\n\
+ an absolute path, make sure the first character is not a slash (\"/\");\n\
+ the underlying Win32 ShellExecute function doesn't work if it is.");
+ 
++#ifdef MS_UWP
++BOOL uwp_startfile(const wchar_t *operation, const wchar_t *path);
++#endif
++
+ static PyObject *
+ win32_startfile(PyObject *self, PyObject *args)
+ {
+@@ -8669,9 +9054,13 @@ win32_startfile(PyObject *self, PyObject *args)
+     }
+ 
+     Py_BEGIN_ALLOW_THREADS
++#ifdef MS_UWP
++    rc = uwp_startfile(PyUnicode_AsUnicode(woperation), wpath) ? (HINSTANCE)33 : (HINSTANCE)0;
++#else
+     rc = ShellExecuteW((HWND)0, woperation ? PyUnicode_AS_UNICODE(woperation) : 0,
+         wpath,
+         NULL, NULL, SW_SHOWNORMAL);
++#endif
+     Py_END_ALLOW_THREADS
+ 
+     Py_XDECREF(woperation);
+@@ -8688,8 +9077,12 @@ normal:
+                           &operation))
+         return NULL;
+     Py_BEGIN_ALLOW_THREADS
++#ifdef MS_UWP
++        rc = uwp_startfile(PyUnicode_AsUnicode(woperation), wpath) ? (HINSTANCE)33 : (HINSTANCE)0;
++#else
+     rc = ShellExecute((HWND)0, operation, filepath,
+-                      NULL, NULL, SW_SHOWNORMAL);
++                    NULL, NULL, SW_SHOWNORMAL);
++#endif
+     Py_END_ALLOW_THREADS
+     if (rc <= (HINSTANCE)32) {
+         PyObject *errval = win32_error("startfile", filepath);
+diff --git a/Modules/signalmodule.c b/Modules/signalmodule.c
+index 1d7ba4b..30b4a9c 100644
+--- a/Modules/signalmodule.c
++++ b/Modules/signalmodule.c
+@@ -23,6 +23,17 @@
+ #include <sys/time.h>
+ #endif
+ 
++#if defined(MS_UWP)
++/* UWP apps do not have environment variables */
++extern char* win10_getenv(const char* n);
++#define getenv(v) win10_getenv
++#undef environ
++#define environ (NULL)
++/* getpid is not available, but GetCurrentProcessId is */
++#define getpid GetCurrentProcessId
++#endif
++
++
+ #ifndef SIG_ERR
+ #define SIG_ERR ((PyOS_sighandler_t)(-1))
+ #endif
+diff --git a/Modules/socketmodule.c b/Modules/socketmodule.c
+index 3e3c05f..b5038c2 100644
+--- a/Modules/socketmodule.c
++++ b/Modules/socketmodule.c
+@@ -99,9 +99,11 @@ Local naming conventions:
+ #include "structmember.h"
+ #include "timefuncs.h"
+ 
++#ifndef MS_UWP
+ #ifndef INVALID_SOCKET /* MS defines this */
+ #define INVALID_SOCKET (-1)
+ #endif
++#endif
+ 
+ #undef MAX
+ #define MAX(x, y) ((x) < (y) ? (y) : (x))
+@@ -395,9 +397,11 @@ const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
+ #endif
+ 
+ #ifdef MS_WIN32
++#ifndef MS_UWP
+ #define EAFNOSUPPORT WSAEAFNOSUPPORT
+ #define snprintf _snprintf
+ #endif
++#endif
+ 
+ #if defined(PYOS_OS2) && !defined(PYCC_GCC)
+ #define SOCKETCLOSE soclose
+@@ -2922,7 +2926,7 @@ static PyObject *
+ sock_sendto(PySocketSockObject *s, PyObject *args)
+ {
+     Py_buffer pbuf;
+-    PyObject *addro;
++    PyObject *addro = NULL;
+     char *buf;
+     Py_ssize_t len;
+     sock_addr_t addrbuf;
+diff --git a/Modules/timemodule.c b/Modules/timemodule.c
+index 20d7c4b..088bf1e 100644
+--- a/Modules/timemodule.c
++++ b/Modules/timemodule.c
+@@ -27,6 +27,17 @@
+ #include <io.h>
+ #endif
+ 
++#if defined(MS_UWP)
++/* UWP apps do not have environment variables */
++extern char* win10_getenv(const char* n);
++#define getenv(v) win10_getenv
++#undef environ
++#define environ (NULL)
++/* getpid is not available, but GetCurrentProcessId is */
++#define getpid GetCurrentProcessId
++#endif
++
++
+ #ifdef HAVE_FTIME
+ #include <sys/timeb.h>
+ #if !defined(MS_WINDOWS) && !defined(PYOS_OS2)
+@@ -42,6 +53,15 @@ extern int ftime(struct timeb *);
+ #include <windows.h>
+ #include "pythread.h"
+ 
++
++/* VS 2015 defines these names with a leading underscore */
++#if _MSC_VER >= 1900
++#define timezone _timezone
++#define daylight _daylight
++#define tzname _tzname
++#endif
++
++
+ /* helper to allow us to interrupt sleep() on Windows*/
+ static HANDLE hInterruptEvent = NULL;
+ static BOOL WINAPI PyCtrlHandler(DWORD dwCtrlType)
+@@ -706,7 +726,7 @@ inittimezone(PyObject *m) {
+ 
+     And I'm lazy and hate C so nyer.
+      */
+-#if defined(HAVE_TZNAME) && !defined(__GLIBC__) && !defined(__CYGWIN__)
++#if defined(HAVE_TZNAME) && !defined(__GLIBC__) && !defined(__CYGWIN__)  && !defined(MS_UWP)
+     tzset();
+ #if defined(PYOS_OS2) || defined(MS_WINDOWS)
+     PyModule_AddIntConstant(m, "timezone", _timezone);
+@@ -878,7 +898,9 @@ inittime(void)
+     */
+     main_thread = PyThread_get_thread_ident();
+     hInterruptEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
++#ifndef MS_UWP
+     SetConsoleCtrlHandler( PyCtrlHandler, TRUE);
++#endif
+ #endif /* MS_WINDOWS */
+     if (!initialized) {
+         PyStructSequence_InitType(&StructTimeType,
+diff --git a/Objects/codeobject.c b/Objects/codeobject.c
+index a66aa69..0c68ae0 100644
+--- a/Objects/codeobject.c
++++ b/Objects/codeobject.c
+@@ -498,7 +498,7 @@ _PyCode_ConstantKey(PyObject *op)
+     }
+     else if (PyFrozenSet_CheckExact(op)) {
+         Py_ssize_t pos = 0;
+-        PyObject *item;
++        PyObject *item = NULL;
+         long hash;
+         Py_ssize_t i, len;
+         PyObject *tuple, *set;
+diff --git a/Objects/dictobject.c b/Objects/dictobject.c
+index e3e4765..a68e2ca 100644
+--- a/Objects/dictobject.c
++++ b/Objects/dictobject.c
+@@ -1409,7 +1409,7 @@ dict_fromkeys(PyObject *cls, PyObject *args)
+         if (PyAnySet_CheckExact(seq)) {
+             PyDictObject *mp = (PyDictObject *)d;
+             Py_ssize_t pos = 0;
+-            PyObject *key;
++            PyObject *key = NULL;
+             long hash;
+ 
+             if (dictresize(mp, PySet_GET_SIZE(seq) / 2 * 3)) {
+diff --git a/Objects/frameobject.c b/Objects/frameobject.c
+index 2c8fb01..246ebfd 100644
+--- a/Objects/frameobject.c
++++ b/Objects/frameobject.c
+@@ -147,7 +147,7 @@ frame_setlineno(PyFrameObject *f, PyObject* p_new_lineno)
+     else {
+         /* Find the bytecode offset for the start of the given
+          * line, or the first code-owning line after it. */
+-        char *tmp;
++        char *tmp = NULL;
+         PyString_AsStringAndSize(f->f_code->co_lnotab,
+                                  &tmp, &lnotab_len);
+         lnotab = (unsigned char *) tmp;
+diff --git a/Objects/object.c b/Objects/object.c
+index 7a28218..50a52a9 100644
+--- a/Objects/object.c
++++ b/Objects/object.c
+@@ -470,7 +470,7 @@ PyObject_Str(PyObject *v)
+ PyObject *
+ PyObject_Unicode(PyObject *v)
+ {
+-    PyObject *res;
++    PyObject *res = NULL;
+     PyObject *func;
+     PyObject *str;
+     int unicode_method_found = 0;
+diff --git a/Objects/obmalloc.c b/Objects/obmalloc.c
+index 1bb1866..6496e9c 100644
+--- a/Objects/obmalloc.c
++++ b/Objects/obmalloc.c
+@@ -1,5 +1,11 @@
+ #include "Python.h"
+ 
++#if defined(MS_UWP)
++extern char* win10_getenv(const char* n);
++#define getenv(v) win10_getenv
++#endif
++
++
+ #if defined(__has_feature)  /* Clang */
+  #if __has_feature(address_sanitizer)  /* is ASAN enabled? */
+   #define ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS \
+diff --git a/Objects/stringobject.c b/Objects/stringobject.c
+index 4e38735..d527538 100644
+--- a/Objects/stringobject.c
++++ b/Objects/stringobject.c
+@@ -4015,7 +4015,7 @@ _PyString_FormatLong(PyObject *val, int flags, int prec, int type,
+     Py_ssize_t llen;
+     int numdigits;      /* len == numnondigits + skipped + numdigits */
+     int numnondigits, skipped, filled;
+-    const char *method;
++    const char *method = NULL;
+ 
+     switch (type) {
+     case 'd':
+@@ -4300,7 +4300,7 @@ PyString_Format(PyObject *format, PyObject *args)
+             int isnumok;
+             PyObject *v = NULL;
+             PyObject *temp = NULL;
+-            char *pbuf;
++            char *pbuf = NULL;
+             int sign;
+             Py_ssize_t len;
+             char formatbuf[FORMATBUFLEN];
+diff --git a/Objects/unicodeobject.c b/Objects/unicodeobject.c
+index ca609a9..9469f94 100644
+--- a/Objects/unicodeobject.c
++++ b/Objects/unicodeobject.c
+@@ -3913,11 +3913,12 @@ PyObject *PyUnicode_AsASCIIString(PyObject *unicode)
+ static int is_dbcs_lead_byte(const char *s, int offset)
+ {
+     const char *curr = s + offset;
+-
++#ifndef MS_UWP
+     if (IsDBCSLeadByte(*curr)) {
+         const char *prev = CharPrev(s, curr);
+         return (prev == curr) || !IsDBCSLeadByte(*prev) || (curr - prev == 2);
+     }
++#endif
+     return 0;
+ }
+ 
+@@ -8414,7 +8415,7 @@ PyObject *PyUnicode_Format(PyObject *format,
+             int isnumok;
+             PyObject *v = NULL;
+             PyObject *temp = NULL;
+-            Py_UNICODE *pbuf;
++            Py_UNICODE *pbuf = NULL;
+             Py_UNICODE sign;
+             Py_ssize_t len;
+             Py_UNICODE formatbuf[FORMATBUFLEN]; /* For format{int,char}() */
+diff --git a/PC/_winreg.c b/PC/_winreg.c
+index e139cce..4734966 100644
+--- a/PC/_winreg.c
++++ b/PC/_winreg.c
+@@ -17,6 +17,8 @@
+ #include "malloc.h" /* for alloca */
+ #include "windows.h"
+ 
++#ifndef MS_UWP
++
+ static BOOL PyHKEY_AsHKEY(PyObject *ob, HKEY *pRes, BOOL bNoneOK);
+ static PyObject *PyHKEY_FromHKEY(HKEY h);
+ static BOOL PyHKEY_Close(PyObject *obHandle);
+@@ -1871,3 +1873,6 @@ PyMODINIT_FUNC init_winreg(void)
+     ADD_INT(REG_RESOURCE_REQUIREMENTS_LIST);
+ }
+ 
++#endif /* MS_UWP */
++
++
+diff --git a/PC/bdist_wininst/bdist_wininst.vcxproj b/PC/bdist_wininst/bdist_wininst.vcxproj
+index 2ab474e..39e4d80 100644
+--- a/PC/bdist_wininst/bdist_wininst.vcxproj
++++ b/PC/bdist_wininst/bdist_wininst.vcxproj
+@@ -1,5 +1,5 @@
+ ﻿<?xml version="1.0" encoding="utf-8"?>
+-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
++<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+   <ItemGroup Label="ProjectConfigurations">
+     <ProjectConfiguration Include="Debug|Win32">
+       <Configuration>Debug</Configuration>
+@@ -47,6 +47,30 @@
+     <UseOfMfc>false</UseOfMfc>
+     <CharacterSet>NotSet</CharacterSet>
+   </PropertyGroup>
++  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='PGUpdate|x64'">
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='PGUpdate|Win32'">
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='PGInstrument|x64'">
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
++  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='PGInstrument|Win32'">
++    <PlatformToolset>v140</PlatformToolset>
++  </PropertyGroup>
+   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+   <ImportGroup Label="ExtensionSettings">
+   </ImportGroup>
+diff --git a/PC/bdist_wininst/bdist_wininst.vcxproj.filters b/PC/bdist_wininst/bdist_wininst.vcxproj.filters
+index b4b6a4d..2f1d034 100644
+--- a/PC/bdist_wininst/bdist_wininst.vcxproj.filters
++++ b/PC/bdist_wininst/bdist_wininst.vcxproj.filters
+@@ -18,43 +18,43 @@
+     </Filter>
+   </ItemGroup>
+   <ItemGroup>
+-    <ClCompile Include="..\PC\bdist_wininst\extract.c">
++    <ClCompile Include="extract.c">
+       <Filter>Source Files</Filter>
+     </ClCompile>
+-    <ClCompile Include="..\PC\bdist_wininst\install.c">
++    <ClCompile Include="install.c">
+       <Filter>Source Files</Filter>
+     </ClCompile>
+-    <ClCompile Include="..\Modules\zlib\adler32.c">
+-      <Filter>Source Files\zlib</Filter>
++    <ClCompile Include="..\..\Modules\zlib\adler32.c">
++      <Filter>Source Files</Filter>
+     </ClCompile>
+-    <ClCompile Include="..\Modules\zlib\crc32.c">
+-      <Filter>Source Files\zlib</Filter>
++    <ClCompile Include="..\..\Modules\zlib\crc32.c">
++      <Filter>Source Files</Filter>
+     </ClCompile>
+-    <ClCompile Include="..\Modules\zlib\inffast.c">
+-      <Filter>Source Files\zlib</Filter>
++    <ClCompile Include="..\..\Modules\zlib\inffast.c">
++      <Filter>Source Files</Filter>
+     </ClCompile>
+-    <ClCompile Include="..\Modules\zlib\inflate.c">
+-      <Filter>Source Files\zlib</Filter>
++    <ClCompile Include="..\..\Modules\zlib\inflate.c">
++      <Filter>Source Files</Filter>
+     </ClCompile>
+-    <ClCompile Include="..\Modules\zlib\inftrees.c">
+-      <Filter>Source Files\zlib</Filter>
++    <ClCompile Include="..\..\Modules\zlib\inftrees.c">
++      <Filter>Source Files</Filter>
+     </ClCompile>
+-    <ClCompile Include="..\Modules\zlib\zutil.c">
+-      <Filter>Source Files\zlib</Filter>
++    <ClCompile Include="..\..\Modules\zlib\zutil.c">
++      <Filter>Source Files</Filter>
+     </ClCompile>
+   </ItemGroup>
+   <ItemGroup>
+-    <ClInclude Include="..\PC\bdist_wininst\archive.h">
++    <ClInclude Include="archive.h">
+       <Filter>Header Files</Filter>
+     </ClInclude>
+   </ItemGroup>
+   <ItemGroup>
+-    <ResourceCompile Include="..\PC\bdist_wininst\install.rc">
+-      <Filter>Resource Files</Filter>
++    <ResourceCompile Include="install.rc">
++      <Filter>Source Files</Filter>
+     </ResourceCompile>
+   </ItemGroup>
+   <ItemGroup>
+-    <None Include="..\PC\bdist_wininst\PythonPowered.bmp">
++    <None Include="PythonPowered.bmp">
+       <Filter>Resource Files</Filter>
+     </None>
+   </ItemGroup>
+diff --git a/PC/config.c b/PC/config.c
+index 35c6608..95d9d79 100644
+--- a/PC/config.c
++++ b/PC/config.c
+@@ -63,7 +63,9 @@ extern void init_codecs_iso2022(void);
+ extern void init_codecs_jp(void);
+ extern void init_codecs_kr(void);
+ extern void init_codecs_tw(void);
++#ifndef MS_UWP
+ extern void init_subprocess(void);
++#endif
+ extern void init_lsprof(void);
+ extern void init_ast(void);
+ extern void init_io(void);
+@@ -112,8 +114,9 @@ struct _inittab _PyImport_Inittab[] = {
+     {"_locale", init_locale},
+ #endif
+     /* XXX Should _subprocess go in a WIN32 block?  not WIN64? */
++#ifndef MS_UWP
+     {"_subprocess", init_subprocess},
+-
++#endif
+     {"_codecs", init_codecs},
+     {"_weakref", init_weakref},
+     {"_hotshot", init_hotshot},
+@@ -128,7 +131,9 @@ struct _inittab _PyImport_Inittab[] = {
+     {"_csv", init_csv},
+     {"_sre", init_sre},
+     {"parser", initparser},
++#ifndef MS_UWP
+     {"_winreg", init_winreg},
++#endif
+     {"_struct", init_struct},
+     {"datetime", initdatetime},
+     {"_functools", init_functools},
+diff --git a/PC/dl_nt.c b/PC/dl_nt.c
+index 88d3c9b..7e6ab10 100644
+--- a/PC/dl_nt.c
++++ b/PC/dl_nt.c
+@@ -18,6 +18,8 @@ char dllVersionBuffer[16] = ""; // a private buffer
+ HMODULE PyWin_DLLhModule = NULL;
+ const char *PyWin_DLLVersionString = dllVersionBuffer;
+ 
++#if HAVE_SXS
++
+ // Windows "Activation Context" work:
+ // Our .pyd extension modules are generally built without a manifest (ie,
+ // those included with Python and those built with a default distutils.
+@@ -76,6 +78,9 @@ void _Py_DeactivateActCtx(ULONG_PTR cookie)
+             OutputDebugString("Python failed to de-activate the activation context\n");
+ }
+ 
++#endif /* HAVE_SXS */
++
++
+ void myInvalidParameterHandler(const wchar_t* expression,
+   const wchar_t* function,
+   const wchar_t* file,
+@@ -91,21 +96,27 @@ BOOL    WINAPI  DllMain (HANDLE hInst,
+     {
+         case DLL_PROCESS_ATTACH:
+             PyWin_DLLhModule = hInst;
++#if !defined(MS_DLL_ID) && !defined(MS_UWP)
+             // 1000 is a magic number I picked out of the air.  Could do with a #define, I spose...
+             LoadString(hInst, 1000, dllVersionBuffer, sizeof(dllVersionBuffer));
++#endif
+ 
+             _set_invalid_parameter_handler(myInvalidParameterHandler);
++#if HAVE_SXS
+             // and capture our activation context for use when loading extensions.
+             _LoadActCtxPointers();
+             if (pfnGetCurrentActCtx && pfnAddRefActCtx)
+                 if ((*pfnGetCurrentActCtx)(&PyWin_DLLhActivationContext))
+                     if (!(*pfnAddRefActCtx)(PyWin_DLLhActivationContext))
+                         OutputDebugString("Python failed to load the default activation context\n");
++#endif
+             break;
+ 
+         case DLL_PROCESS_DETACH:
++#if HAVE_SXS
+             if (pfnReleaseActCtx)
+                 (*pfnReleaseActCtx)(PyWin_DLLhActivationContext);
++#endif
+             break;
+     }
+     return TRUE;
+diff --git a/PC/getpathp.c b/PC/getpathp.c
+index 461f9fc..0de1904 100644
+--- a/PC/getpathp.c
++++ b/PC/getpathp.c
+@@ -57,6 +57,12 @@
+ #include "Python.h"
+ #include "osdefs.h"
+ 
++#if defined(MS_UWP)
++extern char* win10_getenv(const char* n);
++#define getenv win10_getenv
++#endif
++
++
+ #ifdef MS_WINDOWS
+ #include <windows.h>
+ #include <tchar.h>
+@@ -200,7 +206,7 @@ search_for_prefix(char *argv0_path, char *landmark)
+     return 0;
+ }
+ 
+-#ifdef MS_WINDOWS
++#if defined(MS_WINDOWS) && !defined(MS_UWP)
+ #ifdef Py_ENABLE_SHARED
+ 
+ /* a string loaded from the DLL at startup.*/
+@@ -512,9 +518,11 @@ calculate_path(void)
+ 
+     skiphome = pythonhome==NULL ? 0 : 1;
+ #ifdef Py_ENABLE_SHARED
++#ifndef MS_UWP
+     machinepath = getpythonregpath(HKEY_LOCAL_MACHINE, skiphome);
+     userpath = getpythonregpath(HKEY_CURRENT_USER, skiphome);
+ #endif
++#endif
+     /* We only use the default relative PYTHONPATH if we havent
+        anything better to use! */
+     skipdefault = envpath!=NULL || pythonhome!=NULL || \
+diff --git a/PC/import_nt.c b/PC/import_nt.c
+index 196a774..1a0a4dd 100644
+--- a/PC/import_nt.c
++++ b/PC/import_nt.c
+@@ -33,9 +33,11 @@ FILE *PyWin_FindRegisteredModule(const char *moduleName,
+ #endif
+     struct filedescr *fdp = NULL;
+     FILE *fp;
++#ifndef MS_UWP
+     HKEY keyBase = HKEY_CURRENT_USER;
+-    int modNameSize;
+     long regStat;
++#endif
++    int modNameSize;
+ 
+     /* Calculate the size for the sprintf buffer.
+      * Get the size of the chars only, plus 1 NULL.
+@@ -55,6 +57,8 @@ FILE *PyWin_FindRegisteredModule(const char *moduleName,
+ 
+     assert(pathLen < INT_MAX);
+     modNameSize = (int)pathLen;
++#ifndef MS_UWP
++
+     regStat = RegQueryValue(keyBase, moduleKey, pathBuf, &modNameSize);
+     if (regStat != ERROR_SUCCESS) {
+         /* No user setting - lookup in machine settings */
+@@ -67,6 +71,7 @@ FILE *PyWin_FindRegisteredModule(const char *moduleName,
+         if (regStat != ERROR_SUCCESS)
+             return NULL;
+     }
++#endif
+     /* use the file extension to locate the type entry. */
+     for (fdp = _PyImport_Filetab; fdp->suffix != NULL; fdp++) {
+         size_t extLen = strlen(fdp->suffix);
+diff --git a/PC/msvcrtmodule.c b/PC/msvcrtmodule.c
+index 44c82e4..d1d08e3 100644
+--- a/PC/msvcrtmodule.c
++++ b/PC/msvcrtmodule.c
+@@ -160,6 +160,8 @@ PyDoc_STRVAR(get_osfhandle_doc,
+ Return the file handle for the file descriptor fd. Raises IOError\n\
+ if fd is not recognized.");
+ 
++#if !defined(MS_UWP)
++
+ /* Console I/O */
+ 
+ static PyObject *
+@@ -358,6 +360,8 @@ PyDoc_STRVAR(ungetwch_doc,
+ Wide char variant of ungetch(), accepting a Unicode value.");
+ #endif
+ 
++#endif
++
+ static void
+ insertint(PyObject *d, char *name, int value)
+ {
+@@ -380,6 +384,7 @@ static struct PyMethodDef msvcrt_functions[] = {
+     {"setmode",                 msvcrt_setmode, METH_VARARGS, setmode_doc},
+     {"open_osfhandle",          msvcrt_open_osfhandle, METH_VARARGS, open_osfhandle_doc},
+     {"get_osfhandle",           msvcrt_get_osfhandle, METH_VARARGS, get_osfhandle_doc},
++#ifndef MS_UWP
+     {"kbhit",                   msvcrt_kbhit, METH_VARARGS, kbhit_doc},
+     {"getch",                   msvcrt_getch, METH_VARARGS, getch_doc},
+     {"getche",                  msvcrt_getche, METH_VARARGS, getche_doc},
+@@ -391,13 +396,16 @@ static struct PyMethodDef msvcrt_functions[] = {
+     {"putwch",                  msvcrt_putwch, METH_VARARGS, putwch_doc},
+     {"ungetwch",                msvcrt_ungetwch, METH_VARARGS, ungetwch_doc},
+ #endif
++#endif /* !MS_UWP */
+     {NULL,                      NULL}
+ };
+ 
+ PyMODINIT_FUNC
+ initmsvcrt(void)
+ {
++#ifndef MS_UWP
+     int st;
++#endif
+     PyObject *d;
+     PyObject *m = Py_InitModule("msvcrt", msvcrt_functions);
+     if (m == NULL)
+diff --git a/PC/pyconfig.h b/PC/pyconfig.h
+index 5200b29..9bf46e3 100644
+--- a/PC/pyconfig.h
++++ b/PC/pyconfig.h
+@@ -79,6 +79,15 @@ WIN32 is still required for the locale module.
+ 
+ #define MS_WIN32 /* only support win32 and greater. */
+ #define MS_WINDOWS
++#ifdef WINAPI_FAMILY
++#   include <winapifamily.h>
++#   if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
++#     ifndef MS_UWP
++#       define MS_UWP
++#       define TARGET_WINDOWS_STORE
++#     endif
++#   endif
++#endif
+ #ifndef PYTHONPATH
+ #	define PYTHONPATH ".\\DLLs;.\\lib;.\\lib\\plat-win;.\\lib\\lib-tk"
+ #endif
+@@ -89,7 +98,7 @@ WIN32 is still required for the locale module.
+ #endif
+ 
+ /* CE6 doesn't have strdup() but _strdup(). Assume the same for earlier versions. */
+-#if defined(MS_WINCE)
++#if defined(MS_WINCE) || defined(MS_UWP)
+ #  include <stdlib.h>
+ #  define strdup _strdup
+ #endif
+@@ -100,6 +109,7 @@ WIN32 is still required for the locale module.
+ #define environ (NULL)
+ #endif
+ 
++
+ /* Compiler specific defines */
+ 
+ /* ------------------------------------------------------------------------*/
+@@ -159,6 +169,11 @@ WIN32 is still required for the locale module.
+ #endif
+ #endif /* MS_WIN64 */
+ 
++#if defined(MS_UWP)
++/* UWP requires Windows 10 or later */
++#define Py_WINVER 0x0A00 /* _WIN32_WINNT_WIN8 */
++#define Py_NTDDI NTDDI_WIN10
++#else
+ /* set the version macros for the windows headers */
+ #ifdef MS_WINX64
+ /* 64 bit only runs on XP or greater */
+@@ -173,6 +188,7 @@ WIN32 is still required for the locale module.
+ #endif
+ #define Py_NTDDI NTDDI_WIN2KSP4
+ #endif
++#endif
+ 
+ /* We only set these values when building Python - we don't want to force
+    these values on extensions, as that will affect the prototypes and
+@@ -231,6 +247,11 @@ typedef int pid_t;
+ #define hypot _hypot
+ #endif
+ 
++/* Side by Side assemblies supported in VS 2005 and VS 2008 but not 2010*/
++#if _MSC_VER >= 1400 && _MSC_VER < 1600
++#define HAVE_SXS 1
++#endif
++
+ #endif /* _MSC_VER */
+ 
+ /* define some ANSI types that are not defined in earlier Win headers */
+@@ -361,7 +382,11 @@ Py_NO_ENABLE_SHARED to find out.  Also support MS_NO_COREDLL for b/w compat */
+    should define this. */
+ #	define HAVE_LARGEFILE_SUPPORT
+ #elif defined(MS_WIN32)
++#ifdef MS_UWP
++#	define PLATFORM "win10"
++#else
+ #	define PLATFORM "win32"
++#endif // MS_UWP
+ #	define HAVE_LARGEFILE_SUPPORT
+ #	define SIZEOF_VOID_P 4
+ #	define SIZEOF_OFF_T 4
+@@ -551,7 +576,7 @@ Py_NO_ENABLE_SHARED to find out.  Also support MS_NO_COREDLL for b/w compat */
+ /* #define HAVE_ALTZONE */
+ 
+ /* Define if you have the putenv function.  */
+-#ifndef MS_WINCE
++#if !defined(MS_WINCE) && !defined(MS_UWP)
+ #define HAVE_PUTENV
+ #endif
+ 
+diff --git a/PC/uwpapi.cpp b/PC/uwpapi.cpp
+new file mode 100644
+index 0000000..8e1bbdb
+--- /dev/null
++++ b/PC/uwpapi.cpp
+@@ -0,0 +1,301 @@
++#include "Python.h"
++
++#if defined(MS_UWP) || defined(TARGET_WINDOWS_STORE)
++
++#include <SDKDDKVer.h>
++#include <windows.h>
++#include <ppltasks.h>
++#include <string>
++#include <locale>
++#include <codecvt>
++#include <map>
++
++#define X509_ASN_ENC "x509_asn"
++
++using namespace concurrency;
++using namespace Platform;
++using namespace Windows::ApplicationModel;
++using namespace Windows::System::UserProfile;
++using namespace Windows::Storage;
++using namespace Windows::Storage::Streams;
++using namespace Windows::Security::Cryptography;
++using namespace Windows::Security::Cryptography::Certificates;
++using namespace Windows::Foundation;
++
++std::wstring win32ConvertUtf8ToW(const std::string &text, bool *resultSuccessful /* = NULL*/)
++{
++  if (text.empty())
++  {
++    if (resultSuccessful != NULL)
++      *resultSuccessful = true;
++    return L"";
++  }
++  if (resultSuccessful != NULL)
++    *resultSuccessful = false;
++
++  int bufSize = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text.c_str(), -1, NULL, 0);
++  if (bufSize == 0)
++    return L"";
++  wchar_t *converted = new wchar_t[bufSize];
++  if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text.c_str(), -1, converted, bufSize) != bufSize)
++  {
++    delete[] converted;
++    return L"";
++  }
++
++  std::wstring Wret(converted);
++  delete[] converted;
++
++  if (resultSuccessful != NULL)
++    *resultSuccessful = true;
++  return Wret;
++}
++
++std::string win32ConvertWToUtf8(const std::wstring &text, bool *resultSuccessful /*= NULL*/)
++{
++  if (text.empty())
++  {
++    if (resultSuccessful != NULL)
++      *resultSuccessful = true;
++    return "";
++  }
++  if (resultSuccessful != NULL)
++    *resultSuccessful = false;
++
++  int bufSize = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, text.c_str(), -1, NULL, 0, NULL, NULL);
++  if (bufSize == 0)
++    return "";
++  char * converted = new char[bufSize];
++  if (WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, text.c_str(), -1, converted, bufSize, NULL, NULL) != bufSize)
++  {
++    delete[] converted;
++    return "";
++  }
++
++  std::string ret(converted);
++  delete[] converted;
++
++  if (resultSuccessful != NULL)
++    *resultSuccessful = true;
++  return ret;
++}
++
++extern "C" {
++    
++void win32_urandom(unsigned char *buffer, Py_ssize_t size, int raise)
++{
++    IBuffer^ data = CryptographicBuffer::GenerateRandom(size);
++    Array<unsigned char>^ data2;
++    CryptographicBuffer::CopyToByteArray(data, &data2);
++    for(int i=0; i < size; i++)
++        buffer[i] = data2[i];
++}
++
++/*BOOL*/ int uwp_startfile(const wchar_t *operation, const wchar_t *path)
++{
++    /* TODO: Implement launcher */
++    return FALSE;
++}
++
++size_t uwp_Utf8ToW(const char* src, wchar_t* buffer, int maxlen)
++{
++  bool success;
++  std::wstring converted = win32ConvertUtf8ToW(std::string(src), &success);
++  if (!success)
++    return 0;
++
++  int len = min(converted.length(), maxlen - 1);
++  wcsncpy(buffer, converted.c_str(), len);
++  buffer[len] = '\0';
++
++  return len;
++}
++
++size_t uwp_getinstallpath(wchar_t *buffer, size_t cch)
++{
++    try
++    {
++        String^ path = Package::Current->InstalledLocation->Path;
++        wcscpy_s(buffer, cch, path->Data());
++        return path->Length();
++    }
++    catch (Exception^)
++    {
++        return 0;
++    }
++}
++
++static bool set_item(PyObject *d, const wchar_t *name, String^ (*value_func)())
++{
++    PyObject *valueobj;
++    try
++    {
++        auto value = value_func();
++        valueobj = PyUnicode_FromWideChar(value->Data(), -1);
++    }
++    catch (Exception^)
++    {
++        valueobj = PyUnicode_FromString("");
++    }
++    
++    if (!valueobj)
++        return false;
++
++    auto nameobj = PyUnicode_FromWideChar(name, -1);
++    if (!nameobj)
++    {
++        Py_DECREF(valueobj);
++        return false;
++    }
++
++    bool success = PyDict_SetItem(d, nameobj, valueobj) == 0;
++    Py_DECREF(nameobj);
++    Py_DECREF(valueobj);
++    return success;
++}
++
++unsigned long long uwp_getsystemversion()
++{
++  auto sv = Windows::System::Profile::AnalyticsInfo::VersionInfo->DeviceFamilyVersion;
++  wchar_t* end;
++  return wcstoull(sv->Data(), &end, 10);
++}
++
++PyObject * uwp_defaultenviron()
++{
++    auto d = PyDict_New();
++
++    if (d != nullptr &&
++        set_item(d, L"INSTALLPATH", [] { return Package::Current->InstalledLocation->Path; }) &&
++        set_item(d, L"APPDATA", [] { return ApplicationData::Current->RoamingFolder->Path; }) &&
++        set_item(d, L"LOCALAPPDATA", [] { return ApplicationData::Current->LocalFolder->Path; }) &&
++        set_item(d, L"TEMP", [] { return ApplicationData::Current->TemporaryFolder->Path; }) &&
++        set_item(d, L"TMP", [] { return ApplicationData::Current->TemporaryFolder->Path; }) &&
++        set_item(d, L"PATH", [] { return ref new String(); })
++        )
++        return d;
++
++    Py_DECREF(d);
++    return nullptr;
++}
++
++char* win10_getenv(const char* n)
++{
++  static std::map<std::string, std::string> sEnvironment;
++  bool success;
++
++  if (n == nullptr)
++    return nullptr;
++
++  std::string name(n);
++
++  // check key
++  if (!name.empty())
++  {
++    std::wstring Wname(win32ConvertUtf8ToW(name, &success));
++    if (success)
++    {
++      Platform::String^ key = ref new Platform::String(Wname.c_str());
++
++      ApplicationDataContainer^ localSettings = ApplicationData::Current->LocalSettings;
++      auto values = localSettings->Values;
++
++      if (values->HasKey(key))
++      {
++        auto value = safe_cast<Platform::String^>(values->Lookup(key));
++        std::string result = win32ConvertWToUtf8(std::wstring(value->Data()), &success);
++        if (success)
++        {
++          sEnvironment[name] = result;
++          return (char*)(sEnvironment[name].c_str());
++        }
++      }
++    }
++  }
++  return nullptr;
++}
++
++#if 0
++    PyObject * uwp_enumcertificates(const char *store_name)
++    {
++        PyObject *result = NULL;
++        PyObject *keyusage = NULL, *cert = NULL, *enc = NULL, *tup = NULL;
++        
++        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
++        auto wStoreName = ref new Platform::String(converter.from_bytes(std::string(store_name)).c_str());
++
++        if (wStoreName->IsEmpty())
++        {
++            // Empty string return invalid args.
++            return PyErr_SetFromWindowsErr(ERROR_INVALID_PARAMETER);
++        }
++
++        auto certQuery = ref new CertificateQuery();
++        certQuery->StoreName = wStoreName;
++        auto certs = concurrency::create_task(CertificateStores::FindAllAsync(certQuery)).get();
++        
++        result = PyList_New(0);
++        if (result == NULL)
++        {
++            return result;
++        }
++
++        for (auto itr = certs->First(); itr->HasCurrent; itr->MoveNext())
++        {
++            auto certificate = itr->Current;
++            auto encodedCert = certificate->GetCertificateBlob();
++
++            byte* buffer = reinterpret_cast<byte*>(PyMem_Malloc(encodedCert->Length));
++            if (!buffer) {
++                Py_CLEAR(result);
++                result = NULL;
++                break;
++            }
++
++            auto bufferArray = ArrayReference<byte>(buffer, encodedCert->Length);
++
++            auto reader = DataReader::FromBuffer(encodedCert);
++
++            reader->ReadBytes(bufferArray);
++
++            cert = PyBytes_FromStringAndSize((const char *)buffer, encodedCert->Length);
++            PyMem_Free(buffer);
++            buffer = NULL;
++
++            if (!cert) {
++                Py_CLEAR(result);
++                result = NULL;
++                break;
++            }
++
++            keyusage = PySet_New(NULL);
++            for (auto kuitr = certificate->EnhancedKeyUsages->First(); kuitr->HasCurrent; kuitr->MoveNext())
++            {
++                PySet_Add(keyusage, PyUnicode_FromWideChar(kuitr->Current->Data(), kuitr->Current->Length()));
++            }
++
++            enc = PyUnicode_InternFromString(X509_ASN_ENC);
++            if ((tup = PyTuple_New(3)) == NULL) {
++                Py_CLEAR(result);
++                break;
++            }
++
++            PyTuple_SET_ITEM(tup, 0, cert);
++
++            PyTuple_SET_ITEM(tup, 1, enc);
++
++            PyTuple_SET_ITEM(tup, 2, keyusage);
++
++            PyList_Append(result, tup);
++
++            cert = NULL;
++            enc = NULL;
++            keyusage = NULL;
++        }
++
++        return result;
++    }
++#endif
++}
++
++#endif
+diff --git a/Python/dynload_win.c b/Python/dynload_win.c
+index 4e5555e..dbc30ac 100644
+--- a/Python/dynload_win.c
++++ b/Python/dynload_win.c
+@@ -12,8 +12,10 @@
+ #include <windows.h>
+ 
+ // "activation context" magic - see dl_nt.c...
++#if HAVE_SXS
+ extern ULONG_PTR _Py_ActivateActCtx();
+ void _Py_DeactivateActCtx(ULONG_PTR cookie);
++#endif
+ 
+ const struct filedescr _PyImport_DynLoadFiletab[] = {
+ #ifdef _DEBUG
+@@ -173,33 +175,62 @@ dl_funcptr _PyImport_GetDynLoadFunc(const char *fqname, const char *shortname,
+ 
+     {
+         HINSTANCE hDLL = NULL;
++#ifndef MS_UWP
+         char pathbuf[260];
+         LPTSTR dummy;
+         unsigned int old_mode;
++#if HAVE_SXS
+         ULONG_PTR cookie = 0;
++#endif
+         /* We use LoadLibraryEx so Windows looks for dependent DLLs
+             in directory of pathname first.  However, Windows95
+             can sometimes not work correctly unless the absolute
+             path is used.  If GetFullPathName() fails, the LoadLibrary
+             will certainly fail too, so use its error code */
+ 
+-        /* Don't display a message box when Python can't load a DLL */
++            /* Don't display a message box when Python can't load a DLL */
+         old_mode = SetErrorMode(SEM_FAILCRITICALERRORS);
+ 
+         if (GetFullPathName(pathname,
+                             sizeof(pathbuf),
+                             pathbuf,
+                             &dummy)) {
++#if HAVE_SXS
+             ULONG_PTR cookie = _Py_ActivateActCtx();
++#endif
+             /* XXX This call doesn't exist in Windows CE */
+             hDLL = LoadLibraryEx(pathname, NULL,
+                                  LOAD_WITH_ALTERED_SEARCH_PATH);
++#if HAVE_SXS
+             _Py_DeactivateActCtx(cookie);
++#endif
+         }
+ 
+         /* restore old error mode settings */
+         SetErrorMode(old_mode);
+-
++#else
++        wchar_t wpathname[MAX_PATH];
++        wchar_t packagepath[MAX_PATH];
++        size_t len;
++
++        extern size_t uwp_Utf8ToW(const char* src, wchar_t* buffer, int maxlen);
++        extern size_t uwp_getinstallpath(wchar_t *buffer, size_t cch);
++
++        uwp_Utf8ToW(pathname, wpathname, MAX_PATH);
++
++        /* UWP apps require libraries to be packaged */
++        len = uwp_getinstallpath(packagepath, MAX_PATH);
++        if (len >= 0 && wcsnicmp(packagepath, wpathname, len) == 0)
++        {
++            if (wpathname[len] == '\\' || wpathname[len] == '/')
++                len++;
++            hDLL = LoadPackagedLibrary(&wpathname[len], 0);
++        }
++        else
++        {
++            hDLL = LoadPackagedLibrary(wpathname, 0);
++        }
++#endif
+         if (hDLL==NULL){
+             char errBuf[256];
+             unsigned int errorCode;
+diff --git a/Python/errors.c b/Python/errors.c
+index d823e13..f1fb4ce 100644
+--- a/Python/errors.c
++++ b/Python/errors.c
+@@ -347,7 +347,9 @@ PyErr_SetFromErrnoWithFilenameObject(PyObject *exc, PyObject *filenameObject)
+         }
+         else {
+             int len = FormatMessage(
++#ifndef MS_UWP
+                 FORMAT_MESSAGE_ALLOCATE_BUFFER |
++#endif
+                 FORMAT_MESSAGE_FROM_SYSTEM |
+                 FORMAT_MESSAGE_IGNORE_INSERTS,
+                 NULL,                   /* no message source */
+@@ -382,7 +384,7 @@ PyErr_SetFromErrnoWithFilenameObject(PyObject *exc, PyObject *filenameObject)
+         PyErr_SetObject(exc, v);
+         Py_DECREF(v);
+     }
+-#ifdef MS_WINDOWS
++#if defined(MS_WINDOWS) && !defined(MS_UWP)
+     LocalFree(s_buf);
+ #endif
+     return NULL;
+@@ -418,51 +420,96 @@ PyErr_SetFromErrno(PyObject *exc)
+ }
+ 
+ #ifdef MS_WINDOWS
++
+ /* Windows specific error code handling */
+ PyObject *PyErr_SetExcFromWindowsErrWithFilenameObject(
+     PyObject *exc,
+     int ierr,
+     PyObject *filenameObject)
+ {
++    return PyErr_SetExcFromWindowsErrWithFilenameObjects(exc, ierr,
++        filenameObject, NULL);
++}
++
++PyObject *PyErr_SetExcFromWindowsErrWithFilenameObjects(
++    PyObject *exc,
++    int ierr,
++    PyObject *filenameObject,
++    PyObject *filenameObject2)
++{
+     int len;
+-    char *s;
+-    char *s_buf = NULL; /* Free via LocalFree */
+-    char s_small_buf[28]; /* Room for "Windows Error 0xFFFFFFFF" */
+-    PyObject *v;
++#ifndef MS_UWP
++    const int s_buf_len = 0;
++    WCHAR *s_buf = NULL; /* Free via LocalFree */
++#else
++    const int s_buf_len = 512;
++    WCHAR s_buf_actual[512];
++    WCHAR *s_buf = s_buf_actual; /* Don't free via LocalFree */
++#endif
++    PyObject *message;
++    PyObject *args, *v;
+     DWORD err = (DWORD)ierr;
+-    if (err==0) err = GetLastError();
+-    len = FormatMessage(
++    if (err == 0) err = GetLastError();
++    len = FormatMessageW(
+         /* Error API error */
++#ifndef MS_UWP
+         FORMAT_MESSAGE_ALLOCATE_BUFFER |
++#endif
+         FORMAT_MESSAGE_FROM_SYSTEM |
+         FORMAT_MESSAGE_IGNORE_INSERTS,
+         NULL,           /* no message source */
+         err,
+         MAKELANGID(LANG_NEUTRAL,
+-        SUBLANG_DEFAULT), /* Default language */
+-        (LPTSTR) &s_buf,
+-        0,              /* size not used */
++            SUBLANG_DEFAULT), /* Default language */
++#ifndef MS_UWP
++            (LPWSTR) &s_buf,
++#else
++        s_buf,
++#endif
++        s_buf_len,
+         NULL);          /* no args */
+-    if (len==0) {
++    if (len == 0) {
+         /* Only seen this in out of mem situations */
+-        sprintf(s_small_buf, "Windows Error 0x%X", err);
+-        s = s_small_buf;
++        message = PyUnicode_FromFormat("Windows Error 0x%x", err);
+         s_buf = NULL;
+-    } else {
+-        s = s_buf;
++    }
++    else {
+         /* remove trailing cr/lf and dots */
+-        while (len > 0 && (s[len-1] <= ' ' || s[len-1] == '.'))
+-            s[--len] = '\0';
++        while (len > 0 && (s_buf[len - 1] <= L' ' || s_buf[len - 1] == L'.'))
++            s_buf[--len] = L'\0';
++        message = PyUnicode_FromWideChar(s_buf, len);
+     }
+-    if (filenameObject != NULL)
+-        v = Py_BuildValue("(isO)", err, s, filenameObject);
+-    else
+-        v = Py_BuildValue("(is)", err, s);
+-    if (v != NULL) {
+-        PyErr_SetObject(exc, v);
+-        Py_DECREF(v);
++
++    if (message == NULL)
++    {
++#ifndef MS_UWP
++        LocalFree(s_buf);
++#endif
++        return NULL;
++    }
++
++    if (filenameObject == NULL) {
++        assert(filenameObject2 == NULL);
++        filenameObject = filenameObject2 = Py_None;
++    }
++    else if (filenameObject2 == NULL)
++        filenameObject2 = Py_None;
++    /* This is the constructor signature for OSError.
++    The POSIX translation will be figured out by the constructor. */
++    args = Py_BuildValue("(iOOiO)", 0, message, filenameObject, err, filenameObject2);
++    Py_DECREF(message);
++
++    if (args != NULL) {
++        v = PyObject_Call(exc, args, NULL);
++        Py_DECREF(args);
++        if (v != NULL) {
++            PyErr_SetObject((PyObject *)Py_TYPE(v), v);
++            Py_DECREF(v);
++        }
+     }
++#ifndef MS_UWP
+     LocalFree(s_buf);
++#endif
+     return NULL;
+ }
+ 
+diff --git a/Python/import.c b/Python/import.c
+index 1d74faf..87cdf68 100644
+--- a/Python/import.c
++++ b/Python/import.c
+@@ -27,6 +27,15 @@ extern "C" {
+ typedef unsigned short mode_t;
+ #endif
+ 
++#if defined(MS_UWP)
++/* UWP apps do not have environment variables */
++extern char* win10_getenv(const char* n);
++#define getenv win10_getenv
++#undef environ
++#define environ (NULL)
++/* getpid is not available, but GetCurrentProcessId is */
++#define getpid GetCurrentProcessId
++#endif
+ 
+ /* Magic word to reject .pyc files generated by other Python versions.
+    It should change for each incompatible change to the bytecode.
+@@ -123,7 +132,22 @@ static int isdir(char *path) {
+      * Also reference issue6727:
+      * stat() on Windows is broken and doesn't resolve symlinks properly.
+      */
++#ifdef MS_UWP
++    {
++        WIN32_FILE_ATTRIBUTE_DATA fad;
++        WCHAR wszFilename[MAX_PATH];
++        MultiByteToWideChar(CP_ACP, 0,
++            path, -1,
++            wszFilename, MAX_PATH);
++
++        if (!GetFileAttributesExW(wszFilename, GetFileExInfoStandard, &fad))
++            rv = INVALID_FILE_ATTRIBUTES;
++        else
++            rv = fad.dwFileAttributes;
++    }
++#else
+     rv = GetFileAttributesA(path);
++#endif
+     return rv != INVALID_FILE_ATTRIBUTES && rv & FILE_ATTRIBUTE_DIRECTORY;
+ }
+ #else
+@@ -1024,11 +1048,26 @@ static __int64 secs_between_epochs = 11644473600;
+ static time_t
+ win32_mtime(FILE *fp, char *pathname)
+ {
+-    __int64 filetime;
+-    HANDLE fh;
++  __int64 filetime;
++  HANDLE fh = (HANDLE)_get_osfhandle(fileno(fp));
++
++#ifdef MS_UWP
++    FILE_BASIC_INFO file_information;
++
++    if (fh == INVALID_HANDLE_VALUE ||
++        !GetFileInformationByHandleEx(fh, FileBasicInfo, &file_information, sizeof(file_information))) {
++        PyErr_Format(PyExc_RuntimeError,
++            "unable to get file status from '%s'",
++            pathname);
++        return -1;
++    }
++    /* filetime represents the number of 100ns intervals since
++    1.1.1601 (UTC).  Convert to seconds since 1.1.1970 (UTC). */
++    filetime = (__int64)file_information.LastAccessTime.HighPart << 32 |
++        file_information.LastAccessTime.LowPart;
++#else
+     BY_HANDLE_FILE_INFORMATION file_information;
+ 
+-    fh = (HANDLE)_get_osfhandle(fileno(fp));
+     if (fh == INVALID_HANDLE_VALUE ||
+         !GetFileInformationByHandle(fh, &file_information)) {
+         PyErr_Format(PyExc_RuntimeError,
+@@ -1040,6 +1079,7 @@ win32_mtime(FILE *fp, char *pathname)
+        1.1.1601 (UTC).  Convert to seconds since 1.1.1970 (UTC). */
+     filetime = (__int64)file_information.ftLastWriteTime.dwHighDateTime << 32 |
+                file_information.ftLastWriteTime.dwLowDateTime;
++#endif
+     return filetime / 10000000 - secs_between_epochs;
+ }
+ 
+@@ -1689,6 +1729,34 @@ case_ok(char *buf, Py_ssize_t len, Py_ssize_t namelen, char *name)
+ 
+ /* MS_WINDOWS */
+ #if defined(MS_WINDOWS)
++#if defined(MS_UWP)
++
++    WIN32_FIND_DATA data;
++    HANDLE h;
++
++    if (Py_GETENV("PYTHONCASEOK") != NULL)
++        return 1;
++
++    WCHAR wszFilename[MAX_PATH];
++    MultiByteToWideChar(CP_ACP, 0,
++        buf, -1,
++        wszFilename, MAX_PATH);
++
++    h = FindFirstFileEx(wszFilename, FindExInfoBasic, &data, FindExSearchNameMatch, NULL, 0);
++    if (h == INVALID_HANDLE_VALUE) {
++        PyErr_Format(PyExc_NameError,
++            "Can't find file for module %.100s\n(filename %.300s)",
++            name, buf);
++        return 0;
++    }
++    FindClose(h);
++
++    MultiByteToWideChar(CP_ACP, 0,
++        name, -1,
++        wszFilename, MAX_PATH);
++
++    return wcsncmp(data.cFileName, wszFilename, namelen) == 0;
++#else
+     WIN32_FIND_DATA data;
+     HANDLE h;
+ 
+@@ -1704,7 +1772,7 @@ case_ok(char *buf, Py_ssize_t len, Py_ssize_t namelen, char *name)
+     }
+     FindClose(h);
+     return strncmp(data.cFileName, name, namelen) == 0;
+-
++#endif
+ /* DJGPP */
+ #elif defined(DJGPP)
+     struct ffblk ffblk;
+diff --git a/Python/pystrtod.c b/Python/pystrtod.c
+index ae6ab9c..2ded141 100644
+--- a/Python/pystrtod.c
++++ b/Python/pystrtod.c
+@@ -528,7 +528,7 @@ Py_LOCAL_INLINE(char *)
+ ensure_decimal_point(char* buffer, size_t buf_size, int precision)
+ {
+     int digit_count, insert_count = 0, convert_to_exp = 0;
+-    char *chars_to_insert, *digits_start;
++    char *chars_to_insert = NULL, *digits_start;
+ 
+     /* search for the first non-digit character */
+     char *p = buffer;
+diff --git a/Python/pythonrun.c b/Python/pythonrun.c
+index 7b85268..747286d 100644
+--- a/Python/pythonrun.c
++++ b/Python/pythonrun.c
+@@ -27,6 +27,17 @@
+ #include "malloc.h" /* for alloca */
+ #endif
+ 
++#if defined(MS_UWP)
++/* UWP apps do not have environment variables */
++extern char* win10_getenv(const char* n);
++#define getenv win10_getenv
++#undef environ
++#define environ (NULL)
++/* getpid is not available, but GetCurrentProcessId is */
++#define getpid GetCurrentProcessId
++#endif
++
++
+ #ifdef HAVE_LANGINFO_H
+ #include <locale.h>
+ #include <langinfo.h>
+@@ -168,7 +179,7 @@ Py_InitializeEx(int install_sigs)
+ #if defined(Py_USING_UNICODE) && defined(HAVE_LANGINFO_H) && defined(CODESET)
+     char *saved_locale, *loc_codeset;
+ #endif
+-#ifdef MS_WINDOWS
++#if defined(MS_WINDOWS) && !defined(MS_UWP)
+     char ibuf[128];
+     char buf[128];
+ #endif
+@@ -339,7 +350,7 @@ Py_InitializeEx(int install_sigs)
+     }
+ #endif
+ 
+-#ifdef MS_WINDOWS
++#if defined(MS_WINDOWS) && !defined(MS_UWP)
+     if (!overridden) {
+         icodeset = ibuf;
+         codeset = buf;
+@@ -1694,8 +1705,12 @@ Py_FatalError(const char *msg)
+         OutputDebugStringW(L"\n");
+     }
+ #ifdef _DEBUG
++#ifdef MS_UWP
++    __debugbreak();
++#else
+     DebugBreak();
+ #endif
++#endif
+ #endif /* MS_WINDOWS */
+     abort();
+ }
+diff --git a/Python/random.c b/Python/random.c
+index 2f83b5d..ed4fa9a 100644
+--- a/Python/random.c
++++ b/Python/random.c
+@@ -14,7 +14,16 @@ int _Py_HashSecret_Initialized = 0;
+ static int _Py_HashSecret_Initialized = 0;
+ #endif
+ 
++#if defined(MS_UWP)
++/* UWP apps do not have environment variables */
++extern char* win10_getenv(const char* n);
++#define getenv win10_getenv
++#endif
++
++
+ #ifdef MS_WINDOWS
++#ifndef MS_UWP
++
+ typedef BOOL (WINAPI *CRYPTACQUIRECONTEXTA)(HCRYPTPROV *phProv,\
+               LPCSTR pszContainer, LPCSTR pszProvider, DWORD dwProvType,\
+               DWORD dwFlags );
+@@ -64,6 +73,7 @@ error:
+     return -1;
+ }
+ 
++
+ /* Fill buffer with size pseudo-random bytes generated by the Windows CryptoGen
+    API. Return 0 on success, or -1 on error. */
+ static int
+@@ -95,6 +105,9 @@ win32_urandom(unsigned char *buffer, Py_ssize_t size, int raise)
+     }
+     return 0;
+ }
++#else
++extern int win32_urandom(unsigned char *buffer, Py_ssize_t size, int raise);
++#endif /* MS_UWP */
+ 
+ /* Issue #25003: Don't use getentropy() on Solaris (available since
+  * Solaris 11.3), it is blocking whereas os.urandom() should not block. */
+@@ -415,10 +428,12 @@ void
+ _PyRandom_Fini(void)
+ {
+ #ifdef MS_WINDOWS
++#ifndef MS_UWP
+     if (hCryptProv) {
+         CryptReleaseContext(hCryptProv, 0);
+         hCryptProv = 0;
+     }
++#endif
+ #elif defined(PY_GETENTROPY)
+     /* nothing to clean */
+ #else
+diff --git a/Python/sysmodule.c b/Python/sysmodule.c
+index aeff38a..01e10e4 100644
+--- a/Python/sysmodule.c
++++ b/Python/sysmodule.c
+@@ -83,6 +83,7 @@ PySys_SetObject(char *name, PyObject *v)
+         return PyDict_SetItemString(sd, name, v);
+ }
+ 
++
+ static PyObject *
+ sys_displayhook(PyObject *self, PyObject *o)
+ {
+@@ -596,15 +597,17 @@ sys_getwindowsversion(PyObject *self)
+ {
+     PyObject *version;
+     int pos = 0;
++#ifndef MS_UWP
+     OSVERSIONINFOEX ver;
+     ver.dwOSVersionInfoSize = sizeof(ver);
+     if (!GetVersionEx((OSVERSIONINFO*) &ver))
+         return PyErr_SetFromWindowsErr(0);
+-
++#endif
+     version = PyStructSequence_New(&WindowsVersionType);
+     if (version == NULL)
+         return NULL;
+ 
++#ifndef MS_UWP
+     PyStructSequence_SET_ITEM(version, pos++, PyInt_FromLong(ver.dwMajorVersion));
+     PyStructSequence_SET_ITEM(version, pos++, PyInt_FromLong(ver.dwMinorVersion));
+     PyStructSequence_SET_ITEM(version, pos++, PyInt_FromLong(ver.dwBuildNumber));
+@@ -614,6 +617,24 @@ sys_getwindowsversion(PyObject *self)
+     PyStructSequence_SET_ITEM(version, pos++, PyInt_FromLong(ver.wServicePackMinor));
+     PyStructSequence_SET_ITEM(version, pos++, PyInt_FromLong(ver.wSuiteMask));
+     PyStructSequence_SET_ITEM(version, pos++, PyInt_FromLong(ver.wProductType));
++#else
++    extern unsigned long long uwp_getsystemversion();
++    unsigned long long v = uwp_getsystemversion();
++    long v1 = (v & 0xFFFF000000000000L) >> 48;
++    long v2 = (v & 0x0000FFFF00000000L) >> 32;
++    long v3 = (v & 0x00000000FFFF0000L) >> 16;
++    long v4 = (v & 0x000000000000FFFFL);
++
++    PyStructSequence_SET_ITEM(version, pos++, PyLong_FromLong(v1));
++    PyStructSequence_SET_ITEM(version, pos++, PyLong_FromLong(v2));
++    PyStructSequence_SET_ITEM(version, pos++, PyLong_FromLong(v3));
++    PyStructSequence_SET_ITEM(version, pos++, PyLong_FromLong(v4));
++    PyStructSequence_SET_ITEM(version, pos++, PyUnicode_FromString(""));
++    PyStructSequence_SET_ITEM(version, pos++, PyLong_FromLong(0));
++    PyStructSequence_SET_ITEM(version, pos++, PyLong_FromLong(0));
++    PyStructSequence_SET_ITEM(version, pos++, PyLong_FromLong(256));
++    PyStructSequence_SET_ITEM(version, pos++, PyLong_FromLong(1));
++#endif
+ 
+     if (PyErr_Occurred()) {
+         Py_DECREF(version);
+@@ -1620,7 +1641,7 @@ PySys_SetArgvEx(int argc, char **argv, int updatepath)
+ {
+ #if defined(HAVE_REALPATH)
+     char fullpath[MAXPATHLEN];
+-#elif defined(MS_WINDOWS) && !defined(MS_WINCE)
++#elif defined(MS_WINDOWS) && !defined(MS_WINCE) && !defined(MS_UWP)
+     char fullpath[MAX_PATH];
+ #endif
+     PyObject *av = makeargvobject(argc, argv);
+@@ -1665,7 +1686,7 @@ PySys_SetArgvEx(int argc, char **argv, int updatepath)
+ #if SEP == '\\' /* Special case for MS filename syntax */
+         if (argc > 0 && argv0 != NULL && strcmp(argv0, "-c") != 0) {
+             char *q;
+-#if defined(MS_WINDOWS) && !defined(MS_WINCE)
++#if defined(MS_WINDOWS) && !defined(MS_WINCE) && !defined(MS_UWP)
+             /* This code here replaces the first element in argv with the full
+             path that it represents. Under CE, there are no relative paths so
+             the argument must be the full path anyway. */
+diff --git a/Python/thread.c b/Python/thread.c
+index 3b69f96..d059bc8 100644
+--- a/Python/thread.c
++++ b/Python/thread.c
+@@ -7,6 +7,12 @@
+ 
+ #include "Python.h"
+ 
++#if defined(MS_UWP)
++/* UWP apps do not have environment variables */
++extern char* win10_getenv(const char* n);
++#define getenv(v) win10_getenv
++#endif
++
+ 
+ #ifndef _POSIX_THREADS
+ /* This means pthreads are not implemented in libc headers, hence the macro
+diff --git a/Python/thread_nt.h b/Python/thread_nt.h
+index a161d7c..012da59 100644
+--- a/Python/thread_nt.h
++++ b/Python/thread_nt.h
+@@ -288,9 +288,10 @@ _pythread_nt_set_stacksize(size_t size)
+ 
+ #define THREAD_SET_STACKSIZE(x) _pythread_nt_set_stacksize(x)
+ 
+-
++#ifndef MS_UWP
+ /* use native Windows TLS functions */
+ #define Py_HAVE_NATIVE_TLS
++#endif
+ 
+ #ifdef Py_HAVE_NATIVE_TLS
+ int
+diff --git a/cmake/extensions/CMakeLists.txt b/cmake/extensions/CMakeLists.txt
+index 28c40dc..1722ebf 100644
+--- a/cmake/extensions/CMakeLists.txt
++++ b/cmake/extensions/CMakeLists.txt
+@@ -154,18 +154,24 @@ add_python_extension(linuxaudiodev REQUIRES LINUX IS_PY2 SOURCES linuxaudiodev.c
+ add_python_extension(ossaudiodev REQUIRES LINUX SOURCES ossaudiodev.c)
+ 
+ # Windows-only extensions
++if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+ add_python_extension(_msi
+     REQUIRES WIN32
+     SOURCES ${SRC_DIR}/PC/_msi.c
+     LIBRARIES cabinet.lib msi.lib rpcrt4.lib
+ )
++endif()
++
+ add_python_extension(msvcrt REQUIRES MSVC BUILTIN SOURCES ${SRC_DIR}/PC/msvcrtmodule.c)
+ add_python_extension(nt REQUIRES WIN32 BUILTIN SOURCES posixmodule.c)
++
++if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+ add_python_extension(_subprocess REQUIRES WIN32 IS_PY2 BUILTIN SOURCES ${SRC_DIR}/PC/_subprocess.c)
+ 
+ set(winreg2_NAME _winreg)
+ set(winreg3_NAME winreg)
+ add_python_extension(${winreg${PY_VERSION_MAJOR}_NAME} REQUIRES WIN32 BUILTIN SOURCES ${SRC_DIR}/PC/${winreg${PY_VERSION_MAJOR}_NAME}.c)
++endif()
+ 
+ # Python3: Windows-only extensions
+ add_python_extension(overlapped
+@@ -193,10 +199,13 @@ if(UNIX)
+     )
+ elseif(WIN32)
+     set(_multiprocessing2_SOURCES
+-        _multiprocessing/pipe_connection.c
+         _multiprocessing/socket_connection.c
+         _multiprocessing/win32_functions.c
+     )
++    if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++        list(APPEND _multiprocessing${PY_VERSION_MAJOR}_SOURCES
++                    _multiprocessing/pipe_connection.c) 
++    endif()
+     set(_multiprocessing3_SOURCES )
+     add_python_extension(_multiprocessing
+         SOURCES _multiprocessing/multiprocessing.c
+@@ -222,6 +231,7 @@ if(WIN32)
+         DEFINITIONS EAI_ADDRFAMILY
+                     HAVE_SOCKADDR_STORAGE
+                     HAVE_ADDRINFO
++                    _WINSOCK_DEPRECATED_NO_WARNINGS
+         LIBRARIES ws2_32 ${M_LIBRARIES}
+     )
+ else()
+diff --git a/cmake/libpython/CMakeLists.txt b/cmake/libpython/CMakeLists.txt
+index 8a4208e..14d2c67 100644
+--- a/cmake/libpython/CMakeLists.txt
++++ b/cmake/libpython/CMakeLists.txt
+@@ -165,6 +165,15 @@ elseif(WIN32)
+         SOURCE ${SRC_DIR}/PC/dl_nt.c
+         PROPERTY COMPILE_DEFINITIONS Py_ENABLE_SHARED
+     )
++    if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++        list(APPEND DYNLOAD_SOURCES
++            ${SRC_DIR}/PC/uwpapi.cpp
++            )
++        set_property(
++            SOURCE ${SRC_DIR}/PC/uwpapi.cpp
++            PROPERTY COMPILE_FLAGS "/TP /ZW"
++        )
++    endif()
+ endif()
+ 
+ set(THREAD_SOURCES )
+@@ -445,6 +454,11 @@ function(add_libpython name type install component)
+         # in the original "pcbuild.sln" solution file because it was side effect
+         # of having "/Zi" flag set.
+         set_target_properties(${name} PROPERTIES LINK_FLAGS /OPT:NOICF)
++        if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++            set_target_properties(${name} PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/defaultlib:vccorlib.lib /defaultlib:msvcrt.lib")
++            set_target_properties(${name} PROPERTIES LINK_FLAGS_RELEASE "/defaultlib:vccorlib.lib /defaultlib:msvcrt.lib")
++            set_target_properties(${name} PROPERTIES LINK_FLAGS_DEBUG "/defaultlib:vccorlibd.lib /defaultlib:msvcrtd.lib")
++        endif()
+     endif()
+ 
+     set_target_properties(${name} PROPERTIES
+@@ -480,6 +494,11 @@ if(BUILD_SHARED)
+     if(MSVC)
+         set_target_properties(libpython-shared PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME python27)
+         install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/python27.pdb DESTINATION lib CONFIGURATIONS RelWithDebInfo)
++        if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++            set_target_properties(libpython-shared PROPERTIES LINK_FLAGS_RELWITHDEBINFO "/defaultlib:vccorlib.lib /defaultlib:msvcrt.lib")
++            set_target_properties(libpython-shared PROPERTIES LINK_FLAGS_RELEASE "/defaultlib:vccorlib.lib /defaultlib:msvcrt.lib")
++            set_target_properties(libpython-shared PROPERTIES LINK_FLAGS_DEBUG "/defaultlib:vccorlibd.lib /defaultlib:msvcrtd.lib")
++        endif()
+     endif()
+     if(APPLE)
+         # HACK For python <= 2.7.3, this fix link error related to undefined _environ symbol and
+-- 
+2.10.2.windows.1
+
