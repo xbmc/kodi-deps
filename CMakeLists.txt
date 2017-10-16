@@ -273,6 +273,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		PATCH_COMMAND 
 			COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/libfribidi.diff
 			COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/libfribidi/0001-add-cross-compiling.patch
+		CMAKE_GENERATOR "Visual Studio 14 2015"
 		CMAKE_ARGS
 			-DCMAKE_INSTALL_PREFIX:PATH=${PACKAGES_DIRECTORY}
 			-DBUILD_ONLY_GENERATORS:BOOL=ON
@@ -524,6 +525,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		PATCH_COMMAND 
 			COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/libgpg-error.diff
 			COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/libgpg-error/0001-add-cross-compiling.patch
+		CMAKE_GENERATOR "Visual Studio 14 2015"
 		CMAKE_ARGS
 			-DCMAKE_INSTALL_PREFIX:PATH=${PACKAGES_DIRECTORY}
 			-DBUILD_ONLY_GENERATORS:BOOL=ON
