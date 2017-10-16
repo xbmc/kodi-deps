@@ -408,6 +408,25 @@ ExternalProject_Add(libass
 )
 add_dependency_project_package(libass 0.13.6)
 
+ExternalProject_Add(libssh2
+	DEPENDS openssl zlib
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://www.libssh2.org/download/libssh2-1.8.0.tar.gz
+	URL_HASH SHA512=289aa45c4f99653bebf5f99565fe9c519abc204feb2084b47b7cc3badc8bf4ecdedd49ea6acdce8eb902b3c00995d5f92a3ca77b2508b92f04ae0e7de7287558
+	PATCH_COMMAND 
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0001-fix-uwp-api.patch
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/openssl%3B%3B${PACKAGES_DIRECTORY}/zlib
+		-DBUILD_SHARED_LIBS:BOOL=ON
+		-DBUILD_EXAMPLES:BOOL=OFF
+		-DBUILD_TESTING:BOOL=OFF
+		-DENABLE_ZLIB_COMPRESSION:BOOL=ON
+		-DINSTALL_DOCS:BOOL=OFF
+)
+add_dependency_project_package(libssh2 1.8.0)
+
 ExternalProject_Add(curl
 	DEPENDS openssl zlib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -431,6 +450,7 @@ add_custom_target(DependenciesDllRequired
 	DEPENDS
 		curl
 		libass
+		libssh2
 )
 
 ExternalProject_Add(lcms2
