@@ -505,11 +505,31 @@ ExternalProject_Add(libgpg-error
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2
 	URL_HASH SHA256=4f93aac6fecb7da2b92871bb9ee33032be6a87b174f54abf8ddf0911a22d29d2
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	PATCH_COMMAND 
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0001-add-cross-compiling.patch
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0002-fix-uwp-api.patch
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DLIBPGP_GENERATORS_PREFIX:PATH=${PACKAGES_DIRECTORY}
 )
+if (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+	# this will compile libgpg-error generators by native build
+	# then they will be used by UWP build
+	ExternalProject_Add(libgpg-error-generators
+		DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+		URL https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2
+		URL_HASH SHA256=4f93aac6fecb7da2b92871bb9ee33032be6a87b174f54abf8ddf0911a22d29d2
+		PATCH_COMMAND 
+			COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/libgpg-error.diff
+			COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/libgpg-error/0001-add-cross-compiling.patch
+		CMAKE_ARGS
+			-DCMAKE_INSTALL_PREFIX:PATH=${PACKAGES_DIRECTORY}
+			-DBUILD_ONLY_GENERATORS:BOOL=ON
+		)
+	add_dependencies(libgpg-error libgpg-error-generators)
+endif()
 
 ExternalProject_Add(libgcrypt
 	DEPENDS libgpg-error

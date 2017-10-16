@@ -1,0 +1,135 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 16b1b34..4afd26a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -13,6 +13,67 @@ if(NOT ${AWK_FOUND})
+   message(FATAL_ERROR "AWK not found, can't generate error codes")
+ endif()
+ 
++# when crosscompiling import the executable targets from a file
++if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++  SET(IMPORT_EXECUTABLES ${LIBPGP_GENERATORS_PREFIX}/tools/cmake/LibPGPExecutables.cmake CACHE FILEPATH "Point it to the export file from a native build")
++  INCLUDE(${IMPORT_EXECUTABLES})
++endif()
++
++if (NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++  ADD_EXECUTABLE(mkheader src/mkheader.c)
++  target_compile_definitions(mkheader
++    PRIVATE
++    HAVE_CONFIG_H
++    _CRT_SECURE_NO_WARNINGS
++    _CRT_NONSTDC_NO_WARNINGS)
++  
++  target_include_directories(mkheader
++    PRIVATE
++    $<BUILD_INTERFACE:.;cmake;src;${CMAKE_CURRENT_BINARY_DIR}>
++    INTERFACE
++    $<INSTALL_INTERFACE:include/libpgp-errors>
++  )
++  
++  ADD_EXECUTABLE(mkerrcodes src/mkerrcodes.c)
++  target_compile_definitions(mkerrcodes
++    PRIVATE
++    HAVE_CONFIG_H
++    _CRT_SECURE_NO_WARNINGS
++    _CRT_NONSTDC_NO_WARNINGS)
++  
++  target_include_directories(mkerrcodes
++    PRIVATE
++    $<BUILD_INTERFACE:.;cmake;src;${CMAKE_CURRENT_BINARY_DIR}>
++    INTERFACE
++    $<INSTALL_INTERFACE:include/libpgp-errors>
++  )
++  add_custom_command(
++    TARGET mkerrcodes
++    PRE_BUILD 
++    COMMAND ${AWK} -f ${CMAKE_CURRENT_SOURCE_DIR}/src/mkerrcodes1.awk ${CMAKE_CURRENT_SOURCE_DIR}/src/errnos.in > ${CMAKE_CURRENT_SOURCE_DIR}/cmake/_mkerrcodes.h
++    COMMAND cl -E ${CMAKE_CURRENT_SOURCE_DIR}/cmake/_mkerrcodes.h | findstr GPG_ERR_ | \"${AWK}\" -f ${CMAKE_CURRENT_SOURCE_DIR}/src/mkerrcodes.awk > ${CMAKE_CURRENT_SOURCE_DIR}/cmake/mkerrcodes.h
++    COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_CURRENT_SOURCE_DIR}/cmake/_mkerrcodes.h
++  )
++endif()
++
++if (BUILD_ONLY_GENERATORS)
++  install(
++    TARGETS 
++      mkheader
++      mkerrcodes
++    EXPORT
++      ${PROJECT_NAME}
++    DESTINATION
++      tools
++  )
++  install(EXPORT ${PROJECT_NAME}
++  	FILE
++  	  LibPGPExecutables.cmake
++    DESTINATION
++      tools/cmake
++  	)
++else()
++
+ set(SRCS
+   cmake/libgpg-error.def
+   src/b64dec.c
+@@ -78,50 +139,13 @@ add_custom_command(
+ )
+ 
+ 
+-ADD_EXECUTABLE(mkheader src/mkheader.c)
+-target_compile_definitions(mkheader
+-  PRIVATE
+-  HAVE_CONFIG_H
+-  _CRT_SECURE_NO_WARNINGS
+-  _CRT_NONSTDC_NO_WARNINGS)
+-  
+-target_include_directories(mkheader
+-  PRIVATE
+-  $<BUILD_INTERFACE:.;cmake;src;${CMAKE_CURRENT_BINARY_DIR}>
+-  INTERFACE
+-  $<INSTALL_INTERFACE:include/libpgp-errors>
+-)
+-  
+-add_custom_command(TARGET mkheader
+-  POST_BUILD
++add_custom_command(TARGET libpgp-error
++  PRE_BUILD
+   COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/src $<TARGET_FILE:mkheader> "mingw32" "win32-msvc" "gpg-error.h.in" ${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h "1.27" "0x011b00" > ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gpg-error.h
+ )
+ 
+-ADD_EXECUTABLE(mkerrcodes src/mkerrcodes.c)
+-target_compile_definitions(mkerrcodes
+-  PRIVATE
+-  HAVE_CONFIG_H
+-  _CRT_SECURE_NO_WARNINGS
+-  _CRT_NONSTDC_NO_WARNINGS)
+-  
+-target_include_directories(mkerrcodes
+-  PRIVATE
+-  $<BUILD_INTERFACE:.;cmake;src;${CMAKE_CURRENT_BINARY_DIR}>
+-  INTERFACE
+-  $<INSTALL_INTERFACE:include/libpgp-errors>
+-)
+-
+-add_custom_command(
+-  TARGET mkerrcodes
++add_custom_command(TARGET libpgp-error
+   PRE_BUILD 
+-  COMMAND ${AWK} -f ${CMAKE_CURRENT_SOURCE_DIR}/src/mkerrcodes1.awk ${CMAKE_CURRENT_SOURCE_DIR}/src/errnos.in > ${CMAKE_CURRENT_SOURCE_DIR}/cmake/_mkerrcodes.h
+-  COMMAND cl -E ${CMAKE_CURRENT_SOURCE_DIR}/cmake/_mkerrcodes.h | findstr GPG_ERR_ | \"${AWK}\" -f ${CMAKE_CURRENT_SOURCE_DIR}/src/mkerrcodes.awk > ${CMAKE_CURRENT_SOURCE_DIR}/cmake/mkerrcodes.h
+-  COMMAND ${CMAKE_COMMAND} -E remove ${CMAKE_CURRENT_SOURCE_DIR}/cmake/_mkerrcodes.h
+-)
+-
+-add_custom_command(
+-  TARGET mkerrcodes
+-  POST_BUILD 
+   COMMAND $<TARGET_FILE:mkerrcodes> | \"${AWK}\" -f ${CMAKE_CURRENT_SOURCE_DIR}/src/mkerrcodes2.awk > ${CMAKE_CURRENT_SOURCE_DIR}/cmake/code-from-errno.h
+ )
+ 
+@@ -164,3 +188,4 @@ install(
+   DESTINATION
+     lib/cmake/${PROJECT_NAME}
+ )
++endif()
+\ No newline at end of file
+-- 
+2.10.2.windows.1
+

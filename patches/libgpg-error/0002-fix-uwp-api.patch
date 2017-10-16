@@ -1,0 +1,226 @@
+diff --git a/src/estream.c b/src/estream.c
+index 63d581e..fb481ce 100644
+--- a/src/estream.c
++++ b/src/estream.c
+@@ -4527,6 +4527,34 @@ _gpgrt_fprintf (estream_t _GPGRT__RESTRICT stream,
+   return ret;
+ }
+ 
++wchar_t *
++to_wchar(const char *string, size_t length, size_t *retlen)
++{
++  int n;
++  wchar_t *result;
++  size_t nbytes;
++
++  n = MultiByteToWideChar(CP_UTF8, 0, string, length, NULL, 0);
++  if (n < 0 || (n + 1) <= 0)
++    return NULL;
++
++  nbytes = (size_t)(n + 1) * sizeof(*result);
++  if (nbytes / sizeof(*result) != (n + 1))
++    return NULL;
++
++  result = malloc(nbytes);
++  if (!result)
++    return NULL;
++
++  n = MultiByteToWideChar(CP_UTF8, 0, string, length, result, n);
++  if (n < 0)
++  {
++    free(result);
++    return NULL;
++  }
++  *retlen = n;
++  return result;
++}
+ 
+ static int
+ tmpfd (void)
+@@ -4569,7 +4597,7 @@ tmpfd (void)
+   for (attempts=0; attempts < 10; attempts++)
+     {
+       p = name;
+-      value = (GetTickCount () ^ ((pid<<16) & 0xffff0000));
++      value = (GetTickCount64 () ^ ((pid<<16) & 0xffff0000));
+       for (i=0; i < 8; i++)
+         {
+           *p++ = tohex (((value >> 28) & 0x0f));
+@@ -4580,6 +4608,24 @@ tmpfd (void)
+ #else
+       strcpy (p, ".tmp");
+ #endif
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++
++    size_t wlen = 0;
++    wchar_t *wpath = to_wchar(buffer, -1, &wlen);
++
++    if (wpath)
++    {
++      // create
++      CREATEFILE2_EXTENDED_PARAMETERS ex = { 0 };
++      ex.dwFileFlags = FILE_FLAG_DELETE_ON_CLOSE;
++      ex.dwFileAttributes = FILE_ATTRIBUTE_TEMPORARY;
++      file = CreateFile2(wpath, GENERIC_READ | GENERIC_WRITE, 0, CREATE_NEW, &ex);
++
++      free(wpath);
++    }
++    else
++      file = INVALID_HANDLE_VALUE;
++#else
+       file = CreateFile (buffer,
+                          GENERIC_READ | GENERIC_WRITE,
+                          0,
+@@ -4587,6 +4633,7 @@ tmpfd (void)
+                          CREATE_NEW,
+                          FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE,
+                          NULL);
++#endif
+       if (file != INVALID_HANDLE_VALUE)
+         {
+ #ifdef HAVE_W32CE_SYSTEM
+diff --git a/src/init.c b/src/init.c
+index a1ee505..ee71687 100644
+--- a/src/init.c
++++ b/src/init.c
+@@ -46,6 +46,10 @@
+ 
+ #if HAVE_W32_SYSTEM
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++# define getenv(x) NULL
++#endif
++
+ #include <windows.h>
+ 
+ static int tls_index = TLS_OUT_OF_INDEXES;  /* Index for the TLS functions.  */
+diff --git a/src/w32-gettext.c b/src/w32-gettext.c
+index 3b54ebd..c58f06a 100644
+--- a/src/w32-gettext.c
++++ b/src/w32-gettext.c
+@@ -53,6 +53,10 @@
+ #include "init.h"
+ #include "gpg-error.h"
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++# define getenv(x) NULL
++#endif
++
+ #ifdef HAVE_W32CE_SYSTEM
+ /* Forward declaration.  */
+ static wchar_t *utf8_to_wchar (const char *string, size_t length, size_t *retlen);
+@@ -669,8 +673,12 @@ my_nl_locale_name (const char *categoryname)
+ #ifdef HAVE_W32CE_SYSTEM
+   lcid = GetSystemDefaultLCID ();
+ #else
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++  lcid = LOCALE_USER_DEFAULT;
++#else
+   lcid = GetThreadLocale ();
+ #endif
++#endif
+ 
+   /* Strip off the sorting rules, keep only the language part.  */
+   langid = LANGIDFROMLCID (lcid);
+@@ -1231,12 +1239,32 @@ load_domain (const char *filename)
+   size_t to_read;
+   char *read_ptr;
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++  size_t wlen = 0;
++  static wchar_t *utf8_to_wchar(const char *string, size_t length, size_t *retlen);
++
++  wchar_t *filenameW = utf8_to_wchar(filename, -1, &wlen);
++  if (!filenameW)
++  {
++	  fh = CreateFile2(filenameW, GENERIC_READ, FILE_SHARE_WRITE, OPEN_EXISTING, NULL);
++	  free(filenameW);
++  }
++  else
++	  fh = INVALID_HANDLE_VALUE;
++#else
+   fh = CreateFileA (filename, GENERIC_READ, FILE_SHARE_WRITE, NULL,
+                     OPEN_EXISTING, 0, NULL);
++#endif
+   if (fh == INVALID_HANDLE_VALUE)
+     return NULL;
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++  WIN32_FILE_ATTRIBUTE_DATA fileinfo;
++  GetFileAttributesEx(filenameW, GetFileExInfoStandard, &fileinfo);
++  size = fileinfo.nFileSizeHigh;
++#else
+   size = GetFileSize (fh, NULL);
++#endif
+   if (size == INVALID_FILE_SIZE)
+     {
+       CloseHandle (fh);
+@@ -1378,13 +1406,17 @@ wchar_to_native (const wchar_t *string, size_t length, size_t *retlen)
+ {
+   int n;
+   char *result;
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++  unsigned int cpno = CP_ACP;
++#else
+   unsigned int cpno = GetConsoleOutputCP ();
+ 
+   /* GetConsoleOutputCP returns the 8-Bit codepage that should be used
+-     for console output. If the codepage is not returned we fall back
+-     to the codepage GUI programs should use (CP_ACP). */
++  for console output. If the codepage is not returned we fall back
++  to the codepage GUI programs should use (CP_ACP). */
+   if (!cpno)
+-    cpno = GetACP ();
++	  cpno = GetACP();
++#endif
+ 
+   n = WideCharToMultiByte (cpno, 0, string, length, NULL, 0, NULL, NULL);
+   if (n < 0 || (n+1) <= 0)
+diff --git a/src/w32-iconv.c b/src/w32-iconv.c
+index c10bb32..c448fec 100644
+--- a/src/w32-iconv.c
++++ b/src/w32-iconv.c
+@@ -951,7 +951,11 @@ name_to_codepage(const char *name)
+ 
+     if (*name == '\0' ||
+ 	strcmp(name, "char") == 0)
+-        return GetACP();
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++		return CP_ACP;
++#else
++		return GetACP();
++#endif
+     else if (strcmp(name, "wchar_t") == 0)
+         return 1200;
+     else if (_strnicmp(name, "cp", 2) == 0)
+@@ -1079,6 +1083,27 @@ sbcs_mblen(csconv_t *cv, const uchar *buf, int bufsize)
+   return 1;
+ }
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++// this code was taken from mingw codebase
++static BOOL
++IsDBCSLeadByteEx(UINT CodePage, BYTE TestChar)
++{
++	CPINFO lpCPInfo;
++	int i;
++
++	if (GetCPInfo(CodePage, &lpCPInfo) == 0)
++		return FALSE;
++
++	if (lpCPInfo.MaxCharSize == 2) {
++		for (i = 0; i < MAX_LEADBYTES && lpCPInfo.LeadByte[i]; i += 2) {
++			if (TestChar >= lpCPInfo.LeadByte[i] && TestChar <= lpCPInfo.LeadByte[i + 1])
++				return TRUE;
++		}
++	}
++	return FALSE;
++}
++#endif
++
+ static int
+ dbcs_mblen(csconv_t *cv, const uchar *buf, int bufsize)
+ {
+-- 
+2.10.2.windows.1
+
