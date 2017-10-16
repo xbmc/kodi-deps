@@ -1,0 +1,378 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 6d47302..e990266 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,6 +1,6 @@
+ cmake_minimum_required(VERSION 3.0)
+ 
+-project(libgcrypt VERSION 1.7.6 LANGUAGES C)
++project(libgcrypt VERSION 1.7.6 LANGUAGES C CXX)
+ 
+ find_package(libpgp-error 1.2.7 REQUIRED)
+ 
+@@ -177,6 +177,13 @@ ADD_LIBRARY(libgcrypt ${SRCS})
+ SET_TARGET_PROPERTIES(libgcrypt PROPERTIES LINK_FLAGS "/DEF:\"libgcrypt.def\"")
+ target_link_libraries(libgcrypt PRIVATE libpgp-error::libpgp-error)
+ 
++if(MSVC AND CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++  target_sources(libgcrypt PRIVATE
++    random/rnduwp.cpp
++  )
++  set_source_files_properties(random/rnduwp.cpp PROPERTIES COMPILE_FLAGS "/TP /ZW")
++endif()
++
+ target_compile_definitions(libgcrypt
+   PRIVATE
+   HAVE_CONFIG_H
+diff --git a/cipher/bithelp.h b/cipher/bithelp.h
+index 4575380..ac13a61 100644
+--- a/cipher/bithelp.h
++++ b/cipher/bithelp.h
+@@ -70,6 +70,10 @@ _gcry_bswap64(u64 x)
+ # define be_bswap64(x) _gcry_bswap64(x)
+ #endif
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++#pragma warning ( push )
++#pragma warning (disable : 4146)
++#endif
+ 
+ /* Count trailing zero bits in an unsigend int.  We return an int
+    because that is what gcc's builtin does.  Returns the number of
+@@ -112,5 +116,8 @@ _gcry_ctz64(u64 x)
+ #endif
+ }
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++#pragma warning ( pop )
++#endif
+ 
+ #endif /*GCRYPT_BITHELP_H*/
+diff --git a/cipher/md.c b/cipher/md.c
+index 27a0efb..a398d02 100644
+--- a/cipher/md.c
++++ b/cipher/md.c
+@@ -364,7 +364,7 @@ gcry_err_code_t
+ _gcry_md_open (gcry_md_hd_t *h, int algo, unsigned int flags)
+ {
+   gcry_err_code_t rc;
+-  gcry_md_hd_t hd;
++  gcry_md_hd_t hd = NULL;
+ 
+   if ((flags & ~(GCRY_MD_FLAG_SECURE
+                  | GCRY_MD_FLAG_HMAC
+diff --git a/cmake/sys/time.h b/cmake/sys/time.h
+index 197b456..fc532ca 100644
+--- a/cmake/sys/time.h
++++ b/cmake/sys/time.h
+@@ -56,7 +56,9 @@ static __inline int gettimeofday(struct timeval * tp, struct timezone * tzp)
+     {
+         if (!tzflag)
+         {
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP)
+           _tzset();
++#endif
+           tzflag++;
+         }
+         tzp->tz_minuteswest = _timezone / 60;
+diff --git a/mpi/ec.c b/mpi/ec.c
+index 26dd947..ca4b926 100644
+--- a/mpi/ec.c
++++ b/mpi/ec.c
+@@ -40,7 +40,7 @@
+ void
+ _gcry_mpi_point_log (const char *name, mpi_point_t point, mpi_ec_t ctx)
+ {
+-  gcry_mpi_t x, y;
++  gcry_mpi_t x = NULL, y = NULL;
+   char buf[100];
+ 
+   if (!point)
+@@ -381,6 +381,9 @@ ec_get_two_inv_p (mpi_ec_t ec)
+   return ec->t.two_inv_p;
+ }
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++#  define getenv(x) NULL
++#endif
+ 
+ 
+ /* This function initialized a context for elliptic curve based on the
+diff --git a/mpi/mpi-pow.c b/mpi/mpi-pow.c
+index a780ebd..dc191e7 100644
+--- a/mpi/mpi-pow.c
++++ b/mpi/mpi-pow.c
+@@ -33,6 +33,10 @@
+ #include "mpi-internal.h"
+ #include "longlong.h"
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++#pragma warning ( push )
++#pragma warning (disable : 4146)
++#endif
+ 
+ /*
+  * When you need old implementation, please add compilation option
+@@ -801,3 +805,7 @@ _gcry_mpi_powm (gcry_mpi_t res,
+     _gcry_mpi_free_limb_space( xp_marker, xp_nlimbs );
+ }
+ #endif
++
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++#pragma warning ( pop )
++#endif
+\ No newline at end of file
+diff --git a/mpi/mpi-scan.c b/mpi/mpi-scan.c
+index e27f7fa..b5ab245 100644
+--- a/mpi/mpi-scan.c
++++ b/mpi/mpi-scan.c
+@@ -24,6 +24,11 @@
+ #include "mpi-internal.h"
+ #include "longlong.h"
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++#pragma warning ( push )
++#pragma warning (disable : 4146)
++#endif
++
+ /****************
+  * Scan through an mpi and return byte for byte. a -1 is returned to indicate
+  * the end of the mpi. Scanning is done from the lsb to the msb, returned
+@@ -128,3 +133,7 @@ _gcry_mpi_trailing_zeros( gcry_mpi_t a )
+     return count;
+ 
+ }
++
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++#pragma warning ( pop )
++#endif
+\ No newline at end of file
+diff --git a/mpi/mpih-div.c b/mpi/mpih-div.c
+index 57c1b58..04b84b7 100644
+--- a/mpi/mpih-div.c
++++ b/mpi/mpih-div.c
+@@ -38,7 +38,12 @@
+ #define UDIV_TIME UMUL_TIME
+ #endif
+ 
+-/* FIXME: We should be using invert_limb (or invert_normalized_limb)
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++#pragma warning ( push )
++#pragma warning (disable : 4146)
++#endif
++
++ /* FIXME: We should be using invert_limb (or invert_normalized_limb)
+  * here (not udiv_qrnnd).
+  */
+ 
+@@ -530,3 +535,7 @@ _gcry_mpih_divmod_1( mpi_ptr_t quot_ptr,
+ 	return r;
+     }
+ }
++
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++#pragma warning ( pop )
++#endif
+\ No newline at end of file
+diff --git a/random/rand-internal.h b/random/rand-internal.h
+index 8c8623e..72ffdb1 100644
+--- a/random/rand-internal.h
++++ b/random/rand-internal.h
+@@ -35,6 +35,9 @@ enum random_origins
+                                     random request.  */
+   };
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++#  define getpid GetCurrentProcessId
++#endif
+ 
+ 
+ /*-- random.c --*/
+@@ -123,6 +126,22 @@ void _gcry_rndw32ce_gather_random_fast (void (*add)(const void*, size_t,
+                                                     enum random_origins),
+                                         enum random_origins origin );
+ 
++/*-- rnduwp.cpp --*/
++#ifdef __cplusplus
++extern "C" {
++#endif
++int _gcry_rnduwp_gather_random (void (*add) (const void *, size_t,
++                                             enum random_origins),
++                                enum random_origins origin,
++                                size_t length, int level );
++
++void _gcry_rnduwp_gather_random_fast (void (*add) (const void *, size_t,
++                                                   enum random_origins),
++                                      enum random_origins origin );
++#ifdef __cplusplus
++}
++#endif
++
+ /*-- rndhw.c --*/
+ int _gcry_rndhw_failed_p (void);
+ void _gcry_rndhw_poll_fast (void (*add)(const void*, size_t,
+diff --git a/random/random-csprng.c b/random/random-csprng.c
+index 5c52942..929f4ff 100644
+--- a/random/random-csprng.c
++++ b/random/random-csprng.c
+@@ -1140,7 +1140,7 @@ getfnc_gather_random (void))(void (*)(const void*, size_t,
+   return fnc;
+ #endif
+ 
+-#if USE_RNDW32
++#if USE_RNDW32 && (!defined(WINAPI_FAMILY) || (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP))
+   fnc = _gcry_rndw32_gather_random;
+   return fnc;
+ #endif
+@@ -1150,6 +1150,11 @@ getfnc_gather_random (void))(void (*)(const void*, size_t,
+   return fnc;
+ #endif
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++  fnc = _gcry_rnduwp_gather_random;
++  return fnc;
++#endif
++
+   log_fatal (_("no entropy gathering module detected\n"));
+ 
+   return NULL; /*NOTREACHED*/
+@@ -1162,7 +1167,10 @@ getfnc_fast_random_poll (void))( void (*)(const void*, size_t,
+                                           enum random_origins),
+                                  enum random_origins)
+ {
+-#if USE_RNDW32
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++	return _gcry_rnduwp_gather_random_fast;
++#endif
++#if USE_RNDW32 && (!defined(WINAPI_FAMILY) || (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP))
+   return _gcry_rndw32_gather_random_fast;
+ #endif
+ #if USE_RNDW32CE
+diff --git a/random/random-drbg.c b/random/random-drbg.c
+index e9099e1..1919108 100644
+--- a/random/random-drbg.c
++++ b/random/random-drbg.c
+@@ -644,13 +644,16 @@ drbg_get_entropy (drbg_state_t drbg, unsigned char *buffer,
+ #elif USE_RNDUNIX
+   rc = _gcry_rndunix_gather_random (drbg_read_cb, 0, len,
+ 				    GCRY_VERY_STRONG_RANDOM);
+-#elif USE_RNDW32
++#elif USE_RNDW32 && (!defined(WINAPI_FAMILY) || (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP))
+   do
+     {
+       rc = _gcry_rndw32_gather_random (drbg_read_cb, 0, len,
+-				       GCRY_VERY_STRONG_RANDOM);
++                       GCRY_VERY_STRONG_RANDOM);
+     }
+   while (rc >= 0 && read_cb_len < read_cb_size);
++#elif defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++  rc = _gcry_rnduwp_gather_random (drbg_read_cb, 0, len,
++                       GCRY_VERY_STRONG_RANDOM);
+ #else
+   rc = -1;
+ #endif
+diff --git a/random/random-system.c b/random/random-system.c
+index 6ddf993..9cb4a11 100644
+--- a/random/random-system.c
++++ b/random/random-system.c
+@@ -150,12 +150,14 @@ get_random (void *buffer, size_t length, int level)
+   rc = _gcry_rndlinux_gather_random (read_cb, 0, length, level);
+ #elif USE_RNDUNIX
+   rc = _gcry_rndunix_gather_random (read_cb, 0, length, level);
+-#elif USE_RNDW32
++#elif USE_RNDW32 && (!defined(WINAPI_FAMILY) || (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP))
+   do
+     {
+       rc = _gcry_rndw32_gather_random (read_cb, 0, length, level);
+     }
+   while (rc >= 0 && read_cb_len < read_cb_size);
++#elif defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++  rc = _gcry_rnduwp_gather_random (read_cb, 0, length, level);
+ #else
+   rc = -1;
+ #endif
+diff --git a/random/rnduwp.cpp b/random/rnduwp.cpp
+new file mode 100644
+index 0000000..bde6a5f
+--- /dev/null
++++ b/random/rnduwp.cpp
+@@ -0,0 +1,44 @@
++
++#include "config.h"
++#include "types.h"
++#include "g10lib.h"
++#include "rand-internal.h"
++
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++
++using namespace Platform;
++using namespace Windows::Security::Cryptography;
++using namespace Windows::Security::Cryptography::Certificates;
++using namespace Windows::Storage::Streams;
++
++extern "C" {
++int
++_gcry_rnduwp_gather_random(void(*add)(const void*, size_t,
++                                      enum random_origins),
++                           enum random_origins origin,
++                           size_t length, int level)
++{
++	if (!level)
++		return 0;
++
++	IBuffer^ data = CryptographicBuffer::GenerateRandom(length);
++	Array<unsigned char>^ data2;
++	CryptographicBuffer::CopyToByteArray(data, &data2);
++	(*add)(data2->Data, length, origin);
++
++	return 0;
++}
++
++void
++_gcry_rnduwp_gather_random_fast(void(*add)(const void*, size_t,
++                                           enum random_origins),
++                                enum random_origins origin)
++{
++	size_t size = 20 * sizeof(ulong) + 2 * sizeof(POINT) + sizeof(MEMORYSTATUS) 
++				+ 8 * sizeof(FILETIME) + sizeof(LARGE_INTEGER);
++
++	_gcry_rnduwp_gather_random(add, origin, size, 1);
++}
++}
++
++#endif
+\ No newline at end of file
+diff --git a/random/rndw32.c b/random/rndw32.c
+index de6e783..77f8844 100644
+--- a/random/rndw32.c
++++ b/random/rndw32.c
+@@ -78,6 +78,7 @@
+ #include <stdint.h>
+ #endif
+ 
++#if USE_RNDW32 && (!defined(WINAPI_FAMILY) || (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP))
+ #include <winsock2.h>
+ #include <windows.h>
+ 
+@@ -1014,3 +1015,4 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
+ 
+ 
+ }
++#endif
+\ No newline at end of file
+diff --git a/src/sexp.c b/src/sexp.c
+index 6077bab..1e5b106 100644
+--- a/src/sexp.c
++++ b/src/sexp.c
+@@ -2230,7 +2230,7 @@ _gcry_sexp_vextract_param (gcry_sexp_t sexp, const char *path,
+   gcry_mpi_t *array[20];
+   char arrayisdesc[20];
+   int idx;
+-  gcry_sexp_t l1;
++  gcry_sexp_t l1 = NULL;
+   int mode = '+'; /* Default to GCRYMPI_FMT_USG.  */
+   gcry_sexp_t freethis = NULL;
+ 
+-- 
+2.10.2.windows.1
+

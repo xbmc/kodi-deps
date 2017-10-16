@@ -536,7 +536,9 @@ ExternalProject_Add(libgcrypt
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.7.6.tar.bz2
 	URL_HASH SHA256=626aafee84af9d2ce253d2c143dc1c0902dda045780cc241f39970fc60be05bc
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	PATCH_COMMAND 
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0001-fix-uwp-build.patch
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
