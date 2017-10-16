@@ -1,0 +1,33 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 29b3c68..f2eeb63 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -4,6 +4,12 @@ project(libmicrohttpd LANGUAGES C VERSION 0.9.55)
+ 
+ if(MSVC)
+   set(CMAKE_DEBUG_POSTFIX "_d")
++  add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS)
++  add_definitions(-D_WIN32 -DMHD_W32DLL -D_USRDLL -DBUILDING_MHD_LIB)
++
++  if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++    add_definitions(-D_WIN32_WINNT=0x0A00)
++  endif()
+ endif()
+ 
+ add_library(libmicrohttpd
+diff --git a/src/microhttpd/mhd_sockets.c b/src/microhttpd/mhd_sockets.c
+index 47c2d9d..61d99e5 100644
+--- a/src/microhttpd/mhd_sockets.c
++++ b/src/microhttpd/mhd_sockets.c
+@@ -451,6 +451,8 @@ MHD_socket_noninheritable_ (MHD_socket sock)
+                     F_SETFD,
+                     flags | FD_CLOEXEC)) )
+     return 0;
++#elif defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++  return 0;
+ #elif defined(MHD_WINSOCK_SOCKETS)
+   if (! SetHandleInformation ((HANDLE)sock,
+                               HANDLE_FLAG_INHERIT,
+-- 
+2.13.2.windows.1
+
