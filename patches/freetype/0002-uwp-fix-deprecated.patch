@@ -1,0 +1,20 @@
+diff --git a/include/freetype/config/ftstdlib.h b/include/freetype/config/ftstdlib.h
+index e62c259..bddc667 100644
+--- a/include/freetype/config/ftstdlib.h
++++ b/include/freetype/config/ftstdlib.h
+@@ -152,7 +152,11 @@ FILE* utf8_fopen(
+ 
+ 
+ #define ft_strtol  strtol
+-#define ft_getenv  getenv
++#if defined(WINAPI_FAMILY) && WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
++# define ft_getenv  getenv
++#else
++# define ft_getenv(x)  NULL
++#endif
+ 
+ 
+   /**********************************************************************/
+-- 
+2.10.2.windows.1
+

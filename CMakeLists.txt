@@ -215,13 +215,21 @@ ExternalProject_Add(fmt
 add_dependency_project_package(fmt 3.0.1)
 
 ExternalProject_Add(freetype
+	DEPENDS bzip2 zlib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://download.savannah.gnu.org/releases/freetype/freetype-2.7.1.tar.gz
-	URL_HASH SHA256=162ef25aa64480b1189cdb261228e6c5c44f212aac4b4621e28cf2157efb59f5
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	URL https://download.savannah.gnu.org/releases/freetype/freetype-2.8.tar.gz
+	URL_HASH SHA256=33a28fabac471891d0523033e99c0005b95e5618dc8ffa7fa47f9dadcacb1c9b
+	PATCH_COMMAND 
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0001-fix-shared-lib-build.patch
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0002-uwp-fix-deprecated.patch
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DBUILD_SHARED_LIBS:BOOL=ON
+		-DWITH_ZLIB=ON
+		-DWITH_BZip2=ON
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/zlib%3B%3B${PACKAGES_DIRECTORY}/bzip2
 )
 add_dependency_project_package(freetype 2.8)
 
