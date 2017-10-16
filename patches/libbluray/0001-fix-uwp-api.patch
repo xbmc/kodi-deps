@@ -1,0 +1,504 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0cee8a2..134441a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -4,7 +4,7 @@ set(BLURAY_VERSION_MAJOR 1)
+ set(BLURAY_VERSION_MINOR 0)
+ set(BLURAY_VERSION_MICRO 2)
+ 
+-project(libbluray VERSION ${BLURAY_VERSION_MAJOR}.${BLURAY_VERSION_MINOR}.${BLURAY_VERSION_MICRO} LANGUAGES C)
++project(libbluray VERSION ${BLURAY_VERSION_MAJOR}.${BLURAY_VERSION_MINOR}.${BLURAY_VERSION_MICRO} LANGUAGES C CXX)
+ 
+ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bluray-version.h.in
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bluray-version.h)
+@@ -130,25 +130,6 @@ set(SRCS
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/util/strutl.h
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/util/time.c
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/util/time.h
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdj.c
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdj.h
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdjo_data.h
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdjo_parse.c
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdjo_parse.h
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/bdjo.c
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/bdjo.h
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/java_awt_BDFontMetrics.c
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/java_awt_BDFontMetrics.h
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/java_awt_BDGraphics.c
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/java_awt_BDGraphics.h
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/org_videolan_Libbluray.c
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/org_videolan_Libbluray.h
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/org_videolan_Logger.c
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/org_videolan_Logger.h
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/register_native.c
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/register_native.h
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/util.c
+-  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/util.h
+   ${CMAKE_CURRENT_SOURCE_DIR}/contrib/libudfread/src/blockinput.h
+   ${CMAKE_CURRENT_SOURCE_DIR}/contrib/libudfread/src/default_blockinput.h
+   ${CMAKE_CURRENT_SOURCE_DIR}/contrib/libudfread/src/default_blockinput.c
+@@ -166,7 +147,7 @@ if (JNI_FOUND)
+   include_directories("${JAVA_INCLUDE_PATH}")
+   include_directories("${JAVA_INCLUDE_PATH2}")
+   set(HAVE_JNI_H 1)
+-else()
++elseif(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+   message( FATAL_ERROR "JNI not found." )
+ endif()
+ 
+@@ -175,10 +156,34 @@ if (JAVA_FOUND)
+   get_filename_component(_JDK_HOME "${Java_JAVA_EXECUTABLE}" PATH)
+   get_filename_component(_JDK_HOME "${_JDK_HOME}/.." ABSOLUTE)
+   message("JDK_HOME=${_JDK_HOME}")
+-else()
++elseif(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+   message( FATAL_ERROR "JNI not found." )
+ endif()
+ 
++if (JNI_FOUND AND JAVA_FOUND AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++  list(APPEND SRCS
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdj.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdj.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdjo_data.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdjo_parse.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdjo_parse.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/bdjo.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/bdjo.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/java_awt_BDFontMetrics.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/java_awt_BDFontMetrics.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/java_awt_BDGraphics.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/java_awt_BDGraphics.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/org_videolan_Libbluray.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/org_videolan_Libbluray.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/org_videolan_Logger.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/org_videolan_Logger.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/register_native.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/register_native.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/util.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/util.h
++  )
++endif()
++
+ ADD_LIBRARY(libbluray SHARED ${SRCS})
+ target_link_libraries(libbluray PRIVATE freetype::freetype iconv::iconv libxml2::libxml2)
+ SET_TARGET_PROPERTIES(libbluray PROPERTIES LINK_FLAGS "/DEF:\"libbluray.def\"")
+@@ -186,7 +191,8 @@ SET_TARGET_PROPERTIES(libbluray PROPERTIES LINK_FLAGS "/DEF:\"libbluray.def\"")
+ target_compile_definitions(libbluray
+   PRIVATE
+   HAVE_CONFIG_H
+-  _CRT_SECURE_NO_WARNINGS)
++  _CRT_SECURE_NO_WARNINGS
++  _CRT_NONSTDC_NO_DEPRECATE)
+ target_include_directories(libbluray
+   PRIVATE
+   $<BUILD_INTERFACE:.;cmake;src;src/libbluray;contrib/libudfread/src/;${CMAKE_CURRENT_BINARY_DIR}>
+@@ -194,6 +200,20 @@ target_include_directories(libbluray
+   $<INSTALL_INTERFACE:include/libbluray>
+ )
+ 
++if(MSVC AND CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++  target_sources(libbluray PRIVATE
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/uwpapi.cpp
++  )
++  set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/src/uwpapi.cpp PROPERTIES COMPILE_FLAGS "/TP /ZW")
++  #fix linkage
++  set_target_properties(libbluray 
++      PROPERTIES 
++        LINK_FLAGS_DEBUG "/defaultlib:vccorlibd.lib /defaultlib:msvcrtd.lib"
++        LINK_FLAGS_RELEASE "/defaultlib:vccorlib.lib /defaultlib:msvcrt.lib"
++        LINK_FLAGS_RELWITHDEBINFO "/defaultlib:vccorlib.lib /defaultlib:msvcrt.lib"
++  )
++endif()
++
+ if (EXISTS $ENV{ANT_HOME})
+ set(ANT_CMD $ENV{ANT_HOME}/bin/ant)
+ set(ANT_BUILD ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/build.xml)
+@@ -208,7 +228,7 @@ set(ANT_BUILD ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/build.xml)
+                   -Dversion="j2se-${libbluray_VERSION}"
+   )
+   add_dependencies(libbluray ANT)
+-else()
++elseif(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+   message( FATAL_ERROR "ANT path not set, can't compile libbluray.jar")
+ endif()
+ 
+@@ -244,9 +264,11 @@ install(FILES
+   $<TARGET_PDB_FILE:libbluray>
+   DESTINATION lib)
+ 
+-install(FILES
+-  ${CMAKE_CURRENT_BINARY_DIR}/libbluray-j2se-${libbluray_VERSION}.jar
+-  DESTINATION bin)
++if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++  install(FILES
++    ${CMAKE_CURRENT_BINARY_DIR}/libbluray-j2se-${libbluray_VERSION}.jar
++    DESTINATION bin)
++endif()
+ 
+ install(EXPORT libbluray
+   FILE
+diff --git a/contrib/libudfread/src/udfread.c b/contrib/libudfread/src/udfread.c
+index ba1b675..090e68c 100644
+--- a/contrib/libudfread/src/udfread.c
++++ b/contrib/libudfread/src/udfread.c
+@@ -725,6 +725,7 @@ struct udfread {
+ 
+ udfread *udfread_init(void)
+ {
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
+     /* set up logging */
+     if (getenv("UDFREAD_LOG")) {
+         enable_log = 1;
+@@ -733,6 +734,7 @@ udfread *udfread_init(void)
+         enable_trace = 1;
+         enable_log = 1;
+     }
++#endif
+ 
+ #ifdef HAVE_UDFREAD_VERSION_H
+     udf_log("libudfread " UDFREAD_VERSION_STRING "\n");
+diff --git a/src/file/dirs.h b/src/file/dirs.h
+index 820917f..b11399f 100644
+--- a/src/file/dirs.h
++++ b/src/file/dirs.h
+@@ -22,8 +22,12 @@
+ 
+ #include "util/attributes.h"
+ 
+-#ifdef _WIN32
++#if defined(_WIN32)
++#  include <winapifamily.h>
++#  if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
++// required for BDJ only (unavailable on UWP)
+ BD_PRIVATE char       *win32_get_font_dir(const char *font_file);
++#  endif
+ #endif
+ 
+ /*
+diff --git a/src/file/dirs_win32.c b/src/file/dirs_win32.c
+index e165fea..c508005 100644
+--- a/src/file/dirs_win32.c
++++ b/src/file/dirs_win32.c
+@@ -33,7 +33,7 @@
+ #include <shlobj.h>
+ #include <limits.h>
+ 
+-
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
+ char *win32_get_font_dir(const char *font_file)
+ {
+     wchar_t wdir[MAX_PATH];
+@@ -59,12 +59,14 @@ char *win32_get_font_dir(const char *font_file)
+     }
+     return path;
+ }
++#endif
+ 
+ char *file_get_config_home(void)
+ {
+     return file_get_data_home();
+ }
+ 
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
+ char *file_get_data_home(void)
+ {
+     wchar_t wdir[MAX_PATH];
+@@ -83,12 +85,14 @@ char *file_get_data_home(void)
+     BD_DEBUG(DBG_FILE, "Can't find user configuration directory !\n");
+     return NULL;
+ }
++#endif
+ 
+ char *file_get_cache_home(void)
+ {
+     return file_get_data_home();
+ }
+ 
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
+ const char *file_get_config_system(const char *dir)
+ {
+     static char *appdir = NULL;
+@@ -120,3 +124,4 @@ const char *file_get_config_system(const char *dir)
+ 
+     return dir;
+ }
++#endif
+\ No newline at end of file
+diff --git a/src/file/dl_win32.c b/src/file/dl_win32.c
+index 6155ad6..fd3fa20 100644
+--- a/src/file/dl_win32.c
++++ b/src/file/dl_win32.c
+@@ -77,6 +77,7 @@ void *dl_dlopen(const char *path, const char *version)
+         return NULL;
+     }
+ 
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
+ #if (_WIN32_WINNT < _WIN32_WINNT_WIN8)
+     if (GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")),
+                        "SetDefaultDllDirectories") != NULL)
+@@ -85,6 +86,9 @@ void *dl_dlopen(const char *path, const char *version)
+                 LOAD_LIBRARY_SEARCH_SYSTEM32;
+ 
+     result = LoadLibraryExW(wname, NULL, flags);
++#else
++    result = LoadPackagedLibrary(wname, 0);
++#endif
+ 
+     if (!result) {
+         char buf[128];
+@@ -129,11 +133,17 @@ const char *dl_get_path(void)
+         HMODULE hModule;
+         wchar_t wpath[MAX_PATH];
+ 
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
+         if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                               GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                               (LPCTSTR)&dl_get_path, &hModule)) {
+ 
+             DWORD dw = GetModuleFileNameW(hModule, wpath, MAX_PATH);
++#else
++        {
++            extern size_t uwp_getinstallpath(wchar_t *buffer, size_t cch);
++            DWORD dw = uwp_getinstallpath(wpath, MAX_PATH);
++#endif
+             if (dw > 0 && dw < MAX_PATH) {
+ 
+                 if (WideCharToMultiByte(CP_UTF8, 0, wpath, -1, path, MAX_PATH, NULL, NULL)) {
+@@ -144,11 +154,13 @@ const char *dl_get_path(void)
+         }
+ 
+         if (lib_path) {
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
+             /* cut library name from path */
+             char *p = strrchr(lib_path, PATH_SEPARATOR);
+             if (p) {
+                 *(p+1) = 0;
+             }
++#endif
+             BD_DEBUG(DBG_FILE, "library file is %s\n", lib_path);
+         } else {
+             BD_DEBUG(DBG_FILE | DBG_CRIT, "Can't determine libbluray.dll install path\n");
+diff --git a/src/libbluray/bluray.c b/src/libbluray/bluray.c
+index 883b35c..7f48981 100644
+--- a/src/libbluray/bluray.c
++++ b/src/libbluray/bluray.c
+@@ -59,6 +59,9 @@
+ #include <inttypes.h>
+ #include <string.h>
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++#define getenv(x) NULL
++#endif
+ 
+ typedef enum {
+     title_undef = 0,
+@@ -902,6 +905,7 @@ static void _check_bdj(BLURAY *bd)
+     if (!bd->disc_info.bdj_handled) {
+         if (!bd->disc || bd->disc_info.bdj_detected) {
+ 
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
+             /* Check if jvm + jar can be loaded ? */
+             switch (bdj_jvm_available(&bd->bdjstorage)) {
+             case 2: bd->disc_info.bdj_handled = 1;
+@@ -909,6 +913,10 @@ static void _check_bdj(BLURAY *bd)
+             case 1: bd->disc_info.libjvm_detected = 1;
+             default:;
+             }
++#else
++            bd->disc_info.bdj_handled = 0;
++            bd->disc_info.libjvm_detected = 0;
++#endif // WINAPI_PARTITION_DESKTOP
+         }
+     }
+ }
+@@ -1340,6 +1348,7 @@ void bd_bdj_osd_cb(BLURAY *bd, const unsigned *img, int w, int h,
+ 
+ static int _start_bdj(BLURAY *bd, unsigned title)
+ {
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
+     if (bd->bdjava == NULL) {
+         const char *root = disc_root(bd->disc);
+         bd->bdjava = bdj_open(root, bd, bd->disc_info.bdj_disc_id, &bd->bdjstorage);
+@@ -1349,12 +1358,17 @@ static int _start_bdj(BLURAY *bd, unsigned title)
+     }
+ 
+     return !bdj_process_event(bd->bdjava, BDJ_EVENT_START, title);
++#else
++    return -1;
++#endif
+ }
+ 
+ static int _bdj_event(BLURAY *bd, unsigned ev, unsigned param)
+ {
+     if (bd->bdjava != NULL) {
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
+         return bdj_process_event(bd->bdjava, ev, param);
++#endif
+     }
+     return -1;
+ }
+@@ -1362,7 +1376,9 @@ static int _bdj_event(BLURAY *bd, unsigned ev, unsigned param)
+ static void _stop_bdj(BLURAY *bd)
+ {
+     if (bd->bdjava != NULL) {
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
+         bdj_process_event(bd->bdjava, BDJ_EVENT_STOP, 0);
++#endif
+         _queue_event(bd, BD_EVENT_STILL, 0);
+         _queue_event(bd, BD_EVENT_KEY_INTEREST_TABLE, 0);
+     }
+@@ -1371,7 +1387,9 @@ static void _stop_bdj(BLURAY *bd)
+ static void _close_bdj(BLURAY *bd)
+ {
+     if (bd->bdjava != NULL) {
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
+         bdj_close(bd->bdjava);
++#endif
+         bd->bdjava = NULL;
+     }
+ }
+@@ -1517,8 +1535,9 @@ void bd_close(BLURAY *bd)
+ 
+     event_queue_destroy(&bd->event_queue);
+     array_free((void**)&bd->titles);
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
+     bdj_storage_cleanup(&bd->bdjstorage);
+-
++#endif
+     disc_close(&bd->disc);
+ 
+     bd_mutex_destroy(&bd->mutex);
+@@ -3825,10 +3844,16 @@ void bd_free_mobj(struct mobj_objects *obj)
+ 
+ struct bdjo_data *bd_read_bdjo(const char *bdjo_file)
+ {
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
+     return bdjo_parse(bdjo_file);
++#else
++    return NULL;
++#endif
+ }
+ 
+ void bd_free_bdjo(struct bdjo_data *obj)
+ {
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
+     bdjo_free(&obj);
++#endif
+ }
+diff --git a/src/libbluray/disc/aacs.c b/src/libbluray/disc/aacs.c
+index 5896a35..a83fb87 100644
+--- a/src/libbluray/disc/aacs.c
++++ b/src/libbluray/disc/aacs.c
+@@ -32,6 +32,9 @@
+ #include <stdlib.h>
+ #include <string.h>
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++#define getenv(x) NULL
++#endif
+ 
+ struct bd_aacs {
+     void           *h_libaacs;   /* library handle from dlopen */
+diff --git a/src/libbluray/disc/bdplus.c b/src/libbluray/disc/bdplus.c
+index a4866b8..ace7657 100644
+--- a/src/libbluray/disc/bdplus.c
++++ b/src/libbluray/disc/bdplus.c
+@@ -32,6 +32,9 @@
+ #include <stdlib.h>
+ #include <string.h>
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++#define getenv(x) NULL
++#endif
+ 
+ struct bd_bdplus {
+     void           *h_libbdplus; /* library handle from dlopen */
+diff --git a/src/util/logging.c b/src/util/logging.c
+index 6480872..f2ec5f0 100644
+--- a/src/util/logging.c
++++ b/src/util/logging.c
+@@ -31,6 +31,10 @@
+ #include <stdarg.h>
+ #include <string.h>
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++#define getenv(x) NULL
++#endif
++
+ uint32_t            debug_mask = (uint32_t)-1; /* set all bits to make sure bd_debug() is called for initialization */
+ static BD_LOG_FUNC  log_func   = NULL;
+ 
+diff --git a/src/util/time.c b/src/util/time.c
+index e0480c5..2990fc8 100644
+--- a/src/util/time.c
++++ b/src/util/time.c
+@@ -41,11 +41,16 @@ static uint64_t _bd_get_scr_impl(void)
+     DWORD_PTR mask;
+     LARGE_INTEGER frequency, counter;
+ 
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
++    // SetThreadAffinityMask is available on UWP since SDK 10.0.16299
+     thread = GetCurrentThread();
+     mask = SetThreadAffinityMask(thread, 1);
++#endif
+     QueryPerformanceFrequency(&frequency);
+     QueryPerformanceCounter(&counter);
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY != WINAPI_FAMILY_APP)
+     SetThreadAffinityMask(thread, mask);
++#endif
+ 
+     return (uint64_t)(counter.QuadPart * 1000.0 / frequency.QuadPart) * 90;
+ }
+diff --git a/src/uwpapi.cpp b/src/uwpapi.cpp
+new file mode 100644
+index 0000000..6161f71
+--- /dev/null
++++ b/src/uwpapi.cpp
+@@ -0,0 +1,43 @@
++
++#include <windows.h>
++
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++using namespace Platform;
++using namespace Windows::ApplicationModel;
++
++extern "C" 
++{
++  size_t uwp_getinstallpath(wchar_t *buffer, size_t cch)
++  {
++    try
++    {
++      String^ path = Package::Current->InstalledLocation->Path;
++      wcscpy_s(buffer, min(cch, path->Length()), path->Data());
++      return path->Length();
++    }
++    catch (Exception^)
++    {
++      return 0;
++    }
++  }
++
++  char *file_get_data_home(void)
++  {
++    auto localFolder = Windows::Storage::ApplicationData::Current->LocalFolder;
++    int len = WideCharToMultiByte(CP_UTF8, 0, localFolder->Path->Data(), -1, NULL, 0, NULL, NULL);
++    char *appdir = (char *)malloc(len);
++    if (appdir) {
++      WideCharToMultiByte(CP_UTF8, 0, localFolder->Path->Data(), -1, appdir, len, NULL, NULL);
++    }
++    return appdir;
++  }
++
++  const char *file_get_config_system(const char *dir)
++  {
++    if (!dir) // first call
++      return file_get_data_home();
++
++    return NULL; // next call
++  }
++}
++#endif
+\ No newline at end of file
+-- 
+2.13.2.windows.1
+
