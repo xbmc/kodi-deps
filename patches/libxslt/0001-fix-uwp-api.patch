@@ -1,0 +1,111 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 35ad08a..8589f8b 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -47,6 +47,9 @@ CHECK_INCLUDE_FILE(fp_class.h HAVE_FP_CLASS_H)
+ if(MSVC)
+   set(CMAKE_DEBUG_POSTFIX "d")
+   set(XSLT_LOCALE_WINAPI ON)
++  if (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
++  endif()
+ endif()
+ 
+ set(libxslt_VERSION 1.1.29)
+diff --git a/libxslt/xsltlocale.c b/libxslt/xsltlocale.c
+index b5fe986..257c256 100644
+--- a/libxslt/xsltlocale.c
++++ b/libxslt/xsltlocale.c
+@@ -439,7 +439,11 @@ xsltLocaleStrcmp(xsltLocale locale, const xsltLocaleChar *str1, const xsltLocale
+     if (str1 == str2) return(0);
+     if (str1 == NULL) return(-1);
+     if (str2 == NULL) return(1);
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++    ret = (CompareStringEx(LOCALE_NAME_INVARIANT, LINGUISTIC_IGNORECASE, str1, -1, str2,  -1, NULL, NULL, 0) == CSTR_EQUAL);
++#else
+     ret = CompareStringW(locale, 0, str1, -1, str2, -1);
++#endif
+     if (ret == 0) {
+         xsltTransformError(NULL, NULL, NULL, "xsltLocaleStrcmp : CompareStringW fail\n");
+         return(0);
+@@ -452,6 +456,70 @@ xsltLocaleStrcmp(xsltLocale locale, const xsltLocaleChar *str1, const xsltLocale
+ }
+ 
+ #ifdef XSLT_LOCALE_WINAPI
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY == WINAPI_FAMILY_APP)
++BOOL CALLBACK
++xsltIterateSupportedLocales(LPWSTR pStr, DWORD dwFlags, LPARAM lparam) {
++    static int count = 0;
++    wchar_t iso639lang[XSLTMAX_ISO639LANGLEN + 1];
++    wchar_t iso3136ctry[XSLTMAX_ISO3166CNTRYLEN + 1];
++    wchar_t wresult[XSLTMAX_LANGTAGLEN + 1];
++    BOOL success = FALSE;
++    int size;
++
++    size = GetLocaleInfoEx(pStr, LOCALE_SISO639LANGNAME, iso639lang, XSLTMAX_ISO639LANGLEN + 1);
++    if (size > 0)
++    {
++        xsltRFC1766Info *p = xsltLocaleList + count;
++        p->lcid = LocaleNameToLCID(pStr, NULL);
++        size = GetLocaleInfoEx(pStr, LOCALE_SISO3166CTRYNAME, iso3136ctry, XSLTMAX_ISO3166CNTRYLEN + 1);
++        if (size > 0)
++        {
++            swprintf(wresult, XSLTMAX_LANGTAGLEN + 1, L"%s-%s", iso639lang, iso3136ctry);
++            auto l = wcslen(wresult) + 1;
++            size = WideCharToMultiByte(CP_UTF8, NULL, wresult, wcslen(wresult) + 1, NULL, 0, NULL, NULL);
++            if (size < XSLTMAX_LANGTAGLEN + 1)
++            {
++                size = WideCharToMultiByte(CP_UTF8, NULL, wresult, wcslen(wresult), (char*)p->tag, XSLTMAX_LANGTAGLEN + 1, NULL, NULL);
++                if (size > 0)
++                {
++                    success = TRUE;
++                }
++            }
++        }
++    }
++
++    if (success)
++    {
++        ++count; // success!
++    }
++end:
++    return((count < xsltLocaleListSize) ? TRUE : FALSE);
++}
++
++BOOL CALLBACK
++xsltCountSupportedLocales(LPWSTR pStr, DWORD dwFlags, LPARAM lparam) {
++    (void)pStr;
++    (void)dwFlags;
++    (void)lparam;
++
++    ++xsltLocaleListSize;
++    return(TRUE);
++}
++
++static void
++xsltEnumSupportedLocales(void) {
++    if (xsltLocaleListSize <= 0) {
++        size_t len;
++
++        EnumSystemLocalesEx(xsltCountSupportedLocales, LOCALE_ALL, NULL, NULL);
++
++        len = xsltLocaleListSize * sizeof(xsltRFC1766Info);
++        xsltLocaleList = (xsltRFC1766Info *)xmlMalloc(len);
++        memset(xsltLocaleList, 0, len);
++        EnumSystemLocalesEx(xsltIterateSupportedLocales, LOCALE_ALL, NULL, NULL);
++    }
++}
++#else
+ /**
+  * xsltCountSupportedLocales:
+  * @lcid: not used
+@@ -521,5 +589,5 @@ xsltEnumSupportedLocales(void) {
+     }
+     xmlRMutexUnlock(xsltLocaleMutex);
+ }
+-
++#endif // WINAPI_FAMILY APP
+ #endif /*def XSLT_LOCALE_WINAPI*/
+-- 
+2.13.2.windows.1
+
