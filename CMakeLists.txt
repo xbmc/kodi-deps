@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 
-project(KodiDependencies LANGUAGES)
+project(KodiDependencies LANGUAGES C)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -11,30 +11,46 @@ if(NOT PREFIX)
 	set(PREFIX "${CMAKE_SOURCE_DIR}/package")
 endif()
 
-set(KODI_PATH project/BuildDependencies)
+include(CheckSymbolExists)
+
+check_symbol_exists(_X86_ "Windows.h" _X86_)
+check_symbol_exists(_AMD64_ "Windows.h" _AMD64_)
+check_symbol_exists(_ARM_ "Windows.h" _ARM_)
+
+if(_X86_)
+   set(ARCH win32)
+elseif(_AMD64_)
+   set(ARCH x64)
+elseif(_ARM_)
+   set(ARCH arm)
+else()
+   message(FATAL_ERROR "Unsupported architecture")
+endif()
+ 
+unset(_X86_)
+unset(_AMD64_)
+unset(_ARM_)
 
 if(CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
 	set(ADDITIONAL_ARGS "-DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME}" "-DCMAKE_SYSTEM_VERSION=${CMAKE_SYSTEM_VERSION}")
+	set(ARCH "win10-${ARCH}")
 endif()
 
 if(FOLDER_PER_PLATFORM)
-	if(CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
-		set(KODI_PATH "${KODI_PATH}/win10-$(Platform)")
-	else()
-		set(KODI_PATH "${KODI_PATH}/$(Platform)")
-	endif()
-endif()
-
-if(FOLDER_PER_TARGET)
-	set(INSTALL_PREFIX "${PREFIX}/$(TargetName)/${KODI_PATH}")
+	set(PACKAGES_DIRECTORY "${PREFIX}/${ARCH}")
 else()
-	set(INSTALL_PREFIX "${PREFIX}/${KODI_PATH}")
+	set(PACKAGES_DIRECTORY "${PREFIX}")
+endif()
+if(FOLDER_PER_TARGET)
+	set(INSTALL_PREFIX "${PACKAGES_DIRECTORY}/$(TargetName)")
+	set_property(DIRECTORY PROPERTY EP_STEP_TARGETS zip)
+else()
+	set(INSTALL_PREFIX "${PACKAGES_DIRECTORY}")
 endif()
 
 message(STATUS "  FOLDER_PER_TARGET: ${FOLDER_PER_TARGET}")
 message(STATUS "FOLDER_PER_PLATFORM: ${FOLDER_PER_PLATFORM}")
 message(STATUS "             PREFIX: ${PREFIX}")
-message(STATUS "          KODI_PATH: ${KODI_PATH}")
 message(STATUS "    ADDITIONAL_ARGS: ${ADDITIONAL_ARGS}")
 message(STATUS "     INSTALL_PREFIX: ${INSTALL_PREFIX}")
 
@@ -47,6 +63,28 @@ endif()
 
 include(ExternalProject)
 
+function(add_dependency_project_package name version)
+	# it's possible to pack dependency only if it was installed in separate folder
+	if(FOLDER_PER_TARGET)
+		set(dep_name "${name}-${version}")
+		if(CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
+			set(dep_name "${dep_name}-win10")
+		endif()
+		set(dep_name "${dep_name}-$(Platform)-$(PlatformToolset)")
+		file(TO_NATIVE_PATH "${PACKAGES_DIRECTORY}/${dep_name}" COPY_DESTINATION)
+
+		ExternalProject_Add_Step(${name} zip
+			COMMENT "Packaging '${name}'"
+			COMMAND ${CMAKE_COMMAND} -E copy_directory "${name}" "${COPY_DESTINATION}"
+			COMMAND ${CMAKE_COMMAND} -E tar "cf" "${PACKAGES_DIRECTORY}/${dep_name}.7z" --format=7zip -- "${COPY_DESTINATION}"
+			COMMAND ${CMAKE_COMMAND} -E remove_directory "${COPY_DESTINATION}" 
+			WORKING_DIRECTORY ${PACKAGES_DIRECTORY}
+			ALWAYS FALSE
+			EXCLUDE_FROM_MAIN TRUE
+		)
+		ExternalProject_Add_StepDependencies(${name} zip ${name})
+	endif()
+endfunction()
 
 # dependencies required by others
 
@@ -74,6 +112,7 @@ ExternalProject_Add(expat
 		-DBUILD_tools:BOOL=OFF
 		-DBUILD_shared:BOOL=OFF
 )
+add_dependency_project_package(expat 2.2.0)
 
 ExternalProject_Add(libiconv
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -84,6 +123,7 @@ ExternalProject_Add(libiconv
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(libiconv 1.15)
 
 ExternalProject_Add(openssl
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -95,6 +135,7 @@ ExternalProject_Add(openssl
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(openssl 1.0.2k)
 
 ExternalProject_Add(zlib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -110,6 +151,7 @@ ExternalProject_Add(zlib
 		-DASM686:BOOL=OFF
 		-DAMD64:BOOL=OFF
 )
+add_dependency_project_package(zlib 1.2.11)
 
 
 # Required dependencies
@@ -123,8 +165,9 @@ ExternalProject_Add(cpluff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/expat/${KODI_PATH}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/expat
 )
+add_dependency_project_package(cpluff 0.1.3)
 
 ExternalProject_Add(crossguid
 	DOWNLOAD_NAME crossguid-fef89a4.tar.gz
@@ -136,18 +179,20 @@ ExternalProject_Add(crossguid
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(crossguid fef89a4)
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
-ExternalProject_Add(easyhook
-	DOWNLOAD_NAME easyhook-2.7.6035.0.tar.gz
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://github.com/EasyHook/EasyHook/archive/v2.7.6035.0.tar.gz
-	URL_HASH SHA256=db5dafbc08ccd181dc8f2e11a7adf63b3e90b6bea974c326ce15fc4ba70d96b4
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
-	CMAKE_ARGS
-		${ADDITIONAL_ARGS}
-		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-)
+	ExternalProject_Add(easyhook
+		DOWNLOAD_NAME easyhook-2.7.6035.0.tar.gz
+		DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+		URL https://github.com/EasyHook/EasyHook/archive/v2.7.6035.0.tar.gz
+		URL_HASH SHA256=db5dafbc08ccd181dc8f2e11a7adf63b3e90b6bea974c326ce15fc4ba70d96b4
+		PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+		CMAKE_ARGS
+			${ADDITIONAL_ARGS}
+			-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+	)
+	add_dependency_project_package(easyhook 2.7.6035.0)
 endif()
 
 ExternalProject_Add(fmt
@@ -160,6 +205,7 @@ ExternalProject_Add(fmt
 		-DFMT_DOC:BOOL=OFF
 		-DFMT_TEST:BOOL=OFF
 )
+add_dependency_project_package(fmt 3.0.1)
 
 ExternalProject_Add(freetype
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -170,6 +216,7 @@ ExternalProject_Add(freetype
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(freetype 2.8)
 
 ExternalProject_Add(libcdio
 	DEPENDS libiconv
@@ -180,8 +227,9 @@ ExternalProject_Add(libcdio
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/libiconv/${KODI_PATH}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/libiconv
 )
+add_dependency_project_package(libcdio 0.94)
 
 ExternalProject_Add(libfribidi
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -192,6 +240,7 @@ ExternalProject_Add(libfribidi
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(libfribidi 0.19.7)
 
 ExternalProject_Add(libyajl
 	DOWNLOAD_NAME yajl-2.1.0.tar.gz
@@ -216,6 +265,7 @@ ExternalProject_Add(lzo2
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(lzo2 2.09)
 
 ExternalProject_Add(pcre
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -236,6 +286,7 @@ ExternalProject_Add(pcre
 		-DPCRE_SUPPORT_UNICODE_PROPERTIES:BOOL=ON
 		-DPCRE_SUPPORT_UTF:BOOL=ON
 )
+add_dependency_project_package(pcre 8.40)
 
 ExternalProject_Add(sqlite
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -247,6 +298,7 @@ ExternalProject_Add(sqlite
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(sqlite 3170000)
 
 ExternalProject_Add(taglib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -257,6 +309,7 @@ ExternalProject_Add(taglib
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(taglib 1.11.1)
 
 ExternalProject_Add(tinyxml
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -267,6 +320,7 @@ ExternalProject_Add(tinyxml
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(tinyxml 2.6.2)
 
 add_custom_target(DependenciesRequired
 	DEPENDS
@@ -309,9 +363,10 @@ ExternalProject_Add(libass
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/freetype/${KODI_PATH}%3B%3B${PREFIX}/libfribidi/${KODI_PATH}%3B%3B${PREFIX}/libiconv/${KODI_PATH}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}/%3B%3B${PACKAGES_DIRECTORY}/freetype%3B%3B${PACKAGES_DIRECTORY}/libfribidi/%3B%3B${PACKAGES_DIRECTORY}/libiconv
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(libass 0.13.6)
 
 ExternalProject_Add(curl
 	DEPENDS openssl zlib
@@ -322,7 +377,7 @@ ExternalProject_Add(curl
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/openssl/${KODI_PATH}%3B%3B${PREFIX}/zlib/${KODI_PATH}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/openssl%3B%3B${PACKAGES_DIRECTORY}/zlib%3B%3B${PACKAGES_DIRECTORY}/libssh2
 		-DBUILD_CURL_EXE:BOOL=OFF
 		-DBUILD_CURL_TESTS:BOOL=OFF
 		-DBUILD_TESTING:BOOL=OFF
@@ -330,6 +385,7 @@ ExternalProject_Add(curl
 		-DCMAKE_USE_OPENSSL:BOOL=ON
 		-DENABLE_MANUAL:BOOL=OFF
 )
+add_dependency_project_package(curl 7.52.1)
 
 add_custom_target(DependenciesDllRequired
 	DEPENDS
@@ -337,49 +393,53 @@ add_custom_target(DependenciesDllRequired
 		libass
 )
 
-
-ExternalProject_Add(dnssd
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://opensource.apple.com/tarballs/mDNSResponder/mDNSResponder-765.50.9.tar.gz
-	URL_HASH SHA256=de61dd0034357aa50c60806726fb1f70fa8e953ff9cb62eccfb73efad10dba0a
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
-	CMAKE_ARGS
-		${ADDITIONAL_ARGS}
-		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DBUILD_SHARED_LIBS:BOOL=ON
-)
-
 ExternalProject_Add(lcms2
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://sourceforge.net/projects/lcms/files/lcms/2.8/lcms2-2.8.tar.gz
 	URL_HASH SHA256=66d02b229d2ea9474e62c2b6cd6720fde946155cd1d0d2bffdab829790a0fb22
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff COMMAND
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(lcms2 2.8)
 
-ExternalProject_Add(platform
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://github.com/Pulse-Eight/platform/archive/platform-2.1.0.tar.gz
-	URL_HASH SHA256=ae730b5fe34c50df57db44e6925f462061e1a5b6619a20041a7aedfdda8243ef
-	CMAKE_ARGS
-		${ADDITIONAL_ARGS}
-		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-)
+if (NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+	ExternalProject_Add(dnssd
+		DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+		URL https://opensource.apple.com/tarballs/mDNSResponder/mDNSResponder-765.50.9.tar.gz
+		URL_HASH SHA256=de61dd0034357aa50c60806726fb1f70fa8e953ff9cb62eccfb73efad10dba0a
+		PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+		CMAKE_ARGS
+			${ADDITIONAL_ARGS}
+			-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+			-DBUILD_SHARED_LIBS:BOOL=ON
+	)
+	add_dependency_project_package(dnssd 765.50.9)
 
-ExternalProject_Add(libcec
-	DEPENDS platform
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://github.com/Pulse-Eight/libcec/archive/libcec-4.0.2.tar.gz
-	URL_HASH SHA256=b8b8dd31f3ebdd5472f03ab7d401600ea0d959b1288b9ca24bf457ef60e2ba27
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
-	CMAKE_ARGS
-		${ADDITIONAL_ARGS}
-		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/platform/${KODI_PATH}
-)
+	ExternalProject_Add(platform
+		DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+		URL https://github.com/Pulse-Eight/platform/archive/platform-2.1.0.tar.gz
+		URL_HASH SHA256=ae730b5fe34c50df57db44e6925f462061e1a5b6619a20041a7aedfdda8243ef
+		CMAKE_ARGS
+			${ADDITIONAL_ARGS}
+			-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+	)
+
+	ExternalProject_Add(libcec
+		DEPENDS platform
+		DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+		URL https://github.com/Pulse-Eight/libcec/archive/libcec-4.0.2.tar.gz
+		URL_HASH SHA256=b8b8dd31f3ebdd5472f03ab7d401600ea0d959b1288b9ca24bf457ef60e2ba27
+		PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+		CMAKE_ARGS
+			${ADDITIONAL_ARGS}
+			-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+			-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/platform
+	)
+	add_dependency_project_package(libcec 4.0.2)
+endif()
 
 ExternalProject_Add(libgpg-error
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -400,7 +460,7 @@ ExternalProject_Add(libgcrypt
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/libgpg-error/${KODI_PATH}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/libgpg-error
 )
 
 ExternalProject_Add(winflexbison
@@ -423,8 +483,9 @@ ExternalProject_Add(libaacs
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/libgcrypt/${KODI_PATH}%3B%3B${PREFIX}/libgpg-error/${KODI_PATH}%3B%3B${PREFIX}/winflexbison/${KODI_PATH}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/libgcrypt%3B%3B${PACKAGES_DIRECTORY}/libgpg-error%3B%3B${PACKAGES_DIRECTORY}/winflexbison
 )
+add_dependency_project_package(libaacs 0.9.0)
 
 ExternalProject_Add(libbdplus
 	DOWNLOAD_NAME libbdplus-45c76dd.tar.gz
@@ -436,8 +497,9 @@ ExternalProject_Add(libbdplus
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/libgcrypt/${KODI_PATH}%3B%3B${PREFIX}/libgpg-error/${KODI_PATH}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/libgcrypt%3B%3B${PACKAGES_DIRECTORY}/libgpg-error
 )
+add_dependency_project_package(libbdplus 45c76dd)
 
 ExternalProject_Add(libmicrohttpd
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -448,6 +510,7 @@ ExternalProject_Add(libmicrohttpd
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(libmicrohttpd 0.9.55)
 
 ExternalProject_Add(libnfs
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -459,32 +522,35 @@ ExternalProject_Add(libnfs
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(libnfs 1.11.0)
 
 ExternalProject_Add(libxml2
 	DEPENDS libiconv
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL ftp://xmlsoft.org/libxml2/libxml2-2.9.4.tar.gz
 	URL_HASH SHA256=ffb911191e509b966deb55de705387f14156e1a56b21824357cdf0053233633c
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff COMMAND
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/libiconv/${KODI_PATH}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/libiconv
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(libxml2 2.9.4)
 
 ExternalProject_Add(libxslt
 	DEPENDS libiconv
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL ftp://xmlsoft.org/libxml2/libxslt-1.1.29.tar.gz
 	URL_HASH SHA256=b5976e3857837e7617b29f2249ebb5eeac34e249208d31f1fbf7a6ba7a4090ce
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff COMMAND
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/libiconv/${KODI_PATH}%3B%3B${PREFIX}/libxml2/${KODI_PATH}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/libiconv%3B%3B${PACKAGES_DIRECTORY}/libxml2
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(libxslt 1.1.29)
 
 ExternalProject_Add(libplist
 	DEPENDS libiconv libxml2
@@ -495,9 +561,10 @@ ExternalProject_Add(libplist
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/libiconv/${KODI_PATH}%3B%3B${PREFIX}/libxml2/${KODI_PATH}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/libiconv%3B%3B${PACKAGES_DIRECTORY}/libxml2
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(libplist 1.12)
 
 ExternalProject_Add(libwebp
 	DOWNLOAD_NAME libwebp-0.6.0.tar.gz
@@ -510,19 +577,22 @@ ExternalProject_Add(libwebp
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
 
-ExternalProject_Add(mysql-connector-c
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://dev.mysql.com/get/Downloads/Connector-C/mysql-connector-c-6.1.9-src.tar.gz
-	URL_HASH SHA256=4e808704443365ad5b649673d03eca8fbebc0a4da9f1f96616c6bd1b1901ab2b
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
-	CMAKE_ARGS
-		${ADDITIONAL_ARGS}
-		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/openssl/${KODI_PATH}
-		-DBUILD_SHARED_LIBS:BOOL=ON
-		-DINSTALL_DOC:BOOL=OFF
-		-DWITH_SSL:STRING=yes
-)
+if (NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+	ExternalProject_Add(mysql-connector-c
+		DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+		URL https://dev.mysql.com/get/Downloads/Connector-C/mysql-connector-c-6.1.9-src.tar.gz
+		URL_HASH SHA256=4e808704443365ad5b649673d03eca8fbebc0a4da9f1f96616c6bd1b1901ab2b
+		PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+		CMAKE_ARGS
+			${ADDITIONAL_ARGS}
+			-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+			-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/openssl
+			-DBUILD_SHARED_LIBS:BOOL=ON
+			-DINSTALL_DOC:BOOL=OFF
+			-DWITH_SSL:STRING=yes
+	)
+	add_dependency_project_package(mysql-connector-c 6.1.9)
+endif()
 
 ExternalProject_Add(python
 	DEPENDS bzip2 openssl sqlite zlib
@@ -535,7 +605,7 @@ ExternalProject_Add(python
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/bzip2/${KODI_PATH}%3B%3B${PREFIX}/openssl/${KODI_PATH}%3B%3B${PREFIX}/sqlite/${KODI_PATH}%3B%3B${PREFIX}/zlib/${KODI_PATH}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/bzip2%3B%3B${PACKAGES_DIRECTORY}/openssl%3B%3B${PACKAGES_DIRECTORY}/sqlite%3B%3B${PACKAGES_DIRECTORY}/zlib
 		-DCMAKE_CONFIGURATION_TYPES:STRING=RelWithDebInfo
 		-DBUILD_LIBPYTHON_SHARED:BOOL=ON
 		-DBUILD_TESTING:BOOL=OFF
@@ -544,12 +614,14 @@ ExternalProject_Add(python
 		-DINSTALL_MANUAL:BOOL=OFF
 		-DINSTALL_TEST:BOOL=OFF
 )
+add_dependency_project_package(python 2.7.13)
 
 ExternalProject_Add(libjpeg-turbo
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://sourceforge.net/projects/libjpeg-turbo/files/1.5.2/libjpeg-turbo-1.5.2.tar.gz
 	URL_HASH SHA256=9098943b270388727ae61de82adec73cf9f0dbb240b3bc8b172595ebf405b528
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	PATCH_COMMAND 
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
@@ -568,8 +640,9 @@ ExternalProject_Add(pillow
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/freetype/${KODI_PATH}%3B%3B${PREFIX}/libjpeg-turbo/${KODI_PATH}%3B%3B${PREFIX}/python/${KODI_PATH}%3B%3B${PREFIX}/zlib/${KODI_PATH}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/freetype%3B%3B${PACKAGES_DIRECTORY}/libjpeg-turbo%3B%3B${PACKAGES_DIRECTORY}/python%3B%3B${PACKAGES_DIRECTORY}/zlib
 )
+add_dependency_project_package(pillow 4.2.1)
 
 ExternalProject_Add(pycryptodome
 	DEPENDS python
@@ -581,10 +654,11 @@ ExternalProject_Add(pycryptodome
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/python/${KODI_PATH}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/python
 		-DBUILD_SHARED_LIBS:BOOL=ON
 		-DSEPARATE_NAMESPACE:BOOL=ON
 )
+add_dependency_project_package(pycryptodome 3.4.7)
 
 ExternalProject_Add(shairplay
 	DOWNLOAD_NAME shairplay-ce80e00.tar.gz
@@ -597,6 +671,7 @@ ExternalProject_Add(shairplay
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(shairplay ce80e00)
 
 ExternalProject_Add(libbluray
 	DEPENDS freetype libiconv libxml2
@@ -607,5 +682,46 @@ ExternalProject_Add(libbluray
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}/${KODI_PATH}%3B%3B${PREFIX}/freetype/${KODI_PATH}%3B%3B${PREFIX}/libiconv/${KODI_PATH}%3B%3B${PREFIX}/libxml2/${KODI_PATH}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/freetype%3B%3B${PACKAGES_DIRECTORY}/libiconv%3B%3B${PACKAGES_DIRECTORY}/libxml2
 )
+add_dependency_project_package(libbluray 1.0.1)
+
+if(FOLDER_PER_TARGET)
+	add_custom_target(DependenciesPackages
+		DEPENDS
+			cpluff-zip
+			crossguid-zip
+			curl-zip
+			dnssd-zip
+			easyhook-zip
+			expat-zip
+			fmt-zip
+			freetype-zip
+			lcms2-zip
+			libaacs-zip
+			libass-zip
+			libbdplus-zip
+			libbluray-zip
+			libcdio-zip
+			libcec-zip
+			libfribidi-zip
+			libiconv-zip
+			libmicrohttpd-zip
+			libnfs-zip
+			libplist-zip
+			libssh2-zip
+			libxml2-zip
+			libxslt-zip
+			lzo2-zip
+			mysql-connector-c-zip
+			openssl-zip
+			pcre-zip
+			pillow-zip
+			pycryptodome-zip
+#			python-zip
+			shairplay-zip
+			sqlite-zip
+			taglib-zip
+			tinyxml-zip
+			zlib-zip)
+endif()
