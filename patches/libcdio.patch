@@ -1,0 +1,5303 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+new file mode 100644
+index 0000000..af9d0e9
+--- /dev/null
++++ b/CMakeLists.txt
+@@ -0,0 +1,175 @@
++cmake_minimum_required(VERSION 3.2)
++
++project(libcdio VERSION 0.9.4 LANGUAGES C)
++
++if(WIN32)
++  set(CMAKE_DEBUG_POSTFIX "d")
++endif()
++
++set(LIBCDIO_VERSION_NUM 94)
++configure_file(
++  include/cdio/version.h.in
++  ${CMAKE_CURRENT_BINARY_DIR}/cdio/version.h
++  @ONLY
++)
++if(MSVC)
++  SET(HAVE_WIN32_CDROM 1)
++  if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
++    SET(HAVE_WIN32_CDROM 0)
++  endif()
++  configure_file(
++    ${CMAKE_CURRENT_SOURCE_DIR}/MSVC/config.h.in
++    ${CMAKE_CURRENT_SOURCE_DIR}/MSVC/config.h
++    @ONLY
++  )
++endif(MSVC)
++
++add_library(libcdio
++  ${CMAKE_CURRENT_BINARY_DIR}/cdio/version.h
++  lib/driver/cdtext.c
++  lib/driver/cdtext_private.h
++  lib/driver/device.c
++  lib/driver/disc.c
++  lib/driver/ds.c
++  lib/driver/filemode.h
++  lib/driver/generic.h
++  lib/driver/image.h
++  lib/driver/image_common.c
++  lib/driver/image_common.h
++  lib/driver/logging.c
++  lib/driver/memory.c
++  lib/driver/portable.h
++  lib/driver/read.c
++  lib/driver/realpath.c
++  lib/driver/sector.c
++  lib/driver/track.c
++  lib/driver/utf8.c
++  lib/driver/util.c
++  lib/driver/_cdio_generic.c
++  lib/driver/_cdio_stdio.c
++  lib/driver/_cdio_stdio.h
++  lib/driver/_cdio_stream.c
++  lib/driver/_cdio_stream.h
++  lib/driver/abs_path.c
++  lib/driver/audio.c
++  lib/driver/cd_types.c
++  lib/driver/cdio.c
++  lib/driver/cdio_assert.h
++  lib/driver/cdio_private.h
++  lib/driver/image/bincue.c
++  lib/driver/image/cdrdao.c
++  lib/driver/image/nrg.h
++  lib/driver/image/nrg.c
++  lib/driver/MSWindows/win32.h
++  lib/driver/MSWindows/win32.c
++  lib/driver/MSWindows/win32_ioctl.c
++  lib/driver/mmc/mmc.c
++  lib/driver/mmc/mmc_cmd_helper.h
++  lib/driver/mmc/mmc_hl_cmds.c
++  lib/driver/mmc/mmc_ll_cmds.c
++  lib/driver/mmc/mmc_private.h
++  lib/driver/mmc/mmc_util.c
++  lib/iso9660/iso9660.c
++  lib/iso9660/iso9660_fs.c
++  lib/iso9660/iso9660_private.h
++  lib/iso9660/rock.c
++  lib/iso9660/xa.c
++  lib/udf/filemode.c
++  lib/udf/udf.c
++  lib/udf/udf_file.c
++  lib/udf/udf_fs.c
++  lib/udf/udf_fs.h
++  lib/udf/udf_private.h
++  lib/udf/udf_time.c
++  include/cdio/posix.h
++  include/cdio/read.h
++  include/cdio/rock.h
++  include/cdio/sector.h
++  include/cdio/track.h
++  include/cdio/types.h
++  include/cdio/udf.h
++  include/cdio/udf_file.h
++  include/cdio/udf_time.h
++  include/cdio/utf8.h
++  include/cdio/util.h
++  include/cdio/xa.h
++  include/cdio/audio.h
++  include/cdio/bytesex.h
++  include/cdio/bytesex_asm.h
++  include/cdio/cd_types.h
++  include/cdio/cdio.h
++  include/cdio/cdtext.h
++  include/cdio/device.h
++  include/cdio/disc.h
++  include/cdio/ds.h
++  include/cdio/dvd.h
++  include/cdio/ecma_167.h
++  include/cdio/iso9660.h
++  include/cdio/logging.h
++  include/cdio/memory.h
++)
++
++target_include_directories(
++  libcdio PRIVATE
++  $<BUILD_INTERFACE:include;lib;lib/udf;lib/iso9660;lib/driver>
++  $<BUILD_INTERFACE:lib/driver/mmc;lib/driver/image;lib/driver/MSWindows>
++  $<BUILD_INTERFACE:MSVC;${CMAKE_CURRENT_BINARY_DIR}>
++  INTERFACE
++  $<INSTALL_INTERFACE:include/cdio>
++)
++
++if(NOT MSVC)
++  find_package(iconv REQUIRED)
++  target_link_libraries(libcdio PRIVATE winmm.lib iconv::iconv)
++endif()
++
++target_compile_definitions(libcdio
++  PRIVATE
++  BUILDING_CDIO
++  HAVE_CONFIG_H
++  _CRT_SECURE_NO_WARNINGS
++  _CRT_NONSTDC_NO_DEPRECATE
++)
++
++include(CMakePackageConfigHelpers)
++write_basic_package_version_file(
++  ${CMAKE_CURRENT_BINARY_DIR}/libcdio-config-version.cmake
++  VERSION ${PROJECT_VERSION}
++  COMPATIBILITY AnyNewerVersion
++)
++
++install(TARGETS libcdio EXPORT libcdio
++  RUNTIME DESTINATION bin
++  ARCHIVE DESTINATION lib
++  LIBRARY DESTINATION lib)
++
++
++install(DIRECTORY
++  include/
++  DESTINATION include
++)
++install(FILES
++  ${CMAKE_CURRENT_BINARY_DIR}/cdio/version.h
++  DESTINATION include/cdio)
++
++install(EXPORT libcdio
++  FILE
++    libcdio.cmake
++  NAMESPACE
++    libcdio::
++  DESTINATION
++    lib/cmake/libcdio
++)
++install(
++  FILES
++    ${CMAKE_CURRENT_BINARY_DIR}/libcdio-config-version.cmake
++  DESTINATION
++    lib/cmake/libcdio
++)
++
++if(MSVC AND BUILD_SHARED_LIBS)
++  install(FILES 
++    $<TARGET_PDB_FILE:libcdio>
++    DESTINATION lib
++  )
++endif()
+diff --git a/MSVC/cd-info.vcproj b/MSVC/cd-info.vcproj
+deleted file mode 100644
+index fac814c..0000000
+--- a/MSVC/cd-info.vcproj
++++ /dev/null
+@@ -1,365 +0,0 @@
+-<?xml version="1.0" encoding="Windows-1252"?>
+-<VisualStudioProject
+-	ProjectType="Visual C++"
+-	Version="7.10"
+-	Name="cd-info"
+-	ProjectGUID="{8E55CFDB-5E38-4A07-84F8-36939C825735}"
+-	RootNamespace="cd-info"
+-	Keyword="Win32Proj">
+-	<Platforms>
+-		<Platform
+-			Name="Win32"/>
+-		<Platform
+-			Name="Xbox"/>
+-	</Platforms>
+-	<Configurations>
+-		<Configuration
+-			Name="Debug|Win32"
+-			OutputDirectory="Debug"
+-			IntermediateDirectory="Debug"
+-			ConfigurationType="1"
+-			CharacterSet="2">
+-			<Tool
+-				Name="VCCLCompilerTool"
+-				Optimization="0"
+-				AdditionalIncludeDirectories="include;src;lib;lib\XBOX"
+-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;HAVE_CONFIG_H"
+-				MinimalRebuild="TRUE"
+-				BasicRuntimeChecks="3"
+-				RuntimeLibrary="1"
+-				UsePrecompiledHeader="0"
+-				ObjectFile="$(ProjectName)/$(IntDir)/"
+-				ProgramDataBaseFileName="$(ProjectName)/$(IntDir)/vc70.pdb"
+-				WarningLevel="3"
+-				Detect64BitPortabilityProblems="TRUE"
+-				DebugInformationFormat="4"/>
+-			<Tool
+-				Name="VCCustomBuildTool"/>
+-			<Tool
+-				Name="VCLinkerTool"
+-				AdditionalDependencies="libcdiod.lib winmm.lib"
+-				OutputFile="$(ProjectName)/$(OutDir)/cd-info.exe"
+-				LinkIncremental="2"
+-				AdditionalLibraryDirectories="Debug"
+-				GenerateDebugInformation="TRUE"
+-				ProgramDatabaseFile="$(ProjectName)/$(OutDir)/cd-info.pdb"
+-				SubSystem="1"
+-				TargetMachine="1"/>
+-			<Tool
+-				Name="VCMIDLTool"/>
+-			<Tool
+-				Name="VCPostBuildEventTool"/>
+-			<Tool
+-				Name="VCPreBuildEventTool"/>
+-			<Tool
+-				Name="VCPreLinkEventTool"/>
+-			<Tool
+-				Name="VCResourceCompilerTool"/>
+-			<Tool
+-				Name="VCWebServiceProxyGeneratorTool"/>
+-			<Tool
+-				Name="VCXMLDataGeneratorTool"/>
+-			<Tool
+-				Name="VCWebDeploymentTool"/>
+-			<Tool
+-				Name="VCManagedWrapperGeneratorTool"/>
+-			<Tool
+-				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+-		</Configuration>
+-		<Configuration
+-			Name="Debug|Xbox"
+-			ConfigurationType="1">
+-			<Tool
+-				Name="VCCLCompilerTool"/>
+-			<Tool
+-				Name="VCCustomBuildTool"/>
+-			<Tool
+-				Name="VCLinkerTool"/>
+-			<Tool
+-				Name="VCPostBuildEventTool"/>
+-			<Tool
+-				Name="VCPreBuildEventTool"/>
+-			<Tool
+-				Name="VCPreLinkEventTool"/>
+-			<Tool
+-				Name="XboxDeploymentTool"/>
+-			<Tool
+-				Name="XboxImageTool"/>
+-		</Configuration>
+-		<Configuration
+-			Name="Release|Win32"
+-			OutputDirectory="Release"
+-			IntermediateDirectory="Release"
+-			ConfigurationType="1"
+-			CharacterSet="2">
+-			<Tool
+-				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="include;src;lib;lib\XBOX"
+-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;HAVE_CONFIG_H"
+-				RuntimeLibrary="0"
+-				UsePrecompiledHeader="0"
+-				ObjectFile="$(ProjectName)/$(IntDir)/"
+-				ProgramDataBaseFileName="$(ProjectName)/$(IntDir)/vc70.pdb"
+-				WarningLevel="3"
+-				Detect64BitPortabilityProblems="TRUE"
+-				DebugInformationFormat="3"/>
+-			<Tool
+-				Name="VCCustomBuildTool"/>
+-			<Tool
+-				Name="VCLinkerTool"
+-				AdditionalDependencies="libcdio.lib winmm.lib"
+-				OutputFile="$(ProjectName)/$(OutDir)/cd-info.exe"
+-				LinkIncremental="1"
+-				AdditionalLibraryDirectories="Release"
+-				GenerateDebugInformation="TRUE"
+-				ProgramDatabaseFile="$(ProjectName)/$(OutDir)/$(ProjectName).pdb"
+-				SubSystem="1"
+-				OptimizeReferences="2"
+-				EnableCOMDATFolding="2"
+-				TargetMachine="1"/>
+-			<Tool
+-				Name="VCMIDLTool"/>
+-			<Tool
+-				Name="VCPostBuildEventTool"/>
+-			<Tool
+-				Name="VCPreBuildEventTool"/>
+-			<Tool
+-				Name="VCPreLinkEventTool"/>
+-			<Tool
+-				Name="VCResourceCompilerTool"/>
+-			<Tool
+-				Name="VCWebServiceProxyGeneratorTool"/>
+-			<Tool
+-				Name="VCXMLDataGeneratorTool"/>
+-			<Tool
+-				Name="VCWebDeploymentTool"/>
+-			<Tool
+-				Name="VCManagedWrapperGeneratorTool"/>
+-			<Tool
+-				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+-		</Configuration>
+-		<Configuration
+-			Name="Release|Xbox"
+-			ConfigurationType="1">
+-			<Tool
+-				Name="VCCLCompilerTool"/>
+-			<Tool
+-				Name="VCCustomBuildTool"/>
+-			<Tool
+-				Name="VCLinkerTool"/>
+-			<Tool
+-				Name="VCPostBuildEventTool"/>
+-			<Tool
+-				Name="VCPreBuildEventTool"/>
+-			<Tool
+-				Name="VCPreLinkEventTool"/>
+-			<Tool
+-				Name="XboxDeploymentTool"/>
+-			<Tool
+-				Name="XboxImageTool"/>
+-		</Configuration>
+-		<Configuration
+-			Name="XBOX_Debug|Win32"
+-			OutputDirectory="$(ConfigurationName)"
+-			IntermediateDirectory="$(ConfigurationName)"
+-			ConfigurationType="1"
+-			CharacterSet="2">
+-			<Tool
+-				Name="VCCLCompilerTool"
+-				Optimization="0"
+-				AdditionalIncludeDirectories="include;src;lib;lib\XBOX"
+-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;HAVE_CONFIG_H"
+-				MinimalRebuild="TRUE"
+-				BasicRuntimeChecks="3"
+-				RuntimeLibrary="1"
+-				UsePrecompiledHeader="0"
+-				WarningLevel="3"
+-				Detect64BitPortabilityProblems="TRUE"
+-				DebugInformationFormat="4"/>
+-			<Tool
+-				Name="VCCustomBuildTool"/>
+-			<Tool
+-				Name="VCLinkerTool"
+-				AdditionalDependencies="libcdiod.lib winmm.lib"
+-				OutputFile="$(OutDir)/cd-info.exe"
+-				LinkIncremental="2"
+-				AdditionalLibraryDirectories="Debug"
+-				GenerateDebugInformation="TRUE"
+-				ProgramDatabaseFile="$(OutDir)/cd-info.pdb"
+-				SubSystem="1"
+-				TargetMachine="1"/>
+-			<Tool
+-				Name="VCMIDLTool"/>
+-			<Tool
+-				Name="VCPostBuildEventTool"/>
+-			<Tool
+-				Name="VCPreBuildEventTool"/>
+-			<Tool
+-				Name="VCPreLinkEventTool"/>
+-			<Tool
+-				Name="VCResourceCompilerTool"/>
+-			<Tool
+-				Name="VCWebServiceProxyGeneratorTool"/>
+-			<Tool
+-				Name="VCXMLDataGeneratorTool"/>
+-			<Tool
+-				Name="VCWebDeploymentTool"/>
+-			<Tool
+-				Name="VCManagedWrapperGeneratorTool"/>
+-			<Tool
+-				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+-		</Configuration>
+-		<Configuration
+-			Name="XBOX_Debug|Xbox"
+-			OutputDirectory="$(ProjectName)\$(ConfigurationName)"
+-			IntermediateDirectory="$(ProjectName)\$(ConfigurationName)"
+-			ConfigurationType="1">
+-			<Tool
+-				Name="VCCLCompilerTool"
+-				Optimization="0"
+-				AdditionalIncludeDirectories="include;src;lib;lib\XBOX"
+-				PreprocessorDefinitions="_XBOX;_DEBUG;_CONSOLE;HAVE_CONFIG_H"
+-				BasicRuntimeChecks="3"
+-				RuntimeLibrary="1"
+-				ObjectFile="$(IntDir)/"
+-				ProgramDataBaseFileName="$(IntDir)/vc70.pdb"
+-				DebugInformationFormat="4"/>
+-			<Tool
+-				Name="VCCustomBuildTool"/>
+-			<Tool
+-				Name="VCLinkerTool"
+-				AdditionalDependencies="xapilibd.lib d3d8d.lib xgraphicsd.lib dsoundd.lib dmusic.lib xnetd.lib xboxkrnl.lib libcdiod.lib"
+-				OutputFile="$(OutDir)/$(ProjectName).exe"
+-				AdditionalLibraryDirectories="XBOX_Debug"
+-				IgnoreDefaultLibraryNames=""/>
+-			<Tool
+-				Name="VCPostBuildEventTool"/>
+-			<Tool
+-				Name="VCPreBuildEventTool"/>
+-			<Tool
+-				Name="VCPreLinkEventTool"/>
+-			<Tool
+-				Name="XboxDeploymentTool"/>
+-			<Tool
+-				Name="XboxImageTool"
+-				StackSize="65536"
+-				IncludeDebugInfo="TRUE"
+-				NoLibWarn="TRUE"/>
+-		</Configuration>
+-		<Configuration
+-			Name="XBOX_Release|Win32"
+-			OutputDirectory="$(ConfigurationName)"
+-			IntermediateDirectory="$(ConfigurationName)"
+-			ConfigurationType="1"
+-			CharacterSet="2">
+-			<Tool
+-				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="include;src;lib;lib\XBOX"
+-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;HAVE_CONFIG_H"
+-				RuntimeLibrary="0"
+-				UsePrecompiledHeader="0"
+-				WarningLevel="3"
+-				Detect64BitPortabilityProblems="TRUE"
+-				DebugInformationFormat="3"/>
+-			<Tool
+-				Name="VCCustomBuildTool"/>
+-			<Tool
+-				Name="VCLinkerTool"
+-				AdditionalDependencies="libcdio.lib winmm.lib"
+-				OutputFile="$(OutDir)/cd-info.exe"
+-				LinkIncremental="1"
+-				AdditionalLibraryDirectories="Release"
+-				GenerateDebugInformation="TRUE"
+-				SubSystem="1"
+-				OptimizeReferences="2"
+-				EnableCOMDATFolding="2"
+-				TargetMachine="1"/>
+-			<Tool
+-				Name="VCMIDLTool"/>
+-			<Tool
+-				Name="VCPostBuildEventTool"/>
+-			<Tool
+-				Name="VCPreBuildEventTool"/>
+-			<Tool
+-				Name="VCPreLinkEventTool"/>
+-			<Tool
+-				Name="VCResourceCompilerTool"/>
+-			<Tool
+-				Name="VCWebServiceProxyGeneratorTool"/>
+-			<Tool
+-				Name="VCXMLDataGeneratorTool"/>
+-			<Tool
+-				Name="VCWebDeploymentTool"/>
+-			<Tool
+-				Name="VCManagedWrapperGeneratorTool"/>
+-			<Tool
+-				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+-		</Configuration>
+-		<Configuration
+-			Name="XBOX_Release|Xbox"
+-			OutputDirectory="$(ProjectName)\$(ConfigurationName)"
+-			IntermediateDirectory="$(ProjectName)\$(ConfigurationName)"
+-			ConfigurationType="1">
+-			<Tool
+-				Name="VCCLCompilerTool"
+-				AdditionalIncludeDirectories="include;src;lib;lib\XBOX"
+-				PreprocessorDefinitions="_XBOX;NDEBUG;_CONSOLE;HAVE_CONFIG_H"
+-				BasicRuntimeChecks="0"
+-				RuntimeLibrary="0"/>
+-			<Tool
+-				Name="VCCustomBuildTool"/>
+-			<Tool
+-				Name="VCLinkerTool"
+-				AdditionalDependencies="xapilib.lib d3d8.lib d3dx8.lib xgraphics.lib dsound.lib dmusic.lib xacteng.lib xsndtrk.lib xvoice.lib xonlines.lib xboxkrnl.lib  libcdio.lib "
+-				AdditionalLibraryDirectories="XBOX_Release"/>
+-			<Tool
+-				Name="VCPostBuildEventTool"/>
+-			<Tool
+-				Name="VCPreBuildEventTool"/>
+-			<Tool
+-				Name="VCPreLinkEventTool"/>
+-			<Tool
+-				Name="XboxDeploymentTool"/>
+-			<Tool
+-				Name="XboxImageTool"
+-				StackSize="65536"
+-				NoLibWarn="TRUE"/>
+-		</Configuration>
+-	</Configurations>
+-	<References>
+-	</References>
+-	<Files>
+-		<Filter
+-			Name="Source Files"
+-			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
+-			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
+-			<File
+-				RelativePath=".\src\cd-info.c">
+-			</File>
+-			<File
+-				RelativePath=".\src\findme.c">
+-			</File>
+-			<File
+-				RelativePath=".\src\util.c">
+-			</File>
+-		</Filter>
+-		<Filter
+-			Name="Header Files"
+-			Filter="h;hpp;hxx;hm;inl;inc;xsd"
+-			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
+-			<File
+-				RelativePath=".\src\findme.h">
+-			</File>
+-			<File
+-				RelativePath=".\src\util.h">
+-			</File>
+-		</Filter>
+-		<Filter
+-			Name="Resource Files"
+-			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx"
+-			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}">
+-		</Filter>
+-	</Files>
+-	<Globals>
+-	</Globals>
+-</VisualStudioProject>
+diff --git a/MSVC/config.h.in b/MSVC/config.h.in
+new file mode 100644
+index 0000000..aa67e38
+--- /dev/null
++++ b/MSVC/config.h.in
+@@ -0,0 +1,192 @@
++/* config.h.in.  Generated from configure.ac by autoheader.  */
++
++/* compiler does lsbf in struct bitfields */
++#undef BITFIELD_LSBF
++
++/* Define 1 if you are compiling using cygwin */
++#undef CYGWIN
++
++/* what to put between the brackets for empty arrays */
++#define EMPTY_ARRAY_SIZE
++
++/* Define 1 if you have BSDI-type CD-ROM support */
++#undef HAVE_BSDI_CDROM
++
++/* Define to 1 if you have the `bzero' function. */
++#undef HAVE_BZERO
++
++/* Define this if you have libcddb installed */
++#undef HAVE_CDDB
++
++/* Define to 1 if you have the <CoreFoundation/CFBase.h> header file. */
++#undef HAVE_COREFOUNDATION_CFBASE_H
++
++/* Define 1 if you have Darwin OS X-type CD-ROM support */
++#undef HAVE_DARWIN_CDROM
++
++/* Define if time.h defines extern long timezone and int daylight vars. */
++#undef HAVE_DAYLIGHT
++
++/* Define to 1 if you have the <dlfcn.h> header file. */
++#undef HAVE_DLFCN_H
++
++/* Define to 1 if you have the <dvd.h> header file. */
++#undef HAVE_DVD_H
++
++/* Define to 1 if you have the <errno.h> header file. */
++#define HAVE_ERRNO_H 1
++
++/* Define to 1 if you have the <fcntl.h> header file. */
++#undef HAVE_FCNTL_H
++
++/* Define 1 if you have FreeBSD CD-ROM support */
++#undef HAVE_FREEBSD_CDROM
++
++/* Define to 1 if you have the <glob.h> header file. */
++#undef HAVE_GLOB_H
++
++/* Define if you have the iconv() function. */
++#undef HAVE_ICONV
++
++/* Define to 1 if you have the <inttypes.h> header file. */
++#define HAVE_INTTYPES_H 1
++
++/* Define to 1 if you have the <IOKit/IOKitLib.h> header file. */
++#undef HAVE_IOKIT_IOKITLIB_H
++
++/* Supports ISO _Pragma() macro */
++#undef HAVE_ISOC99_PRAGMA
++
++/* Define 1 if you want ISO-9660 Joliet extension support. You must have also
++   libiconv installed to get Joliet extension support. */
++#undef HAVE_JOLIET
++
++/* Define if you have <langinfo.h> and nl_langinfo(CODESET). */
++#undef HAVE_LANGINFO_CODESET
++
++/* Define to 1 if you have the `nsl' library (-lnsl). */
++#undef HAVE_LIBNSL
++
++/* Define to 1 if you have the `socket' library (-lsocket). */
++#undef HAVE_LIBSOCKET
++
++/* Define 1 if you have Linux-type CD-ROM support */
++#undef HAVE_LINUX_CDROM
++
++/* Define to 1 if you have the <linux/cdrom.h> header file. */
++#undef HAVE_LINUX_CDROM_H
++
++/* Define 1 if timeout is in cdrom_generic_command struct */
++#undef HAVE_LINUX_CDROM_TIMEOUT
++
++/* Define to 1 if you have the <linux/version.h> header file. */
++#undef HAVE_LINUX_VERSION_H
++
++/* Define to 1 if you have the `memcpy' function. */
++#define HAVE_MEMCPY 1
++
++/* Define to 1 if you have the <memory.h> header file. */
++#define HAVE_MEMORY_H 1
++
++/* Define to 1 if you have the `memset' function. */
++#define HAVE_MEMSET 1
++
++/* Define to 1 if you have the `snprintf' function. */
++#define HAVE_SNPRINTF 1
++
++/* Define 1 if you have Solaris CD-ROM support */
++#undef HAVE_SOLARIS_CDROM
++
++/* Define to 1 if you have the <stdbool.h> header file. */
++#define HAVE_STDBOOL_H 1
++
++/* Define to 1 if you have the <stdint.h> header file. */
++#undef HAVE_STDINT_H
++
++/* Define to 1 if you have the <stdio.h> header file. */
++#define HAVE_STDIO_H 1
++
++/* Define to 1 if you have the <stdlib.h> header file. */
++#define HAVE_STDLIB_H 1
++
++/* Define to 1 if you have the <strings.h> header file. */
++#undef HAVE_STRINGS_H
++
++/* Define to 1 if you have the <string.h> header file. */
++#define HAVE_STRING_H 1
++
++/* Define to 1 if you have the <sys/cdio.h> header file. */
++#undef HAVE_SYS_CDIO_H
++
++/* Define to 1 if you have the <sys/stat.h> header file. */
++#define HAVE_SYS_STAT_H 1
++
++/* Define to 1 if you have the <sys/types.h> header file. */
++#define HAVE_SYS_TYPES_H 1
++
++/* Define if struct tm has the tm_gmtoff member. */
++#undef HAVE_TM_GMTOFF
++
++/* Define if time.h defines extern extern char *tzname[2] variable */
++#undef HAVE_TZNAME
++
++/* Define to 1 if you have the `tzset' function. */
++#undef HAVE_TZSET
++
++/* Define to 1 if you have the <unistd.h> header file. */
++#undef HAVE_UNISTD_H
++
++/* Define this if you have libvcdinfo installed */
++#undef HAVE_VCDINFO
++
++/* Define to 1 if you have the `vsnprintf' function. */
++#define HAVE_VSNPRINTF 1
++
++/* Define 1 if you have MinGW CD-ROM support */
++#define HAVE_WIN32_CDROM @HAVE_WIN32_CDROM@
++
++#define HAVE_STDARG_H 1
++
++/* Define as const if the declaration of iconv() needs const. */
++#undef ICONV_CONST 
++
++/* Define 1 if you are compiling using MinGW */
++#undef MINGW32
++
++/* Name of package */
++#define PACKAGE "libcdio"
++
++/* Define to the address where bug reports for this package should be sent. */
++#undef PACKAGE_BUGREPORT
++
++/* Define to the full name of this package. */
++#define PACKAGE_NAME "libcdio"
++
++/* Define to the full name and version of this package. */
++#undef PACKAGE_STRING
++
++/* Define to the one symbol short name of this package. */
++#undef PACKAGE_TARNAME
++
++/* Define to the version of this package. */
++#define PACKAGE_VERSION 1
++
++/* Define to 1 if you have the ANSI C header files. */
++#define STDC_HEADERS 1
++
++/* Version number of package */
++#define VERSION "1"
++
++/* Define to 1 if your processor stores words with the most significant byte
++   first (like Motorola and SPARC, unlike Intel and VAX). */
++#undef WORDS_BIGENDIAN
++
++/* Define to empty if `const' does not conform to ANSI C. */
++#undef const
++
++/* Define to `__inline__' or `__inline' if that's what the C compiler
++   calls it, or to nothing if 'inline' is not supported under any name.  */
++#define inline
++
++#define HAVE_NTDDSCSI_H 1
++#define HAVE_NTDDCDRM_H 1
+diff --git a/MSVC/libcdio.sln b/MSVC/libcdio.sln
+index 81ebb6c..8149c26 100644
+--- a/MSVC/libcdio.sln
++++ b/MSVC/libcdio.sln
+@@ -1,39 +1,27 @@
+-Microsoft Visual Studio Solution File, Format Version 8.00
+-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libcdio", "libcdio.vcproj", "{E465056A-C6F3-45EE-B791-CAF8E0CE629D}"
+-	ProjectSection(ProjectDependencies) = postProject
+-	EndProjectSection
+-EndProject
+-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cd-info", "cd-info.vcproj", "{8E55CFDB-5E38-4A07-84F8-36939C825735}"
+-	ProjectSection(ProjectDependencies) = postProject
+-	EndProjectSection
++Microsoft Visual Studio Solution File, Format Version 12.00
++# Visual Studio 14
++VisualStudioVersion = 14.0.25123.0
++MinimumVisualStudioVersion = 10.0.40219.1
++Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libcdio", "libcdio.vcxproj", "{E465056A-C6F3-45EE-B791-CAF8E0CE629D}"
+ EndProject
+ Global
+-	GlobalSection(SolutionConfiguration) = preSolution
+-		Debug = Debug
+-		Release = Release
+-		XBOX_Debug = XBOX_Debug
+-		XBOX_Release = XBOX_Release
+-	EndGlobalSection
+-	GlobalSection(ProjectConfiguration) = postSolution
+-		{E465056A-C6F3-45EE-B791-CAF8E0CE629D}.Debug.ActiveCfg = Debug|Win32
+-		{E465056A-C6F3-45EE-B791-CAF8E0CE629D}.Debug.Build.0 = Debug|Win32
+-		{E465056A-C6F3-45EE-B791-CAF8E0CE629D}.Release.ActiveCfg = Release|Win32
+-		{E465056A-C6F3-45EE-B791-CAF8E0CE629D}.Release.Build.0 = Release|Win32
+-		{E465056A-C6F3-45EE-B791-CAF8E0CE629D}.XBOX_Debug.ActiveCfg = XBOX_Debug|Xbox
+-		{E465056A-C6F3-45EE-B791-CAF8E0CE629D}.XBOX_Debug.Build.0 = XBOX_Debug|Xbox
+-		{E465056A-C6F3-45EE-B791-CAF8E0CE629D}.XBOX_Release.ActiveCfg = XBOX_Release|Xbox
+-		{E465056A-C6F3-45EE-B791-CAF8E0CE629D}.XBOX_Release.Build.0 = XBOX_Release|Xbox
+-		{8E55CFDB-5E38-4A07-84F8-36939C825735}.Debug.ActiveCfg = Debug|Win32
+-		{8E55CFDB-5E38-4A07-84F8-36939C825735}.Debug.Build.0 = Debug|Win32
+-		{8E55CFDB-5E38-4A07-84F8-36939C825735}.Release.ActiveCfg = Release|Win32
+-		{8E55CFDB-5E38-4A07-84F8-36939C825735}.Release.Build.0 = Release|Win32
+-		{8E55CFDB-5E38-4A07-84F8-36939C825735}.XBOX_Debug.ActiveCfg = XBOX_Debug|Xbox
+-		{8E55CFDB-5E38-4A07-84F8-36939C825735}.XBOX_Debug.Build.0 = XBOX_Debug|Xbox
+-		{8E55CFDB-5E38-4A07-84F8-36939C825735}.XBOX_Release.ActiveCfg = XBOX_Release|Xbox
+-		{8E55CFDB-5E38-4A07-84F8-36939C825735}.XBOX_Release.Build.0 = XBOX_Release|Xbox
++	GlobalSection(SolutionConfigurationPlatforms) = preSolution
++		Debug|x86 = Debug|x86
++		Release|x86 = Release|x86
++		XBOX_Debug|x86 = XBOX_Debug|x86
++		XBOX_Release|x86 = XBOX_Release|x86
+ 	EndGlobalSection
+-	GlobalSection(ExtensibilityGlobals) = postSolution
++	GlobalSection(ProjectConfigurationPlatforms) = postSolution
++		{E465056A-C6F3-45EE-B791-CAF8E0CE629D}.Debug|x86.ActiveCfg = Debug|Win32
++		{E465056A-C6F3-45EE-B791-CAF8E0CE629D}.Debug|x86.Build.0 = Debug|Win32
++		{E465056A-C6F3-45EE-B791-CAF8E0CE629D}.Release|x86.ActiveCfg = Release|Win32
++		{E465056A-C6F3-45EE-B791-CAF8E0CE629D}.Release|x86.Build.0 = Release|Win32
++		{E465056A-C6F3-45EE-B791-CAF8E0CE629D}.XBOX_Debug|x86.ActiveCfg = XBOX_Debug|Win32
++		{E465056A-C6F3-45EE-B791-CAF8E0CE629D}.XBOX_Debug|x86.Build.0 = XBOX_Debug|Win32
++		{E465056A-C6F3-45EE-B791-CAF8E0CE629D}.XBOX_Release|x86.ActiveCfg = XBOX_Release|Win32
++		{E465056A-C6F3-45EE-B791-CAF8E0CE629D}.XBOX_Release|x86.Build.0 = XBOX_Release|Win32
+ 	EndGlobalSection
+-	GlobalSection(ExtensibilityAddIns) = postSolution
++	GlobalSection(SolutionProperties) = preSolution
++		HideSolutionNode = FALSE
+ 	EndGlobalSection
+ EndGlobal
+diff --git a/include/cdio/audio.h b/include/cdio/audio.h
+index 099a123..d65d761 100644
+--- a/include/cdio/audio.h
++++ b/include/cdio/audio.h
+@@ -69,20 +69,20 @@ extern "C" {
+     has the ability to get the volume or not.
+ 
+   */
+-  driver_return_code_t cdio_audio_get_volume (CdIo_t *p_cdio,  /*out*/
++  CDIO_EXTERN driver_return_code_t cdio_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+ 					      cdio_audio_volume_t *p_volume);
+ 
+   /*! 
+     Return the number of seconds (discarding frame portion) of an MSF 
+   */
+-  uint32_t cdio_audio_get_msf_seconds(msf_t *p_msf);
++  CDIO_EXTERN uint32_t cdio_audio_get_msf_seconds(msf_t *p_msf);
+ 
+   /*!
+     Pause playing CD through analog output
+ 
+     @param p_cdio the CD object to be acted upon.
+   */
+-  driver_return_code_t cdio_audio_pause (CdIo_t *p_cdio);
++  CDIO_EXTERN driver_return_code_t cdio_audio_pause (CdIo_t *p_cdio);
+ 
+   /*!
+     Playing CD through analog output at the given MSF.
+@@ -91,7 +91,7 @@ extern "C" {
+     @param p_start_msf pointer to staring MSF
+     @param p_end_msf pointer to ending MSF
+   */
+-  driver_return_code_t cdio_audio_play_msf (CdIo_t *p_cdio, 
++  CDIO_EXTERN driver_return_code_t cdio_audio_play_msf (CdIo_t *p_cdio, 
+ 					    /*in*/msf_t *p_start_msf,
+ 					    /*in*/ msf_t *p_end_msf);
+ 
+@@ -101,7 +101,7 @@ extern "C" {
+     @param p_cdio the CD object to be acted upon.
+     @param p_track_index location to start/end.
+   */
+-  driver_return_code_t cdio_audio_play_track_index 
++  CDIO_EXTERN driver_return_code_t cdio_audio_play_track_index 
+   ( CdIo_t *p_cdio,  cdio_track_index_t *p_track_index);
+ 
+   /*!
+@@ -110,7 +110,7 @@ extern "C" {
+     @param p_cdio the CD object to be acted upon.
+     @param p_subchannel place for returned subchannel information
+   */
+-  driver_return_code_t cdio_audio_read_subchannel (CdIo_t *p_cdio, 
++  CDIO_EXTERN driver_return_code_t cdio_audio_read_subchannel (CdIo_t *p_cdio, 
+ 						   /*out*/ cdio_subchannel_t *p_subchannel);
+ 
+   /*!
+@@ -119,7 +119,7 @@ extern "C" {
+     @param p_cdio the CD object to be acted upon.
+ 
+   */
+-  driver_return_code_t cdio_audio_resume (CdIo_t *p_cdio);
++  CDIO_EXTERN driver_return_code_t cdio_audio_resume (CdIo_t *p_cdio);
+ 
+   /*!
+     Set volume of an audio CD.
+@@ -128,7 +128,7 @@ extern "C" {
+     @param p_volume place for returned volume-level information
+ 
+   */
+-  driver_return_code_t cdio_audio_set_volume (CdIo_t *p_cdio, /*out*/
++  CDIO_EXTERN driver_return_code_t cdio_audio_set_volume (CdIo_t *p_cdio, /*out*/
+ 					      cdio_audio_volume_t *p_volume);
+ 
+   /*!
+@@ -137,7 +137,7 @@ extern "C" {
+     @param p_cdio the CD object to be acted upon.
+ 
+   */
+-  driver_return_code_t cdio_audio_stop (CdIo_t *p_cdio);
++  CDIO_EXTERN driver_return_code_t cdio_audio_stop (CdIo_t *p_cdio);
+ 
+ #ifdef __cplusplus
+ }
+diff --git a/include/cdio/cd_types.h b/include/cdio/cd_types.h
+index 7a2ee4e..371afc1 100644
+--- a/include/cdio/cd_types.h
++++ b/include/cdio/cd_types.h
+@@ -146,7 +146,7 @@ typedef struct
+  *  have at track track_num. Return information about the CD image
+  *  is returned in iso_analysis and the return value.
+  */
+-cdio_fs_anal_t cdio_guess_cd_type(const CdIo_t *cdio, int start_session, 
++CDIO_EXTERN cdio_fs_anal_t cdio_guess_cd_type(const CdIo_t *cdio, int start_session, 
+                                   track_t track_num, 
+                                   /*out*/ cdio_iso_analysis_t *iso_analysis);
+ 
+diff --git a/include/cdio/cdio.h b/include/cdio/cdio.h
+index 572cf4a..761a352 100644
+--- a/include/cdio/cdio.h
++++ b/include/cdio/cdio.h
+@@ -32,6 +32,25 @@
+  */
+ #define CDIO_API_VERSION 6
+ 
++#if defined(WIN32)
++#  include <malloc.h>
++#  include <string.h>
++#endif
++
++#ifdef CDIO_STATICLIB
++#  define CDIO_EXTERN
++#elif defined(WIN32)
++#  if defined(BUILDING_CDIO)
++#    define CDIO_EXTERN  __declspec(dllexport)
++#  else
++#    define CDIO_EXTERN  __declspec(dllimport)
++#  endif
++#elif defined(BUILDING_CDIO) && defined(CDIO_HIDDEN_SYMBOLS)
++#  define CDIO_EXTERN CDIO_EXTERN_SYMBOL
++#else
++#  define CDIO_EXTERN
++#endif
++
+ #include <cdio/version.h>
+ #include <cdio/types.h>
+ #include <cdio/sector.h>
+diff --git a/include/cdio/cdtext.h b/include/cdio/cdtext.h
+index 32eb911..243133e 100644
+--- a/include/cdio/cdtext.h
++++ b/include/cdio/cdtext.h
+@@ -27,6 +27,7 @@
+ #ifndef CDIO_CDTEXT_H_
+ #define CDIO_CDTEXT_H_
+ 
++#include "cdio.h"
+ #include <cdio/types.h>
+ 
+ #ifdef __cplusplus
+@@ -203,17 +204,17 @@ typedef struct cdtext_s cdtext_t;
+ /*!
+   Return string representation of the given genre code.
+ */
+-const char *cdtext_genre2str (cdtext_genre_t i);
++CDIO_EXTERN const char *cdtext_genre2str (cdtext_genre_t i);
+ 
+ /*!
+   Return string representation of the given language code.
+ */
+-const char *cdtext_lang2str (cdtext_lang_t i);
++CDIO_EXTERN const char *cdtext_lang2str (cdtext_lang_t i);
+ 
+ /*!
+   Return string representation of given field type.
+ */
+-const char *cdtext_field2str (cdtext_field_t i);
++CDIO_EXTERN const char *cdtext_field2str (cdtext_field_t i);
+ 
+ /*! 
+   Initialize a new cdtext structure.
+@@ -221,7 +222,7 @@ const char *cdtext_field2str (cdtext_field_t i);
+   When the structure is no longer needed, release the 
+   resources using cdtext_delete.
+ */
+-cdtext_t *cdtext_init (void);
++CDIO_EXTERN cdtext_t *cdtext_init (void);
+ 
+ /*!
+   Read a binary CD-TEXT and fill a cdtext struct.
+@@ -232,14 +233,14 @@ cdtext_t *cdtext_init (void);
+ 
+   @returns 0 on success, non-zero on failure
+ */       
+-int cdtext_data_init(cdtext_t *p_cdtext, uint8_t *wdata, size_t i_data);
++CDIO_EXTERN int cdtext_data_init(cdtext_t *p_cdtext, uint8_t *wdata, size_t i_data);
+ 
+ /*!
+   Free memory associated with the given cdtext_t object.
+ 
+   @param p_cdtext the CD-TEXT object 
+ */
+-void cdtext_destroy (cdtext_t *p_cdtext);
++CDIO_EXTERN void cdtext_destroy (cdtext_t *p_cdtext);
+ 
+ /*!
+   Returns a copy of the return value of cdtext_get_const or NULL.
+@@ -247,7 +248,7 @@ void cdtext_destroy (cdtext_t *p_cdtext);
+   Must be freed using cdio_free() when done.
+   @see cdtext_get_const
+ */
+-char *cdtext_get (const cdtext_t *p_cdtext, cdtext_field_t key, track_t track);
++CDIO_EXTERN char *cdtext_get (const cdtext_t *p_cdtext, cdtext_field_t key, track_t track);
+ 
+ /*!
+   Returns value of the given field.
+@@ -259,7 +260,7 @@ char *cdtext_get (const cdtext_t *p_cdtext, cdtext_field_t key, track_t track);
+   @param field type of the field to return
+   @param track specifies the track, 0 stands for disc
+ */
+-const char *cdtext_get_const (const cdtext_t *p_cdtext, cdtext_field_t field, 
++CDIO_EXTERN const char *cdtext_get_const (const cdtext_t *p_cdtext, cdtext_field_t field, 
+                               track_t track);
+ 
+ /*!
+@@ -267,14 +268,14 @@ const char *cdtext_get_const (const cdtext_t *p_cdtext, cdtext_field_t field,
+ 
+   @param p_cdtext the CD-TEXT object
+ */
+-cdtext_genre_t cdtext_get_genre (const cdtext_t *p_cdtext);
++CDIO_EXTERN cdtext_genre_t cdtext_get_genre (const cdtext_t *p_cdtext);
+ 
+ /*!
+   Returns the currently active language.
+ 
+   @param p_cdtext the CD-TEXT object
+ */
+-cdtext_lang_t cdtext_get_language (const cdtext_t *p_cdtext);
++CDIO_EXTERN cdtext_lang_t cdtext_get_language (const cdtext_t *p_cdtext);
+ 
+ /*!
+   Returns the first track number.
+@@ -298,7 +299,7 @@ track_t cdtext_get_last_track(const cdtext_t *p_cdtext);
+ 
+   @return true on success, false if language is not available
+ */
+-bool cdtext_select_language(cdtext_t *p_cdtext, cdtext_lang_t language);
++CDIO_EXTERN bool cdtext_select_language(cdtext_t *p_cdtext, cdtext_lang_t language);
+ 
+ /*
+   Returns a list of available languages or NULL.
+@@ -307,7 +308,7 @@ bool cdtext_select_language(cdtext_t *p_cdtext, cdtext_lang_t language);
+ 
+   @param p_cdtext the CD-TEXT object
+ */
+-cdtext_lang_t *cdtext_list_languages (const cdtext_t *p_cdtext);
++CDIO_EXTERN cdtext_lang_t *cdtext_list_languages (const cdtext_t *p_cdtext);
+ 
+ /*! 
+   Sets the given field at the given track to the given value.
+@@ -320,7 +321,7 @@ cdtext_lang_t *cdtext_list_languages (const cdtext_t *p_cdtext);
+   @param track track to work on
+   @param charset charset to convert from
+  */
+-void cdtext_set (cdtext_t *p_cdtext, cdtext_field_t key, const uint8_t *value, track_t track, const char *charset);
++CDIO_EXTERN void cdtext_set (cdtext_t *p_cdtext, cdtext_field_t key, const uint8_t *value, track_t track, const char *charset);
+ 
+ #ifdef __cplusplus
+ }
+diff --git a/include/cdio/device.h b/include/cdio/device.h
+index 7ba800b..5b13efa 100644
+--- a/include/cdio/device.h
++++ b/include/cdio/device.h
+@@ -145,20 +145,12 @@ extern "C" {
+    * One is not supposed to iterate over the values, but iterate over the
+    * cdio_drivers and cdio_device_drivers arrays.
+    *
+-   * NOTE: IF YOU MODIFY ENUM MAKE SURE INITIALIZATION IN CDIO.C AGREES.
++   * NOTE: IF YOU MODIFY ENUM MAKE SURE INITIALIZATION BETWEEN CDIO.C AGREES.
+    *
+    */
+   typedef enum  {
+     DRIVER_UNKNOWN, /**< Used as input when we don't care what kind
+                          of driver to use. */
+-    DRIVER_AIX,     /**< AIX driver */
+-    DRIVER_BSDI,    /**< BSDI driver */
+-    DRIVER_FREEBSD, /**< FreeBSD driver - includes CAM and ioctl access */
+-    DRIVER_NETBSD,  /**< NetBSD Driver. */
+-    DRIVER_LINUX,   /**< GNU/Linux Driver */
+-    DRIVER_SOLARIS, /**< Sun Solaris Driver */
+-    DRIVER_OS2,     /**< IBM OS/2 Driver */
+-    DRIVER_OSX,     /**< Apple OSX Driver */
+     DRIVER_WIN32,   /**< Microsoft Windows Driver. Includes ASPI and
+                          ioctl access. */
+     DRIVER_CDRDAO,  /**< cdrdao format CD image. This is listed
+@@ -199,8 +191,6 @@ extern "C" {
+      enumeration in driver_id_t. Since we have a bogus (but useful) 0th
+      entry above we don't have to add one.
+   */
+-LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MIN_DRIVER, "please use cdio_drivers") = DRIVER_AIX;
+-LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MIN_DEVICE_DRIVER, "please use cdio_device_drivers") = DRIVER_AIX;
+ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DRIVER, "please use cdio_drivers") = DRIVER_NRG;
+ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use cdio_device_drivers") = DRIVER_WIN32;
+ 
+@@ -253,14 +243,14 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+     it was DRIVER_UNKNOWN or DRIVER_DEVICE; If this is NULL, we won't
+     report back the driver used.
+   */
+-  driver_return_code_t cdio_close_tray (const char *psz_drive,
++  CDIO_EXTERN driver_return_code_t cdio_close_tray (const char *psz_drive,
+                                         /*in/out*/ driver_id_t *p_driver_id);
+ 
+   /**
+     @param drc the return code you want interpreted.
+     @return the string information about drc
+   */
+-  const char *cdio_driver_errmsg(driver_return_code_t drc);
++  CDIO_EXTERN const char *cdio_driver_errmsg(driver_return_code_t drc);
+ 
+   /**
+     Eject media in CD drive if there is a routine to do so.
+@@ -268,7 +258,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+     @param p_cdio the CD object to be acted upon.
+     If the CD is ejected *p_cdio is free'd and p_cdio set to NULL.
+   */
+-  driver_return_code_t cdio_eject_media (CdIo_t **p_cdio);
++  CDIO_EXTERN driver_return_code_t cdio_eject_media (CdIo_t **p_cdio);
+ 
+   /**
+     Eject media in CD drive if there is a routine to do so.
+@@ -276,7 +266,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+     @param psz_drive the name of the device to be acted upon.
+     If NULL is given as the drive, we'll use the default driver device.
+   */
+-  driver_return_code_t cdio_eject_media_drive (const char *psz_drive);
++  CDIO_EXTERN driver_return_code_t cdio_eject_media_drive (const char *psz_drive);
+ 
+   /**
+     Free device list returned by cdio_get_devices or
+@@ -288,7 +278,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+     @see cdio_get_devices, cdio_get_devices_with_cap
+ 
+   */
+-  void cdio_free_device_list (char * device_list[]);
++  CDIO_EXTERN void cdio_free_device_list (char * device_list[]);
+ 
+   /**
+     Get the default CD device.
+@@ -303,7 +293,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+     there is no media in it and it is possible for this routine to return
+     NULL even though there may be a hardware CD-ROM.
+   */
+-  char * cdio_get_default_device (const CdIo_t *p_cdio);
++  CDIO_EXTERN char * cdio_get_default_device (const CdIo_t *p_cdio);
+ 
+   /**
+     Return a string containing the default CD device if none is specified.
+@@ -312,7 +302,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+ 
+     NULL is returned if we couldn't get a default device.
+   */
+-  char * cdio_get_default_device_driver (/*in/out*/ driver_id_t *p_driver_id);
++  CDIO_EXTERN char * cdio_get_default_device_driver (/*in/out*/ driver_id_t *p_driver_id);
+ 
+   /** Return an array of device names. If you want a specific
+     devices for a driver, give that device. If you want hardware
+@@ -325,7 +315,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+     there is no media in it and it is possible for this routine to return
+     NULL even though there may be a hardware CD-ROM.
+   */
+-  char ** cdio_get_devices (driver_id_t driver_id);
++  CDIO_EXTERN char ** cdio_get_devices (driver_id_t driver_id);
+ 
+   /**
+      Get an array of device names in search_devices that have at least
+@@ -363,7 +353,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+      after dereferencing the the value is NULL. This also means nothing
+      was found.
+   */
+-  char ** cdio_get_devices_with_cap (/*in*/ char *ppsz_search_devices[],
++  CDIO_EXTERN char ** cdio_get_devices_with_cap (/*in*/ char *ppsz_search_devices[],
+                                      cdio_fs_anal_t capabilities, bool b_any);
+ 
+   /**
+@@ -372,7 +362,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+      and then *open* it afterwards. Giving the driver back facilitates this,
+      and speeds things up for libcdio as well.
+   */
+-  char ** cdio_get_devices_with_cap_ret (/*in*/ char* ppsz_search_devices[],
++  CDIO_EXTERN char ** cdio_get_devices_with_cap_ret (/*in*/ char* ppsz_search_devices[],
+                                          cdio_fs_anal_t capabilities,
+                                          bool b_any,
+                                          /*out*/ driver_id_t *p_driver_id);
+@@ -385,7 +375,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+      things up for libcdio as well.
+    */
+ 
+-  char ** cdio_get_devices_ret (/*in/out*/ driver_id_t *p_driver_id);
++  CDIO_EXTERN char ** cdio_get_devices_ret (/*in/out*/ driver_id_t *p_driver_id);
+ 
+   /**
+      Get the what kind of device we've got.
+@@ -399,7 +389,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+      there is no media in it. In this situation capabilities will show up as
+      NULL even though there isa hardware CD-ROM.
+   */
+-  void cdio_get_drive_cap (const CdIo_t *p_cdio,
++  CDIO_EXTERN void cdio_get_drive_cap (const CdIo_t *p_cdio,
+                            cdio_drive_read_cap_t  *p_read_cap,
+                            cdio_drive_write_cap_t *p_write_cap,
+                            cdio_drive_misc_cap_t  *p_misc_cap);
+@@ -413,7 +403,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+      there is no media in it. In this situation capabilities will show up as
+      NULL even though there isa hardware CD-ROM.
+   */
+-  void cdio_get_drive_cap_dev (const char *device,
++  CDIO_EXTERN void cdio_get_drive_cap_dev (const char *device,
+                                cdio_drive_read_cap_t  *p_read_cap,
+                                cdio_drive_write_cap_t *p_write_cap,
+                                cdio_drive_misc_cap_t  *p_misc_cap);
+@@ -424,14 +414,14 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+      @return a string with driver name or NULL if CdIo_t is NULL (we
+      haven't initialized a specific device.
+   */
+-  const char * cdio_get_driver_name (const CdIo_t *p_cdio);
++  CDIO_EXTERN const char * cdio_get_driver_name (const CdIo_t *p_cdio);
+ 
+   /**
+      Return a string containing the name of the driver in use from the driver_id.
+      if CdIo is NULL (we haven't initialized a specific device driver),
+      then return NULL.
+   */
+-  const char * cdio_get_driver_name_from_id (driver_id_t driver_id);
++  CDIO_EXTERN const char * cdio_get_driver_name_from_id (driver_id_t driver_id);
+ 
+ 
+   /**
+@@ -441,13 +431,13 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+ 
+      @return the driver id..
+   */
+-  driver_id_t cdio_get_driver_id (const CdIo_t *p_cdio);
++  CDIO_EXTERN driver_id_t cdio_get_driver_id (const CdIo_t *p_cdio);
+ 
+   /**
+     Get the CD-ROM hardware info via a SCSI MMC INQUIRY command.
+     False is returned if we had an error getting the information.
+   */
+-  bool cdio_get_hwinfo ( const CdIo_t *p_cdio,
++  CDIO_EXTERN bool cdio_get_hwinfo ( const CdIo_t *p_cdio,
+                          /*out*/ cdio_hwinfo_t *p_hw_info );
+ 
+ 
+@@ -458,7 +448,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+      @param p_cdio the CD object to be acted upon.
+      @param i_last_session pointer to the session number to be returned.
+   */
+-  driver_return_code_t cdio_get_last_session (CdIo_t *p_cdio,
++  CDIO_EXTERN driver_return_code_t cdio_get_last_session (CdIo_t *p_cdio,
+                                               /*out*/ lsn_t *i_last_session);
+ 
+   /**
+@@ -467,13 +457,13 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+       @return 1 if media has changed since last call, 0 if not. Error
+       return codes are the same as driver_return_code_t
+    */
+-  int cdio_get_media_changed(CdIo_t *p_cdio);
++  CDIO_EXTERN int cdio_get_media_changed(CdIo_t *p_cdio);
+ 
+   /** True if CD-ROM understand ATAPI commands. */
+-  bool_3way_t cdio_have_atapi (CdIo_t *p_cdio);
++  CDIO_EXTERN bool_3way_t cdio_have_atapi (CdIo_t *p_cdio);
+ 
+   /** Like cdio_have_xxx but uses an enumeration instead. */
+-  bool cdio_have_driver (driver_id_t driver_id);
++  CDIO_EXTERN bool cdio_have_driver (driver_id_t driver_id);
+ 
+   /**
+      Free any resources associated with p_cdio. Call this when done
+@@ -481,7 +471,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+ 
+     @param p_cdio the CD object to eliminated.
+    */
+-  void cdio_destroy (CdIo_t *p_cdio);
++  CDIO_EXTERN void cdio_destroy (CdIo_t *p_cdio);
+ 
+   /**
+     Get a string decribing driver_id.
+@@ -489,7 +479,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+     @param driver_id the driver you want the description for
+     @return a string of driver description
+   */
+-  const char *cdio_driver_describe (driver_id_t driver_id);
++  CDIO_EXTERN const char *cdio_driver_describe (driver_id_t driver_id);
+ 
+   /**
+      Sets up to read from place specified by psz_source and
+@@ -501,7 +491,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+      @return the cdio object or NULL on error or no device.  If NULL
+      is given as the source, we'll use the default driver device.
+   */
+-  CdIo_t * cdio_open (const char *psz_source, driver_id_t driver_id);
++  CDIO_EXTERN CdIo_t * cdio_open (const char *psz_source, driver_id_t driver_id);
+ 
+   /**
+      Sets up to read from place specified by psz_source, driver_id and
+@@ -514,7 +504,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+ 
+      @return the cdio object or NULL on error or no device.
+   */
+-  CdIo_t * cdio_open_am (const char *psz_source,
++  CDIO_EXTERN CdIo_t * cdio_open_am (const char *psz_source,
+                          driver_id_t driver_id, const char *psz_access_mode);
+ 
+   /**
+@@ -523,7 +513,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+ 
+      @return the cdio object or NULL on error or no device.
+    */
+-  CdIo_t * cdio_open_bincue (const char *psz_cue_name);
++  CDIO_EXTERN CdIo_t * cdio_open_bincue (const char *psz_cue_name);
+ 
+   /**
+      Set up BIN/CUE CD disk-image for reading. Source is the .bin or
+@@ -531,7 +521,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+ 
+      @return the cdio object or NULL on error or no device..
+    */
+-  CdIo_t * cdio_open_am_bincue (const char *psz_cue_name,
++  CDIO_EXTERN CdIo_t * cdio_open_am_bincue (const char *psz_cue_name,
+                                 const char *psz_access_mode);
+ 
+   /**
+@@ -539,14 +529,14 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+ 
+      @return the cdio object or NULL on error or no device.
+    */
+-  CdIo_t * cdio_open_cdrdao (const char *psz_toc_name);
++  CDIO_EXTERN CdIo_t * cdio_open_cdrdao (const char *psz_toc_name);
+ 
+   /**
+      Set up cdrdao CD disk-image for reading. Source is the .toc file
+ 
+      @return the cdio object or NULL on error or no device..
+   */
+-  CdIo_t * cdio_open_am_cdrdao (const char *psz_toc_name,
++  CDIO_EXTERN CdIo_t * cdio_open_am_cdrdao (const char *psz_toc_name,
+                                 const char *psz_access_mode);
+ 
+   /**
+@@ -555,18 +545,18 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+ 
+      @return the cdio object or NULL on error or no device.
+   */
+-  char * cdio_get_default_device_bincue(void);
++  CDIO_EXTERN char * cdio_get_default_device_bincue(void);
+ 
+-  char **cdio_get_devices_bincue(void);
++  CDIO_EXTERN char **cdio_get_devices_bincue(void);
+ 
+   /**
+      @return string containing the default CUE file that would be
+      used when none is specified. NULL is returned on error or there
+      is no device.
+    */
+-  char * cdio_get_default_device_cdrdao(void);
++  CDIO_EXTERN char * cdio_get_default_device_cdrdao(void);
+ 
+-  char **cdio_get_devices_cdrdao(void);
++  CDIO_EXTERN char **cdio_get_devices_cdrdao(void);
+ 
+   /**
+      Set up CD-ROM for reading. The device_name is
+@@ -575,7 +565,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+      @return the cdio object for subsequent operations.
+      NULL on error or there is no driver for a some sort of hardware CD-ROM.
+   */
+-  CdIo_t * cdio_open_cd (const char *device_name);
++  CDIO_EXTERN CdIo_t * cdio_open_cd (const char *device_name);
+ 
+   /**
+      Set up CD-ROM for reading. The device_name is
+@@ -584,7 +574,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+      @return the cdio object for subsequent operations.
+      NULL on error or there is no driver for a some sort of hardware CD-ROM.
+   */
+-  CdIo_t * cdio_open_am_cd (const char *psz_device,
++  CDIO_EXTERN CdIo_t * cdio_open_am_cd (const char *psz_device,
+                             const char *psz_access_mode);
+ 
+   /**
+@@ -593,7 +583,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+      @return the cdio object for subsequent operations.
+      NULL on error.
+    */
+-  CdIo_t * cdio_open_cue (const char *cue_name);
++  CDIO_EXTERN CdIo_t * cdio_open_cue (const char *cue_name);
+ 
+   /**
+      Set up CD-ROM for reading using the AIX driver. The device_name is
+@@ -853,7 +843,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+      there is no media in it and it is possible for this routine to return
+      NULL even though there may be a hardware CD-ROM.
+    */
+-  CdIo_t * cdio_open_win32 (const char *psz_source);
++  CDIO_EXTERN CdIo_t * cdio_open_win32 (const char *psz_source);
+ 
+   /**
+      Set up CD-ROM for reading using the Microsoft Windows driver. The
+@@ -861,7 +851,7 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+ 
+      NULL is returned on error or there is no Microsof Windows driver.
+    */
+-  CdIo_t * cdio_open_am_win32 (const char *psz_source,
++  CDIO_EXTERN CdIo_t * cdio_open_am_win32 (const char *psz_source,
+                                const char *psz_access_mode);
+ 
+   /**
+@@ -875,9 +865,9 @@ LIBCDIO_DEPRECATED(static const driver_id_t CDIO_MAX_DEVICE_DRIVER, "please use
+ 
+      @see cdio_open_cd, cdio_open
+    */
+-  char * cdio_get_default_device_win32(void);
++  CDIO_EXTERN char * cdio_get_default_device_win32(void);
+ 
+-  char **cdio_get_devices_win32(void);
++  CDIO_EXTERN char **cdio_get_devices_win32(void);
+ 
+   /**
+      Set up CD-ROM for reading using the IBM OS/2 driver. The
+@@ -927,7 +917,7 @@ Return a list of all of the CD-ROM devices that the OS/2 driver
+ 
+      @return true on success; NULL on error or there is no Nero driver.
+    */
+-  CdIo_t * cdio_open_nrg (const char *psz_source);
++  CDIO_EXTERN CdIo_t * cdio_open_nrg (const char *psz_source);
+ 
+   /**
+      Set up CD-ROM for reading using the Nero driver. The device_name
+@@ -935,7 +925,7 @@ Return a list of all of the CD-ROM devices that the OS/2 driver
+ 
+      @return true on success; NULL on error or there is no Nero driver.
+    */
+-  CdIo_t * cdio_open_am_nrg (const char *psz_source,
++  CDIO_EXTERN CdIo_t * cdio_open_am_nrg (const char *psz_source,
+                              const char *psz_access_mode);
+ 
+   /**
+@@ -946,9 +936,9 @@ Return a list of all of the CD-ROM devices that the OS/2 driver
+      @return string containing the default device. NULL on error or
+      there is no CD-ROM device.
+    */
+-  char * cdio_get_default_device_nrg(void);
++  CDIO_EXTERN char * cdio_get_default_device_nrg(void);
+ 
+-  char **cdio_get_devices_nrg(void);
++  CDIO_EXTERN char **cdio_get_devices_nrg(void);
+ 
+   /**
+ 
+@@ -958,7 +948,7 @@ Return a list of all of the CD-ROM devices that the OS/2 driver
+      @return the corresponding CUE file if bin_name is a BIN file or
+      NULL if not a BIN file.
+   */
+-  char *cdio_is_binfile(const char *bin_name);
++  CDIO_EXTERN char *cdio_is_binfile(const char *bin_name);
+ 
+   /**
+      Determine if cue_name is the cue sheet for a CDRWIN CD disk image.
+@@ -966,7 +956,7 @@ Return a list of all of the CD-ROM devices that the OS/2 driver
+      @return corresponding BIN file if cue_name is a CDRWIN cue file or
+      NULL if not a CUE file.
+   */
+-  char *cdio_is_cuefile(const char *cue_name);
++  CDIO_EXTERN char *cdio_is_cuefile(const char *cue_name);
+ 
+   /**
+     Determine if psg_nrg is a Nero CD disc image.
+@@ -975,7 +965,7 @@ Return a list of all of the CD-ROM devices that the OS/2 driver
+     @return true if psz_nrg is a Nero NRG image or false
+     if not a NRG image.
+   */
+-  bool cdio_is_nrg(const char *psz_nrg);
++  CDIO_EXTERN bool cdio_is_nrg(const char *psz_nrg);
+ 
+   /**
+      Determine if psz_toc is a TOC file for a cdrdao CD disc image.
+@@ -984,7 +974,7 @@ Return a list of all of the CD-ROM devices that the OS/2 driver
+      @return true if toc_name is a cdrdao TOC file or false
+      if not a TOC file.
+   */
+-  bool cdio_is_tocfile(const char *psz_toc);
++  CDIO_EXTERN bool cdio_is_tocfile(const char *psz_toc);
+ 
+   /**
+      Determine if psz_source refers to a real hardware CD-ROM.
+@@ -995,12 +985,12 @@ Return a list of all of the CD-ROM devices that the OS/2 driver
+      @return true if psz_source is a device; If false is returned we
+      could have a CD disk image.
+   */
+-  bool cdio_is_device(const char *psz_source, driver_id_t driver_id);
++  CDIO_EXTERN bool cdio_is_device(const char *psz_source, driver_id_t driver_id);
+ 
+   /**
+     Set the blocksize for subsequent reads.
+   */
+-  driver_return_code_t cdio_set_blocksize ( const CdIo_t *p_cdio,
++  CDIO_EXTERN driver_return_code_t cdio_set_blocksize ( const CdIo_t *p_cdio,
+                                             int i_blocksize );
+ 
+   /**
+@@ -1019,7 +1009,7 @@ Return a list of all of the CD-ROM devices that the OS/2 driver
+ 
+       @see mmc_set_speed and mmc_set_drive_speed
+   */
+-  driver_return_code_t cdio_set_speed ( const CdIo_t *p_cdio,
++  CDIO_EXTERN driver_return_code_t cdio_set_speed ( const CdIo_t *p_cdio,
+                                         int i_drive_speed );
+ 
+   /**
+@@ -1030,7 +1020,7 @@ Return a list of all of the CD-ROM devices that the OS/2 driver
+      @return the value associatd with "key" or NULL if p_cdio is NULL
+      or "key" does not exist.
+   */
+-  const char * cdio_get_arg (const CdIo_t *p_cdio,  const char key[]);
++  CDIO_EXTERN const char * cdio_get_arg (const CdIo_t *p_cdio,  const char key[]);
+ 
+   /**
+      Set the arg "key" with "value" in "p_cdio".
+@@ -1039,13 +1029,13 @@ Return a list of all of the CD-ROM devices that the OS/2 driver
+      @param key the key to set
+      @param value the value to assocaiate with key
+   */
+-  driver_return_code_t cdio_set_arg (CdIo_t *p_cdio, const char key[],
++  CDIO_EXTERN driver_return_code_t cdio_set_arg (CdIo_t *p_cdio, const char key[],
+                                      const char value[]);
+ 
+   /**
+     Initialize CD Reading and control routines. Should be called first.
+   */
+-  bool cdio_init(void);
++  CDIO_EXTERN bool cdio_init(void);
+ 
+ #ifdef __cplusplus
+ }
+diff --git a/include/cdio/disc.h b/include/cdio/disc.h
+index ef053fd..6a32635 100644
+--- a/include/cdio/disc.h
++++ b/include/cdio/disc.h
+@@ -55,7 +55,7 @@ extern "C" {
+     CDIO_DISC_MODE_CD_I         /**< CD-i. */
+   } discmode_t;
+ 
+-  extern const char *discmode2str[];
++  const char *discmode2str[];
+ 
+   /**
+     Get binary CD-Text information for a CdIo_t object.
+@@ -65,7 +65,7 @@ extern "C" {
+     NULL if p_cdio is NULL or CD-Text information does not exist. Return
+     value must be freed with cdio_free() when done with it and not NULL.
+   */
+-  uint8_t * cdio_get_cdtext_raw (CdIo_t *p_cdio);
++  CDIO_EXTERN uint8_t * cdio_get_cdtext_raw (CdIo_t *p_cdio);
+ 
+   /** 
+     Get CD-Text information for a CdIo_t object.
+@@ -74,26 +74,26 @@ extern "C" {
+     @return the CD-Text object or NULL if p_cdio is NULL
+     or CD-Text information does not exist.
+   */
+-  cdtext_t *cdio_get_cdtext (CdIo_t *p_cdio);
++  CDIO_EXTERN struct cdtext_s *cdio_get_cdtext (CdIo_t *p_cdio);
+ 
+   /** 
+     Get disc mode - the kind of CD (CD-DA, CD-ROM mode 1, CD-MIXED, etc.
+     that we've got. The notion of "CD" is extended a little to include
+     DVD's.
+   */
+-  discmode_t cdio_get_discmode (CdIo_t *p_cdio);
++  CDIO_EXTERN discmode_t cdio_get_discmode (CdIo_t *p_cdio);
+ 
+   /**
+     Get the lsn of the end of the CD
+ 
+     @return the lsn. On error 0 or CDIO_INVALD_LSN.
+   */
+-  lsn_t cdio_get_disc_last_lsn(const CdIo_t *p_cdio);
++  CDIO_EXTERN lsn_t cdio_get_disc_last_lsn(const CdIo_t *p_cdio);
+   
+   /**
+     Return the Joliet level recognized for p_cdio.
+   */
+-  uint8_t cdio_get_joliet_level(const CdIo_t *p_cdio);
++  CDIO_EXTERN uint8_t cdio_get_joliet_level(const CdIo_t *p_cdio);
+ 
+   /**
+     Get the media catalog number (MCN) from the CD.
+@@ -105,7 +105,7 @@ extern "C" {
+     when done with it.
+ 
+   */
+-  char * cdio_get_mcn (const CdIo_t *p_cdio);
++  CDIO_EXTERN char * cdio_get_mcn (const CdIo_t *p_cdio);
+ 
+   /**
+     Get the number of tracks on the CD.
+@@ -113,17 +113,17 @@ extern "C" {
+     @return the number of tracks, or CDIO_INVALID_TRACK if there is
+     an error.
+   */
+-  track_t cdio_get_num_tracks (const CdIo_t *p_cdio);
++  CDIO_EXTERN track_t cdio_get_num_tracks (const CdIo_t *p_cdio);
+   
+   /**
+     Return true if discmode is some sort of CD.
+   */
+-  bool cdio_is_discmode_cdrom (discmode_t discmode);
++  CDIO_EXTERN bool cdio_is_discmode_cdrom (discmode_t discmode);
+   
+   /**
+     Return true if discmode is some sort of DVD.
+   */
+-  bool cdio_is_discmode_dvd (discmode_t discmode);
++  CDIO_EXTERN bool cdio_is_discmode_dvd (discmode_t discmode);
+   
+   /**
+       cdio_stat_size is deprecated. @see cdio_get_disc_last_lsn  
+diff --git a/include/cdio/ds.h b/include/cdio/ds.h
+index 6662c58..e2c6af7 100644
+--- a/include/cdio/ds.h
++++ b/include/cdio/ds.h
+@@ -30,6 +30,7 @@
+ #define CDIO_DS_H_
+ 
+ #include <cdio/types.h>
++#include "cdio.h"
+ 
+ /** opaque types... */
+ typedef struct _CdioList CdioList_t;
+@@ -50,20 +51,20 @@ extern "C" {
+ #endif /* __cplusplus */
+ 
+ /** methods */
+-CdioList_t *_cdio_list_new (void);
++CDIO_EXTERN CdioList_t *_cdio_list_new (void);
+ 
+-void _cdio_list_free (CdioList_t *p_list, int free_data);
++CDIO_EXTERN void _cdio_list_free (CdioList_t *p_list, int free_data);
+ 
+-unsigned _cdio_list_length (const CdioList_t *list);
++CDIO_EXTERN unsigned _cdio_list_length (const CdioList_t *list);
+ 
+-void _cdio_list_prepend (CdioList_t *p_list, void *p_data);
++CDIO_EXTERN void _cdio_list_prepend (CdioList_t *p_list, void *p_data);
+ 
+-void _cdio_list_append (CdioList_t *p_list, void *p_data);
++CDIO_EXTERN void _cdio_list_append (CdioList_t *p_list, void *p_data);
+ 
+-void _cdio_list_foreach (CdioList_t *p_list, _cdio_list_iterfunc_t func, 
++CDIO_EXTERN void _cdio_list_foreach (CdioList_t *p_list, _cdio_list_iterfunc_t func, 
+                          void *p_user_data);
+ 
+-CdioListNode_t *_cdio_list_find (CdioList_t *p_list, 
++CDIO_EXTERN CdioListNode_t *_cdio_list_find (CdioList_t *p_list, 
+                                  _cdio_list_iterfunc_t cmp_func, 
+                                  void *p_user_data);
+ 
+@@ -72,15 +73,15 @@ CdioListNode_t *_cdio_list_find (CdioList_t *p_list,
+ 
+ /** node operations */
+ 
+-CdioListNode_t *_cdio_list_begin (const CdioList_t *p_list);
++CDIO_EXTERN CdioListNode_t *_cdio_list_begin (const CdioList_t *p_list);
+ 
+-CdioListNode_t *_cdio_list_end (CdioList_t *p_list);
++CDIO_EXTERN CdioListNode_t *_cdio_list_end (CdioList_t *p_list);
+ 
+-CdioListNode_t *_cdio_list_node_next (CdioListNode_t *p_node);
++CDIO_EXTERN CdioListNode_t *_cdio_list_node_next (CdioListNode_t *p_node);
+ 
+-void _cdio_list_node_free (CdioListNode_t *p_node, int i_free_data);
++CDIO_EXTERN void _cdio_list_node_free (CdioListNode_t *p_node, int i_free_data);
+ 
+-void *_cdio_list_node_data (CdioListNode_t *p_node);
++CDIO_EXTERN void *_cdio_list_node_data (CdioListNode_t *p_node);
+ 
+ #ifdef __cplusplus
+ }
+diff --git a/include/cdio/iso9660.h b/include/cdio/iso9660.h
+index 829ab1a..2ea196e 100644
+--- a/include/cdio/iso9660.h
++++ b/include/cdio/iso9660.h
+@@ -566,14 +566,14 @@ typedef struct _iso9660_s iso9660_t;
+     @return true is unconditionally returned. If there was an error
+     false would be returned.
+   */
+-  bool iso9660_close (iso9660_t * p_iso);
++  CDIO_EXTERN bool iso9660_close (iso9660_t * p_iso);
+ 
+ 
+   /*!
+     Open an ISO 9660 image for reading. Maybe in the future we will have
+     a mode. NULL is returned on error.
+   */
+-  iso9660_t *iso9660_open (const char *psz_path /*flags, mode */);
++  CDIO_EXTERN iso9660_t *iso9660_open (const char *psz_path /*flags, mode */);
+ 
+   /*!
+     Open an ISO 9660 image for reading allowing various ISO 9660
+@@ -582,7 +582,7 @@ typedef struct _iso9660_s iso9660_t;
+ 
+     @see iso9660_open_fuzzy
+   */
+-  iso9660_t *iso9660_open_ext (const char *psz_path,
++  CDIO_EXTERN iso9660_t *iso9660_open_ext (const char *psz_path,
+                                iso_extension_mask_t iso_extension_mask);
+ 
+   /*! Open an ISO 9660 image for "fuzzy" reading. This means that we
+@@ -599,7 +599,7 @@ typedef struct _iso9660_s iso9660_t;
+ 
+     @see iso9660_open, @see iso9660_fuzzy_ext
+   */
+-  iso9660_t *iso9660_open_fuzzy (const char *psz_path /*flags, mode */,
++  CDIO_EXTERN iso9660_t *iso9660_open_fuzzy (const char *psz_path /*flags, mode */,
+                                  uint16_t i_fuzz);
+ 
+   /*!
+@@ -611,7 +611,7 @@ typedef struct _iso9660_s iso9660_t;
+ 
+     @see iso9660_open_ext @see iso9660_open_fuzzy
+   */
+-  iso9660_t *iso9660_open_fuzzy_ext (const char *psz_path,
++  CDIO_EXTERN iso9660_t *iso9660_open_fuzzy_ext (const char *psz_path,
+                                      iso_extension_mask_t iso_extension_mask,
+                                      uint16_t i_fuzz
+                                      /*flags, mode */);
+@@ -622,7 +622,7 @@ typedef struct _iso9660_s iso9660_t;
+     not reading an ISO 9660 image but a CD-Image which contains an ISO 9660
+     filesystem.
+   */
+-  bool iso9660_ifs_fuzzy_read_superblock (iso9660_t *p_iso,
++  CDIO_EXTERN bool iso9660_ifs_fuzzy_read_superblock (iso9660_t *p_iso,
+                                           iso_extension_mask_t iso_extension_mask,
+                                           uint16_t i_fuzz);
+ 
+@@ -642,21 +642,21 @@ typedef struct _iso9660_s iso9660_t;
+     @return number of bytes (not blocks) read
+ 
+   */
+-  long int iso9660_iso_seek_read (const iso9660_t *p_iso, /*out*/ void *ptr,
++  CDIO_EXTERN long int iso9660_iso_seek_read (const iso9660_t *p_iso, /*out*/ void *ptr,
+                                   lsn_t start, long int i_size);
+ 
+   /*!
+     Read the Primary Volume Descriptor for a CD.
+     True is returned if read, and false if there was an error.
+   */
+-  bool iso9660_fs_read_pvd ( const CdIo_t *p_cdio,
++  CDIO_EXTERN bool iso9660_fs_read_pvd ( const CdIo_t *p_cdio,
+                              /*out*/ iso9660_pvd_t *p_pvd );
+ 
+   /*!
+     Read the Primary Volume Descriptor for an ISO 9660 image.
+     True is returned if read, and false if there was an error.
+   */
+-  bool iso9660_ifs_read_pvd (const iso9660_t *p_iso,
++  CDIO_EXTERN bool iso9660_ifs_read_pvd (const iso9660_t *p_iso,
+                              /*out*/ iso9660_pvd_t *p_pvd);
+ 
+   /*!
+@@ -664,7 +664,7 @@ typedef struct _iso9660_s iso9660_t;
+     Primary Volume Descriptor (PVD) and perhaps a Supplemental Volume
+     Descriptor if (Joliet) extensions are acceptable.
+   */
+-  bool iso9660_fs_read_superblock (CdIo_t *p_cdio,
++  CDIO_EXTERN bool iso9660_fs_read_superblock (CdIo_t *p_cdio,
+                                    iso_extension_mask_t iso_extension_mask);
+ 
+   /*!
+@@ -672,7 +672,7 @@ typedef struct _iso9660_s iso9660_t;
+     Primary Volume Descriptor (PVD) and perhaps a Supplemental Volume
+     Descriptor if (Joliet) extensions are acceptable.
+   */
+-  bool iso9660_ifs_read_superblock (iso9660_t *p_iso,
++  CDIO_EXTERN bool iso9660_ifs_read_superblock (iso9660_t *p_iso,
+                                     iso_extension_mask_t iso_extension_mask);
+ 
+ 
+@@ -684,7 +684,7 @@ typedef struct _iso9660_s iso9660_t;
+     Set time in format used in ISO 9660 directory index record
+     from a Unix time structure.
+   */
+-  void iso9660_set_dtime (const struct tm *tm,
++  CDIO_EXTERN void iso9660_set_dtime (const struct tm *tm,
+                           /*out*/ iso9660_dtime_t *idr_date);
+ 
+ 
+@@ -693,20 +693,20 @@ typedef struct _iso9660_s iso9660_t;
+     from a Unix time structure. timezone is given as an offset
+     correction in minutes.
+   */
+-  void iso9660_set_dtime_with_timezone (const struct tm *p_tm,
++  CDIO_EXTERN void iso9660_set_dtime_with_timezone (const struct tm *p_tm,
+                                         int timezone,
+                                         /*out*/ iso9660_dtime_t *p_idr_date);
+ 
+   /*!
+     Set "long" time in format used in ISO 9660 primary volume descriptor
+     from a Unix time structure. */
+-  void iso9660_set_ltime (const struct tm *_tm,
++  CDIO_EXTERN void iso9660_set_ltime (const struct tm *_tm,
+                           /*out*/ iso9660_ltime_t *p_pvd_date);
+ 
+   /*!
+     Set "long" time in format used in ISO 9660 primary volume descriptor
+     from a Unix time structure. */
+-  void iso9660_set_ltime_with_timezone (const struct tm *_tm,
++  CDIO_EXTERN void iso9660_set_ltime_with_timezone (const struct tm *_tm,
+                                         int timezone,
+                                         /*out*/ iso9660_ltime_t *p_pvd_date);
+ 
+@@ -718,7 +718,7 @@ typedef struct _iso9660_s iso9660_t;
+     If tm is to reflect the localtime, set "b_localtime" true, otherwise
+     tm will reported in GMT.
+   */
+-  bool iso9660_get_dtime (const iso9660_dtime_t *idr_date, bool b_localtime,
++  CDIO_EXTERN bool iso9660_get_dtime (const iso9660_dtime_t *idr_date, bool b_localtime,
+                           /*out*/ struct tm *tm);
+ 
+ 
+@@ -726,7 +726,7 @@ typedef struct _iso9660_s iso9660_t;
+     Get "long" time in format used in ISO 9660 primary volume descriptor
+     from a Unix time structure.
+   */
+-  bool iso9660_get_ltime (const iso9660_ltime_t *p_ldate,
++  CDIO_EXTERN bool iso9660_get_ltime (const iso9660_ltime_t *p_ldate,
+                           /*out*/ struct tm *p_tm);
+ 
+   /*====================================================
+@@ -737,14 +737,14 @@ typedef struct _iso9660_s iso9660_t;
+     ISO-9600 level 1 directory name. These are the ASCII capital
+     letters A-Z, the digits 0-9 and an underscore.
+   */
+-  bool iso9660_is_dchar (int c);
++  CDIO_EXTERN bool iso9660_is_dchar (int c);
+ 
+   /*!
+     Return true if c is an ACHAR -
+     These are the DCHAR's plus some ASCII symbols including the space
+     symbol.
+   */
+-  bool iso9660_is_achar (int c);
++  CDIO_EXTERN bool iso9660_is_achar (int c);
+ 
+   /*!
+     Convert an ISO-9660 file name which is in the format usually stored
+@@ -757,7 +757,7 @@ typedef struct _iso9660_s iso9660_t;
+     it should be at least the size of psz_oldname.
+     @return length of the translated string is returned.
+   */
+-  int iso9660_name_translate(const char *psz_oldname,
++  CDIO_EXTERN int iso9660_name_translate(const char *psz_oldname,
+                              /*out*/ char *psz_newname);
+ 
+   /*!
+@@ -775,7 +775,7 @@ typedef struct _iso9660_s iso9660_t;
+     @return length of the translated string is returned. It will be no greater
+     than the length of psz_oldname.
+   */
+-  int iso9660_name_translate_ext(const char *psz_oldname, char *psz_newname,
++  CDIO_EXTERN int iso9660_name_translate_ext(const char *psz_oldname, char *psz_newname,
+                                  uint8_t i_joliet_level);
+ 
+   /*!
+@@ -789,7 +789,7 @@ typedef struct _iso9660_s iso9660_t;
+     In addition to getting changed, dst is the return value.
+     Note: this string might not be NULL terminated.
+   */
+-  char *iso9660_strncpy_pad(char dst[], const char src[], size_t len,
++  CDIO_EXTERN char *iso9660_strncpy_pad(char dst[], const char src[], size_t len,
+                             enum strncpy_pad_check _check);
+ 
+   /*=====================================================================
+@@ -806,7 +806,7 @@ typedef struct _iso9660_s iso9660_t;
+ 
+     True is returned if psz_path is valid.
+   */
+-  bool iso9660_dirname_valid_p (const char psz_path[]);
++  CDIO_EXTERN bool iso9660_dirname_valid_p (const char psz_path[]);
+ 
+   /*!
+     Take psz_path and a version number and turn that into a ISO-9660
+@@ -814,7 +814,7 @@ typedef struct _iso9660_s iso9660_t;
+     number. For example, mydir/file.ext -> MYDIR/FILE.EXT;1 for version
+     1. The resulting ISO-9660 pathname is returned.
+   */
+-  char *iso9660_pathname_isofy (const char psz_path[], uint16_t i_version);
++  CDIO_EXTERN char *iso9660_pathname_isofy (const char psz_path[], uint16_t i_version);
+ 
+   /*!
+     Check that psz_path is a valid ISO-9660 pathname.
+@@ -827,31 +827,31 @@ typedef struct _iso9660_s iso9660_t;
+ 
+     True is returned if psz_path is valid.
+   */
+-  bool iso9660_pathname_valid_p (const char psz_path[]);
++  CDIO_EXTERN bool iso9660_pathname_valid_p (const char psz_path[]);
+ 
+ /*=====================================================================
+   directory tree
+ ======================================================================*/
+ 
+-void
++CDIO_EXTERN void
+ iso9660_dir_init_new (void *dir, uint32_t self, uint32_t ssize,
+                       uint32_t parent, uint32_t psize,
+                       const time_t *dir_time);
+ 
+-void
++CDIO_EXTERN void
+ iso9660_dir_init_new_su (void *dir, uint32_t self, uint32_t ssize,
+                          const void *ssu_data, unsigned int ssu_size,
+                          uint32_t parent, uint32_t psize,
+                          const void *psu_data, unsigned int psu_size,
+                          const time_t *dir_time);
+ 
+-void
++CDIO_EXTERN void
+ iso9660_dir_add_entry_su (void *dir, const char filename[], uint32_t extent,
+                           uint32_t size, uint8_t file_flags,
+                           const void *su_data,
+                           unsigned int su_size, const time_t *entry_time);
+ 
+-unsigned int
++CDIO_EXTERN unsigned int
+ iso9660_dir_calc_record_size (unsigned int namelen, unsigned int su_len);
+ 
+ /*!
+@@ -872,7 +872,7 @@ iso9660_stat_t *iso9660_fs_find_lsn(CdIo_t *p_cdio, lsn_t i_lsn);
+    @return stat_t of entry if we found lsn, or NULL otherwise.
+    Caller must free return value using iso9660_stat_free().
+  */
+-iso9660_stat_t *iso9660_fs_find_lsn_with_path(CdIo_t *p_cdio, lsn_t i_lsn,
++CDIO_EXTERN iso9660_stat_t *iso9660_fs_find_lsn_with_path(CdIo_t *p_cdio, lsn_t i_lsn,
+                                               /*out*/ char **ppsz_path);
+ 
+ /*!
+@@ -882,7 +882,7 @@ iso9660_stat_t *iso9660_fs_find_lsn_with_path(CdIo_t *p_cdio, lsn_t i_lsn,
+    @return stat_t of entry if we found lsn, or NULL otherwise.
+    Caller must free return value using iso9660_stat_free().
+  */
+-iso9660_stat_t *iso9660_ifs_find_lsn(iso9660_t *p_iso, lsn_t i_lsn);
++CDIO_EXTERN iso9660_stat_t *iso9660_ifs_find_lsn(iso9660_t *p_iso, lsn_t i_lsn);
+ 
+ 
+ /*!
+@@ -899,14 +899,14 @@ iso9660_stat_t *iso9660_ifs_find_lsn(iso9660_t *p_iso, lsn_t i_lsn);
+    @return stat_t of entry if we found lsn, or NULL otherwise.
+    Caller must free return value using iso9660_stat_free().
+  */
+-iso9660_stat_t *iso9660_ifs_find_lsn_with_path(iso9660_t *p_iso,
++CDIO_EXTERN iso9660_stat_t *iso9660_ifs_find_lsn_with_path(iso9660_t *p_iso,
+                                                lsn_t i_lsn,
+                                                /*out*/ char **ppsz_path);
+ 
+ /*!
+   Free the passed iso9660_stat_t structure.
+  */
+-void iso9660_stat_free(iso9660_stat_t *p_stat);
++CDIO_EXTERN void iso9660_stat_free(iso9660_stat_t *p_stat);
+ 
+ /*!
+   Return file status for psz_path. NULL is returned on error.
+@@ -926,7 +926,7 @@ void iso9660_stat_free(iso9660_stat_t *p_stat);
+   in more stat information. Ideally iso9660_fs_stat should be fixed.
+   Patches anyone?
+  */
+-iso9660_stat_t *iso9660_fs_stat (CdIo_t *p_cdio, const char psz_path[]);
++CDIO_EXTERN iso9660_stat_t *iso9660_fs_stat (CdIo_t *p_cdio, const char psz_path[]);
+ 
+ 
+ /*!
+@@ -936,21 +936,21 @@ iso9660_stat_t *iso9660_fs_stat (CdIo_t *p_cdio, const char psz_path[]);
+ 
+   b_mode2 is historical. It is not used.
+  */
+-iso9660_stat_t *iso9660_fs_stat_translate (CdIo_t *p_cdio,
++CDIO_EXTERN iso9660_stat_t *iso9660_fs_stat_translate (CdIo_t *p_cdio,
+                                            const char psz_path[],
+                                            bool b_mode2);
+ 
+ /*!
+   Return file status for pathname. NULL is returned on error.
+  */
+-iso9660_stat_t *iso9660_ifs_stat (iso9660_t *p_iso, const char psz_path[]);
++CDIO_EXTERN iso9660_stat_t *iso9660_ifs_stat (iso9660_t *p_iso, const char psz_path[]);
+ 
+ 
+ /*!  Return file status for path name psz_path. NULL is returned on
+   error.  pathname version numbers in the ISO 9660 name are dropped,
+   i.e. ;1 is removed and if level 1 ISO-9660 names are lowercased.
+  */
+-iso9660_stat_t *iso9660_ifs_stat_translate (iso9660_t *p_iso,
++CDIO_EXTERN iso9660_stat_t *iso9660_ifs_stat_translate (iso9660_t *p_iso,
+                                             const char psz_path[]);
+ 
+ /*!  Read psz_path (a directory) and return a list of iso9660_stat_t
+@@ -959,34 +959,34 @@ iso9660_stat_t *iso9660_ifs_stat_translate (iso9660_t *p_iso,
+ 
+   b_mode2 is historical. It is not used.
+ */
+-CdioList_t * iso9660_fs_readdir (CdIo_t *p_cdio, const char psz_path[],
++CDIO_EXTERN CdioList_t * iso9660_fs_readdir (CdIo_t *p_cdio, const char psz_path[],
+                                  bool b_mode2);
+ 
+ /*!  Read psz_path (a directory) and return a list of iso9660_stat_t
+   pointers for the files inside that directory. The caller must free
+   the returned result using _cdio_list_free().
+ */
+-CdioList_t * iso9660_ifs_readdir (iso9660_t *p_iso, const char psz_path[]);
++CDIO_EXTERN CdioList_t * iso9660_ifs_readdir (iso9660_t *p_iso, const char psz_path[]);
+ 
+ /*!
+   Return the PVD's application ID.
+   NULL is returned if there is some problem in getting this.
+ */
+-char * iso9660_get_application_id(iso9660_pvd_t *p_pvd);
++CDIO_EXTERN char * iso9660_get_application_id(iso9660_pvd_t *p_pvd);
+ 
+ /*!
+   Get the application ID.  psz_app_id is set to NULL if there
+   is some problem in getting this and false is returned.
+ */
+-bool iso9660_ifs_get_application_id(iso9660_t *p_iso,
++CDIO_EXTERN bool iso9660_ifs_get_application_id(iso9660_t *p_iso,
+                                     /*out*/ cdio_utf8_t **p_psz_app_id);
+ 
+ /*!
+   Return the Joliet level recognized for p_iso.
+ */
+-uint8_t iso9660_ifs_get_joliet_level(iso9660_t *p_iso);
++CDIO_EXTERN uint8_t iso9660_ifs_get_joliet_level(iso9660_t *p_iso);
+ 
+-uint8_t iso9660_get_dir_len(const iso9660_dir_t *p_idr);
++CDIO_EXTERN uint8_t iso9660_get_dir_len(const iso9660_dir_t *p_idr);
+ 
+ #ifdef FIXME
+ uint8_t iso9660_get_dir_size(const iso9660_dir_t *p_idr);
+@@ -1000,57 +1000,57 @@ lsn_t iso9660_get_dir_extent(const iso9660_dir_t *p_idr);
+     A string is allocated: the caller must deallocate. This routine
+     can return NULL if memory allocation fails.
+   */
+-  char * iso9660_dir_to_name (const iso9660_dir_t *p_iso9660_dir);
++  CDIO_EXTERN char * iso9660_dir_to_name (const iso9660_dir_t *p_iso9660_dir);
+ 
+   /*!
+     Returns a POSIX mode for a given p_iso_dirent.
+   */
+-  mode_t iso9660_get_posix_filemode(const iso9660_stat_t *p_iso_dirent);
++  CDIO_EXTERN mode_t iso9660_get_posix_filemode(const iso9660_stat_t *p_iso_dirent);
+ 
+   /*!
+     Return a string containing the preparer id with trailing
+     blanks removed.
+   */
+-  char *iso9660_get_preparer_id(const iso9660_pvd_t *p_pvd);
++  CDIO_EXTERN char *iso9660_get_preparer_id(const iso9660_pvd_t *p_pvd);
+ 
+   /*!
+     Get the preparer ID.  psz_preparer_id is set to NULL if there
+     is some problem in getting this and false is returned.
+   */
+-  bool iso9660_ifs_get_preparer_id(iso9660_t *p_iso,
++  CDIO_EXTERN bool iso9660_ifs_get_preparer_id(iso9660_t *p_iso,
+                                    /*out*/ cdio_utf8_t **p_psz_preparer_id);
+ 
+   /*!
+     Return a string containing the PVD's publisher id with trailing
+     blanks removed.
+   */
+-  char *iso9660_get_publisher_id(const iso9660_pvd_t *p_pvd);
++  CDIO_EXTERN char *iso9660_get_publisher_id(const iso9660_pvd_t *p_pvd);
+ 
+   /*!
+     Get the publisher ID.  psz_publisher_id is set to NULL if there
+     is some problem in getting this and false is returned.
+   */
+-  bool iso9660_ifs_get_publisher_id(iso9660_t *p_iso,
++  CDIO_EXTERN bool iso9660_ifs_get_publisher_id(iso9660_t *p_iso,
+                                     /*out*/ cdio_utf8_t **p_psz_publisher_id);
+ 
+-  uint8_t iso9660_get_pvd_type(const iso9660_pvd_t *p_pvd);
++  CDIO_EXTERN uint8_t iso9660_get_pvd_type(const iso9660_pvd_t *p_pvd);
+ 
+-  const char * iso9660_get_pvd_id(const iso9660_pvd_t *p_pvd);
++  CDIO_EXTERN const char * iso9660_get_pvd_id(const iso9660_pvd_t *p_pvd);
+ 
+-  int iso9660_get_pvd_space_size(const iso9660_pvd_t *p_pvd);
++  CDIO_EXTERN int iso9660_get_pvd_space_size(const iso9660_pvd_t *p_pvd);
+ 
+-  int iso9660_get_pvd_block_size(const iso9660_pvd_t *p_pvd) ;
++  CDIO_EXTERN int iso9660_get_pvd_block_size(const iso9660_pvd_t *p_pvd) ;
+ 
+   /*! Return the primary volume id version number (of pvd).
+     If there is an error 0 is returned.
+   */
+-  int iso9660_get_pvd_version(const iso9660_pvd_t *pvd) ;
++  CDIO_EXTERN int iso9660_get_pvd_version(const iso9660_pvd_t *pvd) ;
+ 
+   /*!
+     Return a string containing the PVD's system id with trailing
+     blanks removed.
+   */
+-  char *iso9660_get_system_id(const iso9660_pvd_t *p_pvd);
++CDIO_EXTERN   char *iso9660_get_system_id(const iso9660_pvd_t *p_pvd);
+ 
+   /*!
+     Return "yup" if any file has Rock-Ridge extensions. Warning: this can
+@@ -1066,65 +1066,65 @@ lsn_t iso9660_get_dir_extent(const iso9660_dir_t *p_idr);
+     such as not being able to allocate memory in processing.
+ 
+   */
+-  bool_3way_t iso9660_have_rr(iso9660_t *p_iso, uint64_t u_file_limit);
++  CDIO_EXTERN bool_3way_t iso9660_have_rr(iso9660_t *p_iso, uint64_t u_file_limit);
+ 
+   /*!
+     Get the system ID.  psz_system_id is set to NULL if there
+     is some problem in getting this and false is returned.
+   */
+-  bool iso9660_ifs_get_system_id(iso9660_t *p_iso,
++  CDIO_EXTERN bool iso9660_ifs_get_system_id(iso9660_t *p_iso,
+                                  /*out*/ cdio_utf8_t **p_psz_system_id);
+ 
+ 
+   /*! Return the LSN of the root directory for pvd.
+     If there is an error CDIO_INVALID_LSN is returned.
+   */
+-  lsn_t iso9660_get_root_lsn(const iso9660_pvd_t *p_pvd);
++  CDIO_EXTERN lsn_t iso9660_get_root_lsn(const iso9660_pvd_t *p_pvd);
+ 
+   /*!
+     Get the volume ID in the PVD.  psz_volume_id is set to NULL if there
+     is some problem in getting this and false is returned.
+   */
+-  char *iso9660_get_volume_id(const iso9660_pvd_t *p_pvd);
++  CDIO_EXTERN char *iso9660_get_volume_id(const iso9660_pvd_t *p_pvd);
+ 
+   /*!
+     Get the volume ID in the PVD.  psz_volume_id is set to NULL if there
+     is some problem in getting this and false is returned.
+   */
+-  bool iso9660_ifs_get_volume_id(iso9660_t *p_iso,
++  CDIO_EXTERN bool iso9660_ifs_get_volume_id(iso9660_t *p_iso,
+                                  /*out*/ cdio_utf8_t **p_psz_volume_id);
+ 
+   /*!
+     Return the volumeset ID in the PVD.
+     NULL is returned if there is some problem in getting this.
+   */
+-  char *iso9660_get_volumeset_id(const iso9660_pvd_t *p_pvd);
++  CDIO_EXTERN char *iso9660_get_volumeset_id(const iso9660_pvd_t *p_pvd);
+ 
+   /*!
+     Get the volumeset ID.  psz_systemset_id is set to NULL if there
+     is some problem in getting this and false is returned.
+   */
+-  bool iso9660_ifs_get_volumeset_id(iso9660_t *p_iso,
++  CDIO_EXTERN bool iso9660_ifs_get_volumeset_id(iso9660_t *p_iso,
+                                     /*out*/ cdio_utf8_t **p_psz_volumeset_id);
+ 
+   /* pathtable */
+ 
+   /*! Zero's out pathable. Do this first. */
+-  void iso9660_pathtable_init (void *pt);
++  CDIO_EXTERN void iso9660_pathtable_init (void *pt);
+ 
+-  unsigned int iso9660_pathtable_get_size (const void *pt);
++  CDIO_EXTERN unsigned int iso9660_pathtable_get_size (const void *pt);
+ 
+-  uint16_t iso9660_pathtable_l_add_entry (void *pt, const char name[],
++  CDIO_EXTERN uint16_t iso9660_pathtable_l_add_entry (void *pt, const char name[],
+                                           uint32_t extent, uint16_t parent);
+ 
+-  uint16_t iso9660_pathtable_m_add_entry (void *pt, const char name[],
++  CDIO_EXTERN uint16_t iso9660_pathtable_m_add_entry (void *pt, const char name[],
+                                           uint32_t extent, uint16_t parent);
+ 
+   /**=====================================================================
+      Volume Descriptors
+      ======================================================================*/
+ 
+-  void iso9660_set_pvd (void *pd, const char volume_id[],
++  CDIO_EXTERN void iso9660_set_pvd (void *pd, const char volume_id[],
+                         const char application_id[],
+                         const char publisher_id[], const char preparer_id[],
+                         uint32_t iso_size, const void *root_dir,
+@@ -1132,12 +1132,12 @@ lsn_t iso9660_get_dir_extent(const iso9660_dir_t *p_idr);
+                         uint32_t path_table_m_extent,
+                         uint32_t path_table_size, const time_t *pvd_time);
+ 
+-  void iso9660_set_evd (void *pd);
++  CDIO_EXTERN void iso9660_set_evd (void *pd);
+ 
+   /*!
+     Return true if ISO 9660 image has extended attrributes (XA).
+   */
+-  bool iso9660_ifs_is_xa (const iso9660_t * p_iso);
++  CDIO_EXTERN bool iso9660_ifs_is_xa (const iso9660_t * p_iso);
+ 
+ 
+ #ifndef DO_NOT_WANT_COMPATIBILITY
+diff --git a/include/cdio/logging.h b/include/cdio/logging.h
+index a3f5c52..1853c67 100644
+--- a/include/cdio/logging.h
++++ b/include/cdio/logging.h
+@@ -25,6 +25,7 @@
+ #define CDIO_LOGGING_H_
+ 
+ #include <cdio/types.h>
++#include "cdio.h"
+ 
+ #ifdef __cplusplus
+ extern "C" {
+@@ -47,7 +48,7 @@ typedef enum {
+  * is desired. This is used by the internal default log handler, but
+  * it could be use by applications which provide their own log handler.
+  */
+-extern cdio_log_level_t cdio_loglevel_default;
++CDIO_EXTERN cdio_log_level_t cdio_loglevel_default;
+ 
+ /**
+  * This type defines the signature of a log handler.  For every
+@@ -69,7 +70,7 @@ typedef void (*cdio_log_handler_t) (cdio_log_level_t level,
+  * @param level   The log level.
+  * @param message The log message.
+  */
+-extern void cdio_default_log_handler(cdio_log_level_t level, const char message[]);
++CDIO_EXTERN extern void cdio_default_log_handler(cdio_log_level_t level, const char message[]);
+ 
+ /**
+  * Set a custom log handler for libcdio.  The return value is the log
+@@ -81,7 +82,7 @@ extern void cdio_default_log_handler(cdio_log_level_t level, const char message[
+  * @param new_handler The new log handler.
+  * @return The previous log handler.
+  */
+-cdio_log_handler_t cdio_log_set_handler (cdio_log_handler_t new_handler);
++CDIO_EXTERN cdio_log_handler_t cdio_log_set_handler (cdio_log_handler_t new_handler);
+ 
+ /**
+  * Handle an message with the given log level.
+@@ -95,7 +96,7 @@ cdio_log_handler_t cdio_log_set_handler (cdio_log_handler_t new_handler);
+  * @param format  printf-style format string
+  * @param ...     remaining arguments needed by format string
+  */
+-void cdio_log (cdio_log_level_t level,
++CDIO_EXTERN void cdio_log (cdio_log_level_t level,
+                const char format[], ...) GNUC_PRINTF(2, 3);
+ 
+ /**
+@@ -103,28 +104,28 @@ void cdio_log (cdio_log_level_t level,
+  *
+  * @see cdio_log for a more generic routine
+  */
+-void cdio_debug (const char format[], ...) GNUC_PRINTF(1,2);
++CDIO_EXTERN void cdio_debug (const char format[], ...) GNUC_PRINTF(1,2);
+ 
+ /**
+  * Handle an informative message.
+  *
+  * @see cdio_log for a more generic routine
+  */
+-void cdio_info (const char format[], ...) GNUC_PRINTF(1,2);
++CDIO_EXTERN void cdio_info (const char format[], ...) GNUC_PRINTF(1,2);
+ 
+ /**
+  * Handle a warning message.
+  *
+  * @see cdio_log for a more generic routine
+  */
+-void cdio_warn (const char format[], ...) GNUC_PRINTF(1,2);
++CDIO_EXTERN void cdio_warn (const char format[], ...) GNUC_PRINTF(1,2);
+ 
+ /**
+  * Handle an error message. Execution is terminated.
+  *
+  * @see cdio_log for a more generic routine.
+  */
+-void cdio_error (const char format[], ...) GNUC_PRINTF(1,2);
++CDIO_EXTERN void cdio_error (const char format[], ...) GNUC_PRINTF(1,2);
+ 
+ #ifdef __cplusplus
+ }
+diff --git a/include/cdio/memory.h b/include/cdio/memory.h
+index d7d71a4..d3a6d4f 100644
+--- a/include/cdio/memory.h
++++ b/include/cdio/memory.h
+@@ -28,11 +28,12 @@
+ #ifdef __cplusplus
+ extern "C" {
+ #endif /* __cplusplus */
++#include "cdio.h"
+ 
+-  /*!
+-    Free the passed pointer.
+-  */
+-  void cdio_free(void *p_memory);
++/*!
++  Free the passed pointer.
++*/
++  CDIO_EXTERN void cdio_free(void *p_memory);
+ 
+ #ifdef __cplusplus
+ }
+diff --git a/include/cdio/mmc.h b/include/cdio/mmc.h
+index 34bed9e..4ebbaa7 100644
+--- a/include/cdio/mmc.h
++++ b/include/cdio/mmc.h
+@@ -558,7 +558,7 @@ typedef struct mmc_cdb_s {
+    @param p_volume volume parameters retrieved
+    @return DRIVER_OP_SUCCESS if we ran the command ok.
+ */
+-driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
++CDIO_EXTERN driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+                                            mmc_audio_volume_t *p_volume);
+ 
+   /**
+@@ -567,7 +567,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+      @param p_cdio the CD object to be acted upon.
+      @param p_subchannel place for returned subchannel information
+   */
+-    driver_return_code_t
++    CDIO_EXTERN driver_return_code_t
+     mmc_audio_read_subchannel (CdIo_t *p_cdio,
+                            /*out*/ cdio_subchannel_t *p_subchannel);
+ 
+@@ -581,7 +581,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+     Return a string containing the name of the audio state as returned from
+     the Q_SUBCHANNEL.
+   */
+-  const char *mmc_audio_state2str( uint8_t i_audio_state );
++  CDIO_EXTERN const char *mmc_audio_state2str( uint8_t i_audio_state );
+ 
+   /**
+      Get the block size used in read requests, via MMC (e.g. READ_10,
+@@ -589,14 +589,14 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+      @param p_cdio the CD object to be acted upon.
+      @return the blocksize if > 0; error if <= 0
+   */
+-  int mmc_get_blocksize ( CdIo_t *p_cdio );
++  CDIO_EXTERN int mmc_get_blocksize ( CdIo_t *p_cdio );
+ 
+   /**
+     Return the length in bytes of the Command Descriptor
+     Buffer (CDB) for a given MMC command. The length will be
+     either 6, 10, or 12.
+   */
+-  uint8_t mmc_get_cmd_len(uint8_t mmc_cmd);
++  CDIO_EXTERN uint8_t mmc_get_cmd_len(uint8_t mmc_cmd);
+ 
+   /**
+     Get the lsn of the end of the CD
+@@ -604,7 +604,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+     @param p_cdio the CD object to be acted upon.
+     @return the lsn. On error return CDIO_INVALID_LSN.
+   */
+-  lsn_t mmc_get_disc_last_lsn( const CdIo_t *p_cdio );
++  CDIO_EXTERN lsn_t mmc_get_disc_last_lsn( const CdIo_t *p_cdio );
+ 
+   /**
+     Return the discmode as reported by the MMC Read (FULL) TOC
+@@ -615,7 +615,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+     at http://www.t10.org/ftp/t10/drafts/mmc/mmc-r10a.pdf See
+     especially tables 72, 73 and 75.
+   */
+-  discmode_t mmc_get_discmode( const CdIo_t *p_cdio );
++  CDIO_EXTERN discmode_t mmc_get_discmode( const CdIo_t *p_cdio );
+ 
+ 
+   typedef enum {
+@@ -631,7 +631,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+     @param p_cdio the CD object to be acted upon.
+     @return MMC level supported by the device.
+   */
+-  cdio_mmc_level_t mmc_get_drive_mmc_cap(CdIo_t *p_cdio);
++  CDIO_EXTERN cdio_mmc_level_t mmc_get_drive_mmc_cap(CdIo_t *p_cdio);
+ 
+ 
+   /**
+@@ -641,7 +641,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+     @param s location to store DVD information.
+     @return the DVD discmode.
+   */
+-  discmode_t mmc_get_dvd_struct_physical ( const CdIo_t *p_cdio,
++  CDIO_EXTERN discmode_t mmc_get_dvd_struct_physical ( const CdIo_t *p_cdio,
+                                            cdio_dvd_struct_t *s);
+ 
+   /**
+@@ -650,7 +650,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+     @return 1 if media is open, 0 if closed. Error
+     return codes are the same as driver_return_code_t
+   */
+-  int mmc_get_tray_status ( const CdIo_t *p_cdio );
++  CDIO_EXTERN int mmc_get_tray_status ( const CdIo_t *p_cdio );
+ 
+   /**
+     Get the CD-ROM hardware info via an MMC INQUIRY command.
+@@ -660,7 +660,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+     @return true if we were able to get hardware info, false if we had
+     an error.
+   */
+-  bool mmc_get_hwinfo ( const CdIo_t *p_cdio,
++  CDIO_EXTERN bool mmc_get_hwinfo ( const CdIo_t *p_cdio,
+                         /* out*/ cdio_hwinfo_t *p_hw_info );
+ 
+ 
+@@ -670,7 +670,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+     @return 1 if media has changed since last call, 0 if not. Error
+     return codes are the same as driver_return_code_t
+   */
+-  int mmc_get_media_changed(const CdIo_t *p_cdio);
++  CDIO_EXTERN int mmc_get_media_changed(const CdIo_t *p_cdio);
+ 
+   /**
+     Get the media catalog number (MCN) from the CD via MMC.
+@@ -683,7 +683,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+     when done with it.
+ 
+   */
+-  char * mmc_get_mcn(const CdIo_t *p_cdio);
++  CDIO_EXTERN char * mmc_get_mcn(const CdIo_t *p_cdio);
+ 
+   /**
+     Get the international standard recording code (ISRC) of the track via MMC.
+@@ -697,7 +697,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+     when done with it.
+ 
+   */
+-  char * mmc_get_track_isrc(const CdIo_t *p_cdio, track_t i_track);
++  CDIO_EXTERN char * mmc_get_track_isrc(const CdIo_t *p_cdio, track_t i_track);
+ 
+   /**
+     Read cdtext information for a CdIo_t object .
+@@ -718,7 +718,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+     @param e_interface
+     @return true if we have the interface and false if not.
+   */
+-  bool_3way_t mmc_have_interface(CdIo_t *p_cdio,
++  CDIO_EXTERN bool_3way_t mmc_have_interface(CdIo_t *p_cdio,
+                                  cdio_mmc_feature_interface_t e_interface );
+ 
+ 
+@@ -740,7 +740,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+       @param i_blocks number of blocks to read
+ 
+   */
+-  driver_return_code_t mmc_read_data_sectors ( CdIo_t *p_cdio, void *p_buf,
++  CDIO_EXTERN driver_return_code_t mmc_read_data_sectors ( CdIo_t *p_cdio, void *p_buf,
+                                                lsn_t i_lsn,
+                                                uint16_t i_blocksize,
+                                                uint32_t i_blocks );
+@@ -749,7 +749,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+       Read sectors using SCSI-MMC GPCMD_READ_CD.
+       Can read only up to 25 blocks.
+   */
+-  driver_return_code_t mmc_read_sectors ( const CdIo_t *p_cdio, void *p_buf,
++  CDIO_EXTERN driver_return_code_t mmc_read_sectors ( const CdIo_t *p_cdio, void *p_buf,
+                                           lsn_t i_lsn,  int read_sector_type,
+                                           uint32_t i_blocks);
+ 
+@@ -768,7 +768,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+ 
+     @return 0 if command completed successfully.
+   */
+-  driver_return_code_t
++  CDIO_EXTERN driver_return_code_t
+   mmc_run_cmd( const CdIo_t *p_cdio, unsigned int i_timeout_ms,
+                const mmc_cdb_t *p_cdb,
+                cdio_mmc_direction_t e_direction, unsigned int i_buf,
+@@ -793,7 +793,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+ 
+     @return 0 if command completed successfully.
+   */
+-  driver_return_code_t
++  CDIO_EXTERN driver_return_code_t
+   mmc_run_cmd_len( const CdIo_t *p_cdio, unsigned int i_timeout_ms,
+                    const mmc_cdb_t *p_cdb, unsigned int i_cdb,
+                    cdio_mmc_direction_t e_direction, unsigned int i_buf,
+@@ -816,13 +816,13 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+       @return number of valid bytes in sense, 0 in case of no sense
+               bytes available, <0 in case of internal error.
+   */
+-  int mmc_last_cmd_sense ( const CdIo_t *p_cdio,
++  CDIO_EXTERN int mmc_last_cmd_sense ( const CdIo_t *p_cdio,
+                            cdio_mmc_request_sense_t **pp_sense);
+ 
+   /**
+     Set the block size for subsequest read requests, via MMC.
+   */
+-  driver_return_code_t mmc_set_blocksize ( const CdIo_t *p_cdio,
++  CDIO_EXTERN driver_return_code_t mmc_set_blocksize ( const CdIo_t *p_cdio,
+                                            uint16_t i_blocksize);
+ 
+   /**
+@@ -832,7 +832,7 @@ driver_return_code_t mmc_audio_get_volume (CdIo_t *p_cdio,  /*out*/
+     @return string name of command
+ 
+   */
+-  const char *mmc_cmd2str(uint8_t command);
++  CDIO_EXTERN const char *mmc_cmd2str(uint8_t command);
+ 
+ 
+ 
+diff --git a/include/cdio/read.h b/include/cdio/read.h
+index 8073178..a09a81b 100644
+--- a/include/cdio/read.h
++++ b/include/cdio/read.h
+@@ -50,7 +50,7 @@ extern "C" {
+     @return (off_t) -1 on error. 
+   */
+ 
+-  off_t cdio_lseek(const CdIo_t *p_cdio, off_t offset, int whence);
++  CDIO_EXTERN off_t cdio_lseek(const CdIo_t *p_cdio, off_t offset, int whence);
+     
+   /*!  Reads into buf the next size bytes.  Similar to (if not the
+     same as) libc's read(). This is a "cooked" read, or one handled by
+@@ -64,7 +64,7 @@ extern "C" {
+ 
+     @return (ssize_t) -1 on error. 
+   */
+-  ssize_t cdio_read(const CdIo_t *p_cdio, void *p_buf, size_t i_size);
++  CDIO_EXTERN ssize_t cdio_read(const CdIo_t *p_cdio, void *p_buf, size_t i_size);
+     
+   /*!
+     Read an audio sector
+@@ -75,7 +75,7 @@ extern "C" {
+                  bytes.
+     @param i_lsn sector to read
+   */
+-  driver_return_code_t cdio_read_audio_sector (const CdIo_t *p_cdio, 
++  CDIO_EXTERN driver_return_code_t cdio_read_audio_sector (const CdIo_t *p_cdio, 
+                                                void *p_buf, lsn_t i_lsn);
+ 
+   /*!
+@@ -88,7 +88,7 @@ extern "C" {
+     @param i_lsn sector to read
+     @param i_blocks number of sectors to read
+   */
+-  driver_return_code_t cdio_read_audio_sectors (const CdIo_t *p_cdio, 
++  CDIO_EXTERN driver_return_code_t cdio_read_audio_sectors (const CdIo_t *p_cdio, 
+                                                 void *p_buf, lsn_t i_lsn,
+                                                 uint32_t i_blocks);
+ 
+@@ -109,7 +109,7 @@ extern "C" {
+ 
+     @param i_blocks number of blocks to read
+   */
+-  driver_return_code_t cdio_read_data_sectors ( const CdIo_t *p_cdio, 
++  CDIO_EXTERN driver_return_code_t cdio_read_data_sectors ( const CdIo_t *p_cdio, 
+                                                 void *p_buf, lsn_t i_lsn,
+                                                 uint16_t i_blocksize,
+                                                 uint32_t i_blocks );
+@@ -122,7 +122,7 @@ extern "C" {
+     @param b_form2 true for reading mode 1 form 2 sectors or false for 
+     mode 1 form 1 sectors.
+   */
+-  driver_return_code_t cdio_read_mode1_sector (const CdIo_t *p_cdio, 
++  CDIO_EXTERN driver_return_code_t cdio_read_mode1_sector (const CdIo_t *p_cdio, 
+                                                void *p_buf, lsn_t i_lsn, 
+                                                bool b_form2);
+   /*!
+@@ -135,7 +135,7 @@ extern "C" {
+     mode 1 form 1 sectors.
+     @param i_blocks number of sectors to read
+   */
+-  driver_return_code_t cdio_read_mode1_sectors (const CdIo_t *p_cdio, 
++  CDIO_EXTERN driver_return_code_t cdio_read_mode1_sectors (const CdIo_t *p_cdio, 
+                                                 void *p_buf, lsn_t i_lsn, 
+                                                 bool b_form2, 
+                                                 uint32_t i_blocks);
+@@ -153,14 +153,14 @@ extern "C" {
+ 
+     @return 0 if no error, nonzero otherwise.
+   */
+-  driver_return_code_t cdio_read_mode2_sector (const CdIo_t *p_cdio, 
++  CDIO_EXTERN driver_return_code_t cdio_read_mode2_sector (const CdIo_t *p_cdio, 
+                                                void *p_buf, lsn_t i_lsn, 
+                                                bool b_form2);
+   
+   /** The special case of reading a single block is a common one so we
+       provide a routine for that as a convenience.
+   */
+-  driver_return_code_t cdio_read_sector(const CdIo_t *p_cdio, void *p_buf, 
++  CDIO_EXTERN driver_return_code_t cdio_read_sector(const CdIo_t *p_cdio, void *p_buf, 
+                                         lsn_t i_lsn, 
+                                         cdio_read_mode_t read_mode);
+   /*!
+@@ -178,7 +178,7 @@ extern "C" {
+ 
+     @return 0 if no error, nonzero otherwise.
+   */
+-  driver_return_code_t cdio_read_mode2_sectors (const CdIo_t *p_cdio, 
++  CDIO_EXTERN driver_return_code_t cdio_read_mode2_sectors (const CdIo_t *p_cdio, 
+                                                 void *p_buf, lsn_t i_lsn, 
+                                                 bool b_form2, 
+                                                 uint32_t i_blocks);
+@@ -212,7 +212,7 @@ extern "C" {
+     *p_buf should hold at least CDIO_CD_FRAMESIZE * i_blocks bytes.
+     
+   */
+-  driver_return_code_t cdio_read_sectors(const CdIo_t *p_cdio, void *p_buf, 
++  CDIO_EXTERN driver_return_code_t cdio_read_sectors(const CdIo_t *p_cdio, void *p_buf, 
+                                          lsn_t i_lsn, 
+                                          cdio_read_mode_t read_mode,
+                                          uint32_t i_blocks);
+diff --git a/include/cdio/rock.h b/include/cdio/rock.h
+index 8ae6680..f2fa613 100644
+--- a/include/cdio/rock.h
++++ b/include/cdio/rock.h
+@@ -315,15 +315,15 @@ typedef struct iso_rock_statbuf_s {
+ PRAGMA_END_PACKED
+ 
+ /*! return length of name field; 0: not found, -1: to be ignored */
+-int get_rock_ridge_filename(iso9660_dir_t * de, /*out*/ char * retname, 
++CDIO_EXTERN int get_rock_ridge_filename(iso9660_dir_t * de, /*out*/ char * retname, 
+                             /*out*/ iso9660_stat_t *p_stat);
+ 
+-  int parse_rock_ridge_stat(iso9660_dir_t *de, /*out*/ iso9660_stat_t *p_stat);
++  CDIO_EXTERN int parse_rock_ridge_stat(iso9660_dir_t *de, /*out*/ iso9660_stat_t *p_stat);
+ 
+   /*!
+     Returns POSIX mode bitstring for a given file.
+   */
+-  mode_t 
++  CDIO_EXTERN mode_t 
+   iso9660_get_posix_filemode_from_rock(const iso_rock_statbuf_t *rr);
+ 
+ /*!
+@@ -359,7 +359,7 @@ int get_rock_ridge_filename(iso9660_dir_t * de, /*out*/ char * retname,
+   group/user is set "S" indicates this. If none of these properties
+   holds the "-" indicates this.
+ */
+-const char *iso9660_get_rock_attr_str(posix_mode_t st_mode);
++CDIO_EXTERN const char *iso9660_get_rock_attr_str(posix_mode_t st_mode);
+ 
+ /** These variables are not used, but are defined to facilatate debugging
+     by letting us use enumerations values (which also correspond to 
+diff --git a/include/cdio/sector.h b/include/cdio/sector.h
+index c26fbd1..0cc5289 100644
+--- a/include/cdio/sector.h
++++ b/include/cdio/sector.h
+@@ -64,10 +64,11 @@
+ #endif
+ 
+ #include <cdio/types.h>
++#include "cdio.h"
+ 
+-      /*! Information that can be obtained through a Read Subchannel
+-        command.
+-      */
++/*! Information that can be obtained through a Read Subchannel
++  command.
++*/
+       typedef enum cdio_subchannel
+         {
+           CDIO_SUBCHANNEL_SUBQ_DATA             = 0,
+@@ -215,59 +216,59 @@ typedef enum cdio_cd_minutes_sectors
+       /*! 
+         Convert an LBA into a string representation of the MSF.
+         \warning cdio_lba_to_msf_str returns new allocated string */
+-      char *cdio_lba_to_msf_str (lba_t i_lba);
++      CDIO_EXTERN char *cdio_lba_to_msf_str (lba_t i_lba);
+       
+       /*! 
+         Convert an MSF into a string representation of the MSF.
+         \warning cdio_msf_to_msf_str returns new allocated string */
+-      char *cdio_msf_to_str (const msf_t *p_msf);
++      CDIO_EXTERN char *cdio_msf_to_str (const msf_t *p_msf);
+       
+       /*! 
+         Convert an LBA into the corresponding LSN.
+       */
+-      lba_t cdio_lba_to_lsn (lba_t i_lba);
++      CDIO_EXTERN lba_t cdio_lba_to_lsn (lba_t i_lba);
+       
+       /*! 
+         Convert an LBA into the corresponding MSF.
+       */
+-      void  cdio_lba_to_msf(lba_t i_lba, msf_t *p_msf);
++      CDIO_EXTERN void  cdio_lba_to_msf(lba_t i_lba, msf_t *p_msf);
+       
+       /*! 
+         Convert an LSN into the corresponding LBA.
+         CDIO_INVALID_LBA is returned if there is an error.
+       */
+-      lba_t cdio_lsn_to_lba (lsn_t i_lsn);
++      CDIO_EXTERN lba_t cdio_lsn_to_lba (lsn_t i_lsn);
+       
+       /*! 
+         Convert an LSN into the corresponding MSF.
+       */
+-      void  cdio_lsn_to_msf (lsn_t i_lsn, msf_t *p_msf);
++      CDIO_EXTERN void  cdio_lsn_to_msf (lsn_t i_lsn, msf_t *p_msf);
+       
+       /*! 
+         Convert a MSF into the corresponding LBA.
+         CDIO_INVALID_LBA is returned if there is an error.
+       */
+-      lba_t cdio_msf_to_lba (const msf_t *p_msf);
++      CDIO_EXTERN lba_t cdio_msf_to_lba (const msf_t *p_msf);
+       
+       /*! 
+         Convert a MSF into the corresponding LSN.
+         CDIO_INVALID_LSN is returned if there is an error.
+       */
+-      lsn_t cdio_msf_to_lsn (const msf_t *p_msf);
++      CDIO_EXTERN lsn_t cdio_msf_to_lsn (const msf_t *p_msf);
+       
+       /*!  
+         Convert a MSF - broken out as 3 integer components into the
+         corresponding LBA.  
+         CDIO_INVALID_LBA is returned if there is an error.
+       */
+-      lba_t cdio_msf3_to_lba (unsigned int minutes, unsigned int seconds, 
++      CDIO_EXTERN lba_t cdio_msf3_to_lba (unsigned int minutes, unsigned int seconds, 
+                               unsigned int frames);
+       
+       /*! 
+         Convert a string of the form MM:SS:FF into the corresponding LBA.
+         CDIO_INVALID_LBA is returned if there is an error.
+       */
+-      lba_t cdio_mmssff_to_lba (const char *psz_mmssff);
++      CDIO_EXTERN lba_t cdio_mmssff_to_lba (const char *psz_mmssff);
+       
+ #ifdef __cplusplus
+     }
+diff --git a/include/cdio/track.h b/include/cdio/track.h
+index d0ba600..bae1ecf 100644
+--- a/include/cdio/track.h
++++ b/include/cdio/track.h
+@@ -102,13 +102,13 @@ extern "C" {
+     @return the track number or CDIO_INVALID_TRACK
+     on error.
+   */
+-  track_t cdio_get_first_track_num(const CdIo_t *p_cdio);
++  CDIO_EXTERN track_t cdio_get_first_track_num(const CdIo_t *p_cdio);
+ 
+   /*!
+     Return the last track number.
+     CDIO_INVALID_TRACK is returned on error.
+   */
+-  track_t cdio_get_last_track_num (const CdIo_t *p_cdio);
++  CDIO_EXTERN track_t cdio_get_last_track_num (const CdIo_t *p_cdio);
+ 
+ 
+   /*! Find the track which contains lsn.
+@@ -118,24 +118,24 @@ extern "C" {
+     If the lsn is before the pregap of the first track 0 is returned.
+     Otherwise we return the track that spans the lsn.
+   */
+-  track_t cdio_get_track(const CdIo_t *p_cdio, lsn_t lsn);
++  CDIO_EXTERN track_t cdio_get_track(const CdIo_t *p_cdio, lsn_t lsn);
+ 
+   /*! Return number of channels in track: 2 or 4; -2 if not
+       implemented or -1 for error.
+       Not meaningful if track is not an audio track.
+   */
+-  int cdio_get_track_channels(const CdIo_t *p_cdio, track_t i_track);
++  CDIO_EXTERN int cdio_get_track_channels(const CdIo_t *p_cdio, track_t i_track);
+ 
+   /*! Return copy protection status on a track. Is this meaningful
+       if not an audio track?
+    */
+-  track_flag_t cdio_get_track_copy_permit(const CdIo_t *p_cdio,
++  CDIO_EXTERN track_flag_t cdio_get_track_copy_permit(const CdIo_t *p_cdio,
+                                           track_t i_track);
+ 
+   /*!
+     Get the format (audio, mode2, mode1) of track.
+   */
+-  track_format_t cdio_get_track_format(const CdIo_t *p_cdio, track_t i_track);
++  CDIO_EXTERN track_format_t cdio_get_track_format(const CdIo_t *p_cdio, track_t i_track);
+ 
+   /*!
+     Return true if we have XA data (green, mode2 form1) or
+@@ -145,13 +145,13 @@ extern "C" {
+ 
+     FIXME: there's gotta be a better design for this and get_track_format?
+   */
+-  bool cdio_get_track_green(const CdIo_t *p_cdio, track_t i_track);
++  CDIO_EXTERN bool cdio_get_track_green(const CdIo_t *p_cdio, track_t i_track);
+ 
+   /*!
+     Return the ending LSN for track number
+     i_track in cdio.  CDIO_INVALID_LSN is returned on error.
+   */
+-  lsn_t cdio_get_track_last_lsn(const CdIo_t *p_cdio, track_t i_track);
++  CDIO_EXTERN lsn_t cdio_get_track_last_lsn(const CdIo_t *p_cdio, track_t i_track);
+ 
+   /*!
+     Get the starting LBA for track number
+@@ -165,7 +165,7 @@ extern "C" {
+     @param i_track  the track number we want the LSN for
+     @return the starting LBA or CDIO_INVALID_LBA on error.
+   */
+-  lba_t cdio_get_track_lba(const CdIo_t *p_cdio, track_t i_track);
++  CDIO_EXTERN lba_t cdio_get_track_lba(const CdIo_t *p_cdio, track_t i_track);
+ 
+   /*!
+     Return the starting LSN for track number
+@@ -179,7 +179,7 @@ extern "C" {
+     @param i_track  the track number we want the LSN for
+     @return the starting LSN or CDIO_INVALID_LSN on error.
+   */
+-  lsn_t cdio_get_track_lsn(const CdIo_t *p_cdio, track_t i_track);
++  CDIO_EXTERN lsn_t cdio_get_track_lsn(const CdIo_t *p_cdio, track_t i_track);
+ 
+   /*!
+     Return the starting LBA for the pregap for track number
+@@ -190,7 +190,7 @@ extern "C" {
+     @param i_track  the track number we want the LBA for
+     @return the starting LBA or CDIO_INVALID_LBA on error.
+   */
+-  lba_t cdio_get_track_pregap_lba(const CdIo_t *p_cdio, track_t i_track);
++  CDIO_EXTERN lba_t cdio_get_track_pregap_lba(const CdIo_t *p_cdio, track_t i_track);
+ 
+   /*!
+     Return the starting LSN for the pregap for track number
+@@ -201,7 +201,7 @@ extern "C" {
+     @param i_track  the track number we want the LSN for
+     @return the starting LSN or CDIO_INVALID_LSN on error.
+   */
+-  lsn_t cdio_get_track_pregap_lsn(const CdIo_t *p_cdio, track_t i_track);
++  CDIO_EXTERN lsn_t cdio_get_track_pregap_lsn(const CdIo_t *p_cdio, track_t i_track);
+ 
+   /*!
+     Get the International Standard Recording Code (ISRC) for track number
+@@ -215,7 +215,7 @@ extern "C" {
+     when done with it.
+ 
+   */
+-  char * cdio_get_track_isrc (const CdIo_t *p_cdio, track_t i_track);
++  CDIO_EXTERN char * cdio_get_track_isrc (const CdIo_t *p_cdio, track_t i_track);
+ 
+   /*!
+     Return the starting MSF (minutes/secs/frames) for track number
+@@ -227,13 +227,13 @@ extern "C" {
+ 
+     @return true if things worked or false if there is no track entry.
+   */
+-  bool cdio_get_track_msf(const CdIo_t *p_cdio, track_t i_track,
++  CDIO_EXTERN bool cdio_get_track_msf(const CdIo_t *p_cdio, track_t i_track,
+                           /*out*/ msf_t *msf);
+ 
+   /*! Get linear preemphasis status on an audio track
+       This is not meaningful if not an audio track?
+    */
+-  track_flag_t cdio_get_track_preemphasis(const CdIo_t *p_cdio,
++  CDIO_EXTERN track_flag_t cdio_get_track_preemphasis(const CdIo_t *p_cdio,
+                                           track_t i_track);
+ 
+   /*!
+@@ -244,7 +244,7 @@ extern "C" {
+ 
+     @return the number of sectors or 0 if there is an error.
+   */
+-  unsigned int cdio_get_track_sec_count(const CdIo_t *p_cdio, track_t i_track);
++  CDIO_EXTERN unsigned int cdio_get_track_sec_count(const CdIo_t *p_cdio, track_t i_track);
+ 
+ #ifdef __cplusplus
+ }
+diff --git a/include/cdio/types.h b/include/cdio/types.h
+index 3274b61..01b1732 100644
+--- a/include/cdio/types.h
++++ b/include/cdio/types.h
+@@ -46,6 +46,7 @@ typedef u_int64_t uint64_t;
+    For MSVC, you can find both a public domain stdint.h and
+    inttypes.h in the MSVC/missing directory of libcdio. */
+ #include <stdint.h>
++#include <stdbool.h>
+ #endif
+ 
+ typedef uint8_t ubyte;
+@@ -54,8 +55,9 @@ typedef uint8_t ubyte;
+    to compensate for missing UNIX types is to include a custom
+    unistd.h that defines them. Such a file is provided with
+    the libcdio source, in the MSVC/missing directory */
+-#if defined(_MSC_VER)
+-#include <unistd.h>
++#if defined(_MSC_VER) && defined(BUILDING_CDIO)
++typedef int64_t ssize_t;
++typedef uint32_t mode_t;
+ #endif
+ 
+   /* default HP/UX macros are broken */
+diff --git a/include/cdio/udf.h b/include/cdio/udf.h
+index 21cdec4..3ea2f4d 100644
+--- a/include/cdio/udf.h
++++ b/include/cdio/udf.h
+@@ -76,7 +76,7 @@ extern "C" {
+   /*!
+     Close UDF and free resources associated with p_udf.
+   */
+-  bool udf_close (udf_t *p_udf);
++  CDIO_EXTERN bool udf_close (udf_t *p_udf);
+   
+   /*!  
+     Seek to a position i_start and then read i_blocks. Number of
+@@ -84,7 +84,7 @@ extern "C" {
+     equal to i_blocks.
+   */
+ 
+-  driver_return_code_t udf_read_sectors (const udf_t *p_udf, void *ptr, 
++  CDIO_EXTERN driver_return_code_t udf_read_sectors (const udf_t *p_udf, void *ptr, 
+                                          lsn_t i_start,  long int i_blocks);
+ 
+   /*!
+@@ -93,13 +93,13 @@ extern "C" {
+     
+     Caller must free result - use udf_close for that.
+   */
+-  udf_t *udf_open (const char *psz_path);
++  CDIO_EXTERN udf_t *udf_open (const char *psz_path);
+   
+   /*!
+     Return the partition number of the the opened udf handle. -1 
+     Is returned if we have an error.
+   */
+-  int16_t udf_get_part_number(const udf_t *p_udf);
++  CDIO_EXTERN int16_t udf_get_part_number(const udf_t *p_udf);
+ 
+   /*!
+     Get the root in p_udf. If b_any_partition is false then
+@@ -109,7 +109,7 @@ extern "C" {
+ 
+     Caller must free result - use udf_file_free for that.
+   */
+-  udf_dirent_t *udf_get_root (udf_t *p_udf, bool b_any_partition, 
++  CDIO_EXTERN udf_dirent_t *udf_get_root (udf_t *p_udf, bool b_any_partition, 
+                               partition_num_t i_partition);
+   
+   /**
+@@ -118,7 +118,7 @@ extern "C" {
+    * i_volid, size of the buffer psz_volid points to
+    * returns the size of buffer needed for all data
+    */
+-  int udf_get_volume_id(udf_t *p_udf, /*out*/ char *psz_volid,  
++  CDIO_EXTERN int udf_get_volume_id(udf_t *p_udf, /*out*/ char *psz_volid,  
+                         unsigned int i_volid);
+   
+   /**
+@@ -130,7 +130,7 @@ extern "C" {
+    * returns the size of the available volsetid information (128)
+    * or 0 on error
+    */
+-  int udf_get_volumeset_id(udf_t *p_udf, /*out*/ uint8_t *volsetid,
++  CDIO_EXTERN int udf_get_volumeset_id(udf_t *p_udf, /*out*/ uint8_t *volsetid,
+                            unsigned int i_volsetid);
+ 
+   /**
+@@ -140,13 +140,13 @@ extern "C" {
+    * returns the size of buffer needed for all data
+    * A call to udf_get_root() should have been issued before this call
+    */
+-  int udf_get_logical_volume_id(udf_t *p_udf, /*out*/ char *psz_logvolid,  
++  CDIO_EXTERN int udf_get_logical_volume_id(udf_t *p_udf, /*out*/ char *psz_logvolid,  
+                         unsigned int i_logvolid);
+ 
+   /*!
+     Return a file pointer matching psz_name. 
+   */
+-  udf_dirent_t *udf_fopen(udf_dirent_t *p_udf_root, const char *psz_name);
++  CDIO_EXTERN udf_dirent_t *udf_fopen(udf_dirent_t *p_udf_root, const char *psz_name);
+   
+   /*! udf_mode_string - fill in string PSZ_STR with an ls-style ASCII
+     representation of the i_mode. PSZ_STR is returned.
+@@ -185,9 +185,9 @@ extern "C" {
+         otherwise.
+         'T' if the file is sticky but not executable.  */
+ 
+-    char *udf_mode_string (mode_t i_mode, char *psz_str);
++    CDIO_EXTERN char *udf_mode_string (mode_t i_mode, char *psz_str);
+ 
+-    bool udf_get_lba(const udf_file_entry_t *p_udf_fe, 
++    CDIO_EXTERN bool udf_get_lba(const udf_file_entry_t *p_udf_fe, 
+                      /*out*/ uint32_t *start, /*out*/ uint32_t *end);
+ 
+ #ifdef __cplusplus
+diff --git a/include/cdio/udf_file.h b/include/cdio/udf_file.h
+index 625e448..2adfe8e 100644
+--- a/include/cdio/udf_file.h
++++ b/include/cdio/udf_file.h
+@@ -32,39 +32,39 @@ extern "C" {
+   /**
+     Return the file id descriptor of the given file.
+   */
+-  bool udf_get_fileid_descriptor(const udf_dirent_t *p_udf_dirent, 
++CDIO_EXTERN   bool udf_get_fileid_descriptor(const udf_dirent_t *p_udf_dirent, 
+ 				 /*out*/ udf_fileid_desc_t *p_udf_fid);
+ 
+   /**
+     Return the name of the file
+   */
+-  const char *udf_get_filename(const udf_dirent_t *p_udf_dirent);
++CDIO_EXTERN   const char *udf_get_filename(const udf_dirent_t *p_udf_dirent);
+   
+   /**
+     Return the name of the file
+   */
+-  bool udf_get_file_entry(const udf_dirent_t *p_udf_dirent, 
++  CDIO_EXTERN bool udf_get_file_entry(const udf_dirent_t *p_udf_dirent, 
+ 			  /*out*/ udf_file_entry_t *p_udf_fe);
+ 
+   /**
+     Return the number of hard links of the file. Return 0 if error.
+   */
+-  uint16_t udf_get_link_count(const udf_dirent_t *p_udf_dirent);
++  CDIO_EXTERN uint16_t udf_get_link_count(const udf_dirent_t *p_udf_dirent);
+ 
+   /**
+     Return the file length the file. Return 2147483647L if error.
+   */
+-  uint64_t udf_get_file_length(const udf_dirent_t *p_udf_dirent);
++  CDIO_EXTERN uint64_t udf_get_file_length(const udf_dirent_t *p_udf_dirent);
+ 
+   /**  
+     Returns a POSIX mode for a given p_udf_dirent.
+   */
+-  mode_t udf_get_posix_filemode(const udf_dirent_t *p_udf_dirent);
++  CDIO_EXTERN mode_t udf_get_posix_filemode(const udf_dirent_t *p_udf_dirent);
+ 
+   /**
+     Return the next subdirectory. 
+   */
+-  udf_dirent_t *udf_opendir(const udf_dirent_t *p_udf_dirent);
++  CDIO_EXTERN udf_dirent_t *udf_opendir(const udf_dirent_t *p_udf_dirent);
+   
+   /**
+      Attempts to read up to count bytes from UDF directory entry
+@@ -85,7 +85,7 @@ extern "C" {
+     If count is zero, read() returns zero and has no other results. If
+     count is greater than SSIZE_MAX, the result is unspecified.
+   */
+-  ssize_t udf_read_block(const udf_dirent_t *p_udf_dirent, 
++  CDIO_EXTERN ssize_t udf_read_block(const udf_dirent_t *p_udf_dirent, 
+ 			 void * buf, size_t count);
+ 
+   /**
+@@ -96,17 +96,17 @@ extern "C" {
+     must call udf_dirent_free() with p_udf_dirent when done with it to 
+     release resources.
+   */
+-  udf_dirent_t *udf_readdir(udf_dirent_t *p_udf_dirent);
++  CDIO_EXTERN udf_dirent_t *udf_readdir(udf_dirent_t *p_udf_dirent);
+   
+   /**
+     free free resources associated with p_udf_dirent.
+   */
+-  bool udf_dirent_free(udf_dirent_t *p_udf_dirent);
++  CDIO_EXTERN bool udf_dirent_free(udf_dirent_t *p_udf_dirent);
+   
+   /**
+     Return true if the file is a directory.
+   */
+-  bool udf_is_dir(const udf_dirent_t *p_udf_dirent);
++  CDIO_EXTERN bool udf_is_dir(const udf_dirent_t *p_udf_dirent);
+   
+ #ifdef __cplusplus
+ }
+diff --git a/include/cdio/udf_time.h b/include/cdio/udf_time.h
+index 53203a5..720ab7d 100644
+--- a/include/cdio/udf_time.h
++++ b/include/cdio/udf_time.h
+@@ -41,41 +41,41 @@ extern "C" {
+   /*!
+     Return the access time of the file.
+   */
+-  time_t udf_get_access_time(const udf_dirent_t *p_udf_dirent);
++  CDIO_EXTERN time_t udf_get_access_time(const udf_dirent_t *p_udf_dirent);
+ 
+   /*!
+     Return the attribute (most recent create or access) time of the file
+   */
+-  time_t udf_get_attribute_time(const udf_dirent_t *p_udf_dirent);
++  CDIO_EXTERN time_t udf_get_attribute_time(const udf_dirent_t *p_udf_dirent);
+ 
+   /*!
+     Return the modification time of the file.
+   */
+-  time_t udf_get_modification_time(const udf_dirent_t *p_udf_dirent);
++  CDIO_EXTERN time_t udf_get_modification_time(const udf_dirent_t *p_udf_dirent);
+ 
+   /*!
+     Return the access timestamp of the file
+   */
+-  udf_timestamp_t *udf_get_access_timestamp(const udf_dirent_t *p_udf_dirent);
++  CDIO_EXTERN udf_timestamp_t *udf_get_access_timestamp(const udf_dirent_t *p_udf_dirent);
+ 
+   /*!
+     Return the modification timestamp of the file
+   */
+-  udf_timestamp_t *udf_get_modification_timestamp(const udf_dirent_t 
++  CDIO_EXTERN udf_timestamp_t *udf_get_modification_timestamp(const udf_dirent_t 
+ 						  *p_udf_dirent);
+ 
+   /*!
+     Return the attr timestamp of the file
+   */
+-  udf_timestamp_t *udf_get_attr_timestamp(const udf_dirent_t *p_udf_dirent);
++  CDIO_EXTERN udf_timestamp_t *udf_get_attr_timestamp(const udf_dirent_t *p_udf_dirent);
+ 
+   /*!
+     Convert a UDF timestamp to a time_t. If microseconds are desired,
+     use dest_usec. The return value is the same as dest. */
+-  time_t *udf_stamp_to_time(time_t *dest, long int *dest_usec, 
++  CDIO_EXTERN time_t *udf_stamp_to_time(time_t *dest, long int *dest_usec, 
+ 			  const udf_timestamp_t src);
+ 
+-  udf_timestamp_t *udf_timespec_to_stamp(const struct timespec ts,
++  CDIO_EXTERN udf_timestamp_t *udf_timespec_to_stamp(const struct timespec ts,
+ 					 udf_timestamp_t *dest);
+ 
+ #ifdef __cplusplus
+diff --git a/include/cdio/utf8.h b/include/cdio/utf8.h
+index 4ca15e6..516c823 100644
+--- a/include/cdio/utf8.h
++++ b/include/cdio/utf8.h
+@@ -22,6 +22,7 @@
+ 
+ 
+ #include <cdio/types.h>
++#include "cdio.h"
+ 
+ /** \brief Opaque characterset converter
+  */
+@@ -34,7 +35,7 @@ typedef struct cdio_charset_coverter_s cdio_charset_coverter_t;
+  *  \returns A newly allocated charset converter
+  */
+ 
+-cdio_charset_coverter_t *
++CDIO_EXTERN cdio_charset_coverter_t *
+ cdio_charset_converter_create(const char * src_charset,
+                               const char * dst_charset);
+ 
+@@ -42,7 +43,7 @@ cdio_charset_converter_create(const char * src_charset,
+  *  \param cnv A characterset converter
+  */
+ 
+-void cdio_charset_converter_destroy(cdio_charset_coverter_t*cnv);
++CDIO_EXTERN void cdio_charset_converter_destroy(cdio_charset_coverter_t*cnv);
+ 
+ /** \brief Convert a string from one character set to another
+  *  \param cnv A charset converter
+@@ -56,7 +57,7 @@ void cdio_charset_converter_destroy(cdio_charset_coverter_t*cnv);
+  *  If you pass -1 for src_len, strlen() will be used.
+  */
+ 
+-bool cdio_charset_convert(cdio_charset_coverter_t*cnv,
++CDIO_EXTERN bool cdio_charset_convert(cdio_charset_coverter_t*cnv,
+                           char * src, int src_len,
+                           char ** dst, int * dst_len);
+ 
+@@ -74,7 +75,7 @@ bool cdio_charset_convert(cdio_charset_coverter_t*cnv,
+  */
+ 
+ 
+-bool cdio_charset_from_utf8(cdio_utf8_t * src, char ** dst,
++CDIO_EXTERN bool cdio_charset_from_utf8(cdio_utf8_t * src, char ** dst,
+                             int * dst_len, const char * dst_charset);
+ 
+ /** \brief Convert a string from another charset to UTF-8 
+@@ -92,7 +93,7 @@ bool cdio_charset_from_utf8(cdio_utf8_t * src, char ** dst,
+  */
+ 
+ 
+-bool cdio_charset_to_utf8(const char *src, size_t src_len, cdio_utf8_t **dst,
++CDIO_EXTERN bool cdio_charset_to_utf8(const char *src, size_t src_len, cdio_utf8_t **dst,
+                           const char * src_charset);
+ 
+ #ifdef _WIN32
+@@ -102,11 +103,11 @@ bool cdio_charset_to_utf8(const char *src, size_t src_len, cdio_utf8_t **dst,
+  *  returned string with cdio_free().
+  *  This is a convenience function available on Windows platforms only.
+  */
+-wchar_t* cdio_utf8_to_wchar(const char* str);
++CDIO_EXTERN wchar_t* cdio_utf8_to_wchar(const char* str);
+ 
+ #include <stdio.h> /* for FILE */
+ /** \brief Provides an UTF-8 compliant version of fopen for Windows
+  *  The parameters and return value are the same as fopen().
+  */
+-FILE* fopen_utf8(const char* filename, const char* mode);
++CDIO_EXTERN FILE* fopen_utf8(const char* filename, const char* mode);
+ #endif
+diff --git a/include/cdio/util.h b/include/cdio/util.h
+index 5b460b5..3c3838c 100644
+--- a/include/cdio/util.h
++++ b/include/cdio/util.h
+@@ -28,6 +28,7 @@
+ */
+ #include <stdlib.h>
+ #include <cdio/types.h>
++#include "cdio.h"
+ 
+ #if !defined CDIO_INLINE
+ #if defined(__cplusplus) || defined(inline)
+@@ -47,8 +48,7 @@
+ #undef  MIN
+ #define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+ 
+-#undef  IN
+-#define IN(x, low, high) ((x) >= (low) && (x) <= (high))
++#define BETWEEN(x, low, high) ((x) >= (low) && (x) <= (high))
+ 
+ #undef  CLAMP
+ #define CLAMP(x, low, high)  (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
+@@ -115,8 +115,8 @@ _cdio_strlenv(char **str_array);
+ char **
+ _cdio_strsplit(const char str[], char delim);
+ 
+-uint8_t cdio_to_bcd8(uint8_t n);
+-uint8_t cdio_from_bcd8(uint8_t p);
++CDIO_EXTERN uint8_t cdio_to_bcd8(uint8_t n);
++CDIO_EXTERN uint8_t cdio_from_bcd8(uint8_t p);
+ 
+ /*!  cdio_realpath() same as POSIX.1-2001 realpath if that's
+ around. If not we do poor-man's simulation of that behavior.  */
+diff --git a/include/cdio/version.h.in b/include/cdio/version.h.in
+index 1ecc051..eb56306 100644
+--- a/include/cdio/version.h.in
++++ b/include/cdio/version.h.in
+@@ -7,8 +7,8 @@
+ /*! CDIO_VERSION is a C-Preprocessor macro of a string that shows what
+     version is used.  cdio_version_string has the same value, but it is a
+     constant variable that can be accessed at run time. */
+-#define CDIO_VERSION "@VERSION@ @build@"
+-extern const char *cdio_version_string; /**< = CDIO_VERSION */
++#define CDIO_VERSION "@PROJECT_VERSION@"
++//extern const char *cdio_version_string; /**< = CDIO_VERSION */
+ 
+ /*! LIBCDIO_VERSION_NUM is a C-Preprocessor macro that can be used for
+     testing in the C preprocessor. libcdio_version_num has the same
+@@ -16,4 +16,4 @@ extern const char *cdio_version_string; /**< = CDIO_VERSION */
+     time.  */
+ #define LIBCDIO_VERSION_NUM @LIBCDIO_VERSION_NUM@
+ 
+-extern const unsigned int libcdio_version_num; /**< = LIBCDIO_VERSION_NUM */
++//extern const unsigned int libcdio_version_num; /**< = LIBCDIO_VERSION_NUM */
+diff --git a/include/cdio/xa.h b/include/cdio/xa.h
+index c9e091f..75320b9 100644
+--- a/include/cdio/xa.h
++++ b/include/cdio/xa.h
+@@ -111,7 +111,7 @@ typedef struct iso9660_xa_s
+   /*!
+     Returns POSIX mode bitstring for a given file.
+   */
+-  posix_mode_t iso9660_get_posix_filemode_from_xa(uint16_t i_perms);
++  CDIO_EXTERN posix_mode_t iso9660_get_posix_filemode_from_xa(uint16_t i_perms);
+ 
+ /*!
+   Returns a string interpreting the extended attribute xa_attr. 
+@@ -141,7 +141,7 @@ typedef struct iso9660_xa_s
+   The second character of a pair (7, 9, 11) is "r" if the entry is allowed
+   to be read. 
+ */
+-const char *
++CDIO_EXTERN const char *
+ iso9660_get_xa_attr_str (uint16_t xa_attr);
+   
+ /*! 
+@@ -150,7 +150,7 @@ iso9660_get_xa_attr_str (uint16_t xa_attr);
+ 
+   @see iso9660_xa
+ */
+-iso9660_xa_t *
++CDIO_EXTERN iso9660_xa_t *
+ iso9660_xa_init (iso9660_xa_t *_xa, uint16_t uid, uint16_t gid, uint16_t attr, 
+                  uint8_t filenum);
+ 
+@@ -159,7 +159,7 @@ iso9660_xa_init (iso9660_xa_t *_xa, uint16_t uid, uint16_t gid, uint16_t attr,
+ 
+   @see iso9660_xa
+ */
+-void
++CDIO_EXTERN void
+ iso9660_xa_free (iso9660_xa_t *_xa);
+ 
+ #ifdef __cplusplus
+diff --git a/lib/driver/MSWindows/aspi32.c b/lib/driver/MSWindows/aspi32.c
+index f8e94cf..bcdb02b 100644
+--- a/lib/driver/MSWindows/aspi32.c
++++ b/lib/driver/MSWindows/aspi32.c
+@@ -31,9 +31,11 @@
+ #include <cdio/util.h>
+ #include <cdio/mmc.h>
+ #include <cdio/logging.h>
+-#include "cdio_assert.h"
++#include <driver/cdio_assert.h>
++#include <driver/mmc/mmc_private.h>
+ 
+ #include <string.h>
++#include <driver/image.h>
+ 
+ #ifdef HAVE_WIN32_CDROM
+ 
+@@ -41,7 +43,6 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <errno.h>
+-#include <unistd.h>
+ #include <fcntl.h>
+ 
+ #include <windows.h>
+diff --git a/lib/driver/MSWindows/win32.c b/lib/driver/MSWindows/win32.c
+index dd4e624..353c1db 100644
+--- a/lib/driver/MSWindows/win32.c
++++ b/lib/driver/MSWindows/win32.c
+@@ -33,12 +33,13 @@
+ #include <cdio/util.h>
+ #include <cdio/mmc.h>
+ #include <cdio/logging.h>
+-#include "cdio_assert.h"
+-#include "cdio_private.h" /* protoype for cdio_is_device_win32 */
+ 
+ #include <string.h>
++#include <fcntl.h>
++#include <mmc_private.h>
++#include <driver/cdio_private.h>
+ 
+-#ifdef HAVE_WIN32_CDROM
++#if defined(HAVE_WIN32_CDROM) && HAVE_WIN32_CDROM
+ 
+ #include <ctype.h>
+ #include <stdio.h>
+@@ -71,20 +72,6 @@
+ #include <sys/types.h>
+ #endif
+ 
+-#if defined (_MSC_VER) || defined (_XBOX)
+-#undef IN
+-#else
+-#include "aspi32.h"
+-#endif
+-
+-#ifdef _XBOX
+-#include "stdint.h"
+-#include <xtl.h>
+-#define WIN_NT 1
+-#else
+-#define WIN_NT               ( GetVersion() < 0x80000000 )
+-#endif
+-
+ /* mingw-w64 defines this to lseek64 when LFS is enabled */
+ #ifdef lseek
+ # undef lseek
+@@ -100,11 +87,7 @@ static driver_return_code_t
+ audio_get_volume_win32 ( void *p_user_data,
+ 			 /*out*/ cdio_audio_volume_t *p_volume)
+ {
+-  if ( WIN_NT ) {
+-    return audio_get_volume_win32ioctl (p_user_data, p_volume);
+-  } else {
+-    return DRIVER_OP_UNSUPPORTED; /* not yet, but soon I hope */
+-  }
++	return audio_get_volume_win32ioctl (p_user_data, p_volume);
+ }
+ 
+ /*!
+@@ -115,11 +98,7 @@ audio_get_volume_win32 ( void *p_user_data,
+ static driver_return_code_t
+ audio_pause_win32 (void *p_user_data)
+ {
+-  if ( WIN_NT ) {
+-    return audio_pause_win32ioctl (p_user_data);
+-  } else {
+-    return DRIVER_OP_UNSUPPORTED; /* not yet, but soon I hope */
+-  }
++	return audio_pause_win32ioctl (p_user_data);
+ }
+ 
+ /*!
+@@ -130,11 +109,7 @@ audio_pause_win32 (void *p_user_data)
+ static driver_return_code_t
+ audio_play_msf_win32 (void *p_user_data, msf_t *p_start_msf, msf_t *p_end_msf)
+ {
+-  if ( WIN_NT ) {
+     return audio_play_msf_win32ioctl (p_user_data, p_start_msf, p_end_msf);
+-  } else {
+-    return DRIVER_OP_UNSUPPORTED; /* not yet, but soon I hope */
+-  }
+ }
+ 
+ /*!
+@@ -147,11 +122,7 @@ static driver_return_code_t
+ audio_read_subchannel_win32 (void *p_user_data,
+ 			     cdio_subchannel_t *p_subchannel)
+ {
+-  if ( WIN_NT ) {
+     return audio_read_subchannel_win32ioctl (p_user_data, p_subchannel);
+-  } else {
+-    return audio_read_subchannel_mmc(p_user_data, p_subchannel);
+-  }
+ }
+ 
+   /*!
+@@ -163,11 +134,7 @@ audio_read_subchannel_win32 (void *p_user_data,
+ static driver_return_code_t
+ audio_resume_win32 (void *p_user_data)
+ {
+-  if ( WIN_NT ) {
+     return audio_resume_win32ioctl (p_user_data);
+-  } else {
+-    return DRIVER_OP_UNSUPPORTED; /* not yet, but soon I hope */
+-  }
+ }
+ 
+ /*!
+@@ -179,30 +146,19 @@ audio_resume_win32 (void *p_user_data)
+ static driver_return_code_t
+ audio_set_volume_win32 ( void *p_user_data, cdio_audio_volume_t *p_volume)
+ {
+-  if ( WIN_NT ) {
+     return audio_set_volume_win32ioctl (p_user_data, p_volume);
+-  } else {
+-    return DRIVER_OP_UNSUPPORTED; /* not yet, but soon I hope */
+-  }
+ }
+ 
+ static driver_return_code_t
+ audio_stop_win32 ( void *p_user_data)
+ {
+-  if ( WIN_NT ) {
+     return audio_stop_win32ioctl (p_user_data);
+-  } else {
+-    return DRIVER_OP_UNSUPPORTED; /* not yet, but soon I hope */
+-  }
+ }
+ 
+ /* General ioctl() CD-ROM command function */
+ static bool
+ _cdio_mciSendCommand(int id, UINT msg, DWORD flags, void *arg)
+ {
+-#ifdef _XBOX
+-  return false;
+-#else
+   MCIERROR mci_error;
+ 
+   mci_error = mciSendCommand(id, msg, flags, (DWORD_PTR)arg);
+@@ -213,27 +169,20 @@ _cdio_mciSendCommand(int id, UINT msg, DWORD flags, void *arg)
+     cdio_warn("mciSendCommand() error: %s", error);
+   }
+   return(mci_error == 0);
+-#endif
+ }
+ 
+ static access_mode_t
+ str_to_access_mode_win32(const char *psz_access_mode)
+ {
+   const access_mode_t default_access_mode =
+-    WIN_NT ? _AM_IOCTL : _AM_ASPI;
++    _AM_IOCTL;
+ 
+   if (NULL==psz_access_mode) return default_access_mode;
+ 
+   if (!strcmp(psz_access_mode, "ioctl"))
+     return _AM_IOCTL;
+   else if (!strcmp(psz_access_mode, "ASPI")) {
+-#ifdef _XBOX
+-    cdio_warn ("XBOX doesn't support access type: %s. Default used instead.",
+-	       psz_access_mode);
+-    return default_access_mode;
+-#else
+     return _AM_ASPI;
+-#endif
+   } else if (!strcmp(psz_access_mode, "MMC_RDWR")) {
+     return _AM_MMC_RDWR;
+   } else if (!strcmp(psz_access_mode, "MMC_RDWR_EXCL")) {
+@@ -250,30 +199,18 @@ get_discmode_win32(void *p_user_data)
+ {
+   _img_private_t *p_env = p_user_data;
+ 
+-  if (p_env->hASPI) {
+-    return get_discmode_aspi (p_env);
+-  } else {
+-    return get_discmode_win32ioctl (p_env);
+-  }
++  return get_discmode_win32ioctl (p_env);
+ }
+ 
+ static driver_return_code_t
+ get_last_session_win32(void *p_user_data,
+                        /*out*/ lsn_t *i_last_session) {
+-  if ( WIN_NT ) {
+     return get_last_session_win32ioctl(p_user_data, i_last_session);
+-  } else {
+-    return DRIVER_OP_UNSUPPORTED;
+-  }
+ }
+ 
+ static const char *
+ is_cdrom_win32(const char drive_letter) {
+-  if ( WIN_NT ) {
+     return is_cdrom_win32ioctl (drive_letter);
+-  } else {
+-    return is_cdrom_aspi(drive_letter);
+-  }
+ }
+ 
+ /*!
+@@ -299,13 +236,8 @@ run_mmc_cmd_win32( void *p_user_data, unsigned int i_timeout_ms,
+ {
+   _img_private_t *p_env = p_user_data;
+ 
+-  if (p_env->hASPI) {
+-    return run_mmc_cmd_aspi( p_env, i_timeout_ms, i_cdb, p_cdb,
+-			     e_direction, i_buf, p_buf );
+-  } else {
+-    return run_mmc_cmd_win32ioctl( p_env, i_timeout_ms, i_cdb, p_cdb,
+-				   e_direction, i_buf, p_buf );
+-  }
++  return run_mmc_cmd_win32ioctl( p_env, i_timeout_ms, i_cdb, p_cdb,
++         e_direction, i_buf, p_buf );
+ }
+ 
+ /*!
+@@ -341,9 +273,6 @@ init_win32 (void *p_user_data)
+   case _AM_MMC_RDWR_EXCL:
+     b_ret = init_win32ioctl(p_env);
+     break;
+-  case _AM_ASPI:
+-    b_ret = init_aspi(p_env);
+-    break;
+   default:
+     return 0;
+   }
+@@ -387,16 +316,8 @@ read_audio_sectors (void *p_user_data, void *p_buf, lsn_t i_lsn,
+ 		    unsigned int i_blocks)
+ {
+   _img_private_t *p_env = p_user_data;
+-  if ( p_env->hASPI ) {
+-    return read_audio_sectors_aspi( p_env, p_buf, i_lsn, i_blocks );
+-  } else {
+-#if 0
+-    return read_audio_sectors_win32ioctl( p_env, p_buf, i_lsn, i_blocks );
+-#else
+-    return mmc_read_sectors( p_env->gen.cdio, p_buf, i_lsn,
+-                                  CDIO_MMC_READ_TYPE_CDDA, i_blocks);
+-#endif
+-  }
++  return mmc_read_sectors( p_env->gen.cdio, p_buf, i_lsn,
++                                CDIO_MMC_READ_TYPE_CDDA, i_blocks);
+ }
+ 
+ /*!
+@@ -441,11 +362,7 @@ read_mode1_sector_win32 (void *p_user_data, void *p_buf, lsn_t lsn,
+ 
+   p_env->gen.ioctls_debugged++;
+ 
+-  if ( p_env->hASPI ) {
+-    return read_mode1_sector_aspi( p_env, p_buf, lsn, b_form2 );
+-  } else {
+-    return read_mode1_sector_win32ioctl( p_env, p_buf, lsn, b_form2 );
+-  }
++  return read_mode1_sector_win32ioctl( p_env, p_buf, lsn, b_form2 );
+ }
+ 
+ /*!
+@@ -504,18 +421,7 @@ read_mode2_sector_win32 (void *p_user_data, void *data, lsn_t lsn,
+ 
+   p_env->gen.ioctls_debugged++;
+ 
+-  if ( p_env->hASPI ) {
+-    int ret;
+-    ret = read_mode2_sector_aspi(p_user_data, buf, lsn, 1);
+-    if( ret != 0 ) return ret;
+-    if (b_form2)
+-      memcpy (data, buf, M2RAW_SECTOR_SIZE);
+-    else
+-      memcpy (((char *)data), buf + CDIO_CD_SUBHEADER_SIZE, CDIO_CD_FRAMESIZE);
+-    return 0;
+-  } else {
+-    return read_mode2_sector_win32ioctl( p_env, data, lsn, b_form2 );
+-  }
++  return read_mode2_sector_win32ioctl( p_env, data, lsn, b_form2 );
+ }
+ 
+ /*!
+@@ -571,13 +477,9 @@ set_arg_win32 (void *p_user_data, const char key[], const char value[])
+   else if (!strcmp (key, "access-mode"))
+     {
+       p_env->access_mode = str_to_access_mode_win32(value);
+-      if (p_env->access_mode == _AM_ASPI && !p_env->b_aspi_init)
+-	return init_aspi(p_env) ? 1 : -3;
+-      else if (p_env->access_mode == _AM_IOCTL && !p_env->b_ioctl_init)
+-	return init_win32ioctl(p_env) ? 1 : -3;
+-      else
+-	return -4;
+-      return 0;
++      if (p_env->access_mode == _AM_IOCTL && !p_env->b_ioctl_init)
++        return init_win32ioctl(p_env) ? 1 : -3;
++      return -4;
+     }
+   else
+     return -1;
+@@ -594,11 +496,7 @@ read_toc_win32 (void *p_user_data)
+ {
+   _img_private_t *p_env = p_user_data;
+   bool ret;
+-  if( p_env->hASPI ) {
+-    ret = read_toc_aspi( p_env );
+-  } else {
+-    ret = read_toc_win32ioctl( p_env );
+-  }
++  ret = read_toc_win32ioctl( p_env );
+   if (ret) p_env->gen.toc_init = true ;
+   return ret;
+ }
+@@ -609,9 +507,6 @@ read_toc_win32 (void *p_user_data)
+ static driver_return_code_t
+ open_close_media_win32 (const char *psz_win32_drive, DWORD command_flags)
+ {
+-#ifdef _XBOX
+-  return DRIVER_OP_UNSUPPORTED;
+-#else
+   MCI_OPEN_PARMS op;
+   DWORD i_flags;
+   int ret;
+@@ -633,7 +528,6 @@ open_close_media_win32 (const char *psz_win32_drive, DWORD command_flags)
+     ret = DRIVER_OP_ERROR;
+ 
+   return ret;
+-#endif
+ }
+ 
+ /*!
+@@ -668,7 +562,6 @@ is_mmc_supported(void *user_data)
+       case _AM_NONE:
+ 	return false;
+       case _AM_IOCTL:
+-      case _AM_ASPI:
+       case _AM_MMC_RDWR:
+       case _AM_MMC_RDWR_EXCL:
+ 	return true;
+@@ -761,11 +654,7 @@ _cdio_get_track_format(void *p_obj, track_t i_track)
+        || i_track >= p_env->gen.i_tracks + p_env->gen.i_first_track )
+     return TRACK_FORMAT_ERROR;
+ 
+-  if( p_env->hASPI ) {
+-    return get_track_format_aspi(p_env, i_track);
+-  } else {
+-    return get_track_format_win32ioctl(p_env, i_track);
+-  }
++  return get_track_format_win32ioctl(p_env, i_track);
+ }
+ 
+ /*!
+@@ -828,7 +717,6 @@ _cdio_get_track_msf(void *p_user_data, track_t i_tracks, msf_t *p_msf)
+   }
+ }
+ 
+-#endif /* HAVE_WIN32_CDROM */
+ 
+ /*!
+   Return an array of strings giving possible CD devices.
+@@ -913,8 +801,6 @@ cdio_is_device_win32(const char *source_name)
+ 	    && (source_name[len-1] == ':'))
+     return true;
+ 
+-  if ( ! WIN_NT ) return false;
+-
+   /* Test to see if of form: \\.\x: */
+   return ( (len == 6)
+ 	   && source_name[0] == '\\' && source_name[1] == '\\'
+@@ -952,15 +838,7 @@ close_tray_win32 (const char *psz_win32_drive)
+ CdIo_t *
+ cdio_open_win32 (const char *psz_source_name)
+ {
+-#ifdef HAVE_WIN32_CDROM
+-  if ( WIN_NT ) {
+-    return cdio_open_am_win32(psz_source_name, "ioctl");
+-  } else {
+-    return cdio_open_am_win32(psz_source_name, "ASPI");
+-  }
+-#else
+-  return NULL;
+-#endif /* HAVE_WIN32_CDROM */
++  return cdio_open_am_win32(psz_source_name, "ioctl");
+ }
+ 
+ /*!
+@@ -1066,11 +944,12 @@ cdio_open_am_win32 (const char *psz_orig_source, const char *psz_access_mode)
+ #endif /* HAVE_WIN32_CDROM */
+ 
+ }
++#endif
+ 
+ bool
+ cdio_have_win32 (void)
+ {
+-#ifdef HAVE_WIN32_CDROM
++#if defined(HAVE_WIN32_CDROM) && HAVE_WIN32_CDROM
+   return true;
+ #else
+   return false;
+diff --git a/lib/driver/MSWindows/win32.h b/lib/driver/MSWindows/win32.h
+index fc703b5..048e8e7 100644
+--- a/lib/driver/MSWindows/win32.h
++++ b/lib/driver/MSWindows/win32.h
+@@ -15,7 +15,7 @@
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+ 
+-#include "cdio_private.h"
++#include <driver/generic.h>
+ 
+ #pragma pack()
+ 
+@@ -60,14 +60,14 @@ typedef struct {
+ 
+   @param p_cdio the CD object to be acted upon.
+ */
+-driver_return_code_t audio_pause_win32ioctl (void *p_user_data);
++CDIO_EXTERN driver_return_code_t audio_pause_win32ioctl (void *p_user_data);
+ 
+ /*!
+   Playing starting at given MSF through analog output
+ 
+   @param p_cdio the CD object to be acted upon.
+ */
+-driver_return_code_t audio_play_msf_win32ioctl (void *p_user_data,
++CDIO_EXTERN driver_return_code_t audio_play_msf_win32ioctl (void *p_user_data,
+ 						msf_t *p_start_msf,
+ 						msf_t *p_end_msf);
+ /*!
+@@ -76,12 +76,12 @@ driver_return_code_t audio_play_msf_win32ioctl (void *p_user_data,
+   @param p_cdio the CD object to be acted upon.
+ 
+ */
+-driver_return_code_t audio_resume_win32ioctl (void *p_user_data);
++CDIO_EXTERN driver_return_code_t audio_resume_win32ioctl (void *p_user_data);
+ 
+ /*!
+   Get disc type associated with cd object.
+ */
+-discmode_t get_discmode_win32ioctl (_img_private_t *p_env);
++CDIO_EXTERN discmode_t get_discmode_win32ioctl (_img_private_t *p_env);
+ 
+ /*!
+   Get the volume settings of an audio CD.
+@@ -89,7 +89,7 @@ discmode_t get_discmode_win32ioctl (_img_private_t *p_env);
+   @param p_cdio the CD object to be acted upon.
+ 
+ */
+-driver_return_code_t
++CDIO_EXTERN driver_return_code_t
+ audio_get_volume_win32ioctl ( void *p_user_data,
+ 			      /*out*/ cdio_audio_volume_t *p_volume);
+ 
+@@ -99,7 +99,7 @@ audio_get_volume_win32ioctl ( void *p_user_data,
+   @param p_cdio the CD object to be acted upon.
+ 
+ */
+-driver_return_code_t
++CDIO_EXTERN driver_return_code_t
+ audio_read_subchannel_win32ioctl (void *p_user_data,
+ 				  cdio_subchannel_t *p_subchannel);
+ 
+@@ -109,7 +109,7 @@ audio_read_subchannel_win32ioctl (void *p_user_data,
+   @param p_cdio the CD object to be acted upon.
+ 
+ */
+-driver_return_code_t
++CDIO_EXTERN driver_return_code_t
+ audio_stop_win32ioctl ( void *p_user_data );
+ 
+ /*!
+@@ -118,7 +118,7 @@ audio_stop_win32ioctl ( void *p_user_data );
+   @param p_cdio the CD object to be acted upon.
+ 
+ */
+-driver_return_code_t
++CDIO_EXTERN driver_return_code_t
+ audio_set_volume_win32ioctl ( void *p_user_data,
+ 			      cdio_audio_volume_t *p_volume);
+ 
+@@ -128,29 +128,29 @@ audio_set_volume_win32ioctl ( void *p_user_data,
+   @param p_user_data the CD object to be acted upon.
+ 
+ */
+-driver_return_code_t close_tray_win32ioctl (const char *psz_win32_drive);
++CDIO_EXTERN driver_return_code_t close_tray_win32ioctl (const char *psz_win32_drive);
+ 
+ /*!
+    Reads an audio device using the DeviceIoControl method into data
+    starting from lsn.  Returns 0 if no error.
+ */
+-int read_audio_sectors_win32ioctl (_img_private_t *p_obj, void *p_data, lsn_t lsn,
++CDIO_EXTERN int read_audio_sectors_win32ioctl (_img_private_t *p_obj, void *p_data, lsn_t lsn,
+ 				   unsigned int nblocks);
+ /*!
+    Reads a single mode2 sector using the DeviceIoControl method into
+    data starting from lsn. Returns 0 if no error.
+  */
+-int read_mode2_sector_win32ioctl (_img_private_t *p_env, void *p_data,
++CDIO_EXTERN int read_mode2_sector_win32ioctl (_img_private_t *p_env, void *p_data,
+ 				  lsn_t lsn, bool b_form2);
+ 
+ /*!
+    Reads a single mode1 sector using the DeviceIoControl method into
+    data starting from lsn. Returns 0 if no error.
+  */
+-int read_mode1_sector_win32ioctl (_img_private_t *p_env, void *p_data,
++CDIO_EXTERN int read_mode1_sector_win32ioctl (_img_private_t *p_env, void *p_data,
+ 				  lsn_t lsn, bool b_form2);
+ 
+-const char *is_cdrom_win32ioctl (const char drive_letter);
++CDIO_EXTERN const char *is_cdrom_win32ioctl (const char drive_letter);
+ 
+ /*!
+   Run a SCSI MMC command.
+@@ -167,7 +167,7 @@ const char *is_cdrom_win32ioctl (const char drive_letter);
+ 
+   Return 0 if command completed successfully.
+  */
+-int run_mmc_cmd_win32ioctl( void *p_user_data,
++CDIO_EXTERN int run_mmc_cmd_win32ioctl( void *p_user_data,
+ 			    unsigned int i_timeout,
+ 			    unsigned int i_cdb,
+ 			    const mmc_cdb_t * p_cdb,
+@@ -177,19 +177,19 @@ int run_mmc_cmd_win32ioctl( void *p_user_data,
+ /*!
+   Initialize internal structures for CD device.
+  */
+-bool init_win32ioctl (_img_private_t *p_env);
++CDIO_EXTERN bool init_win32ioctl (_img_private_t *p_env);
+ 
+ /*!
+   Read and cache the CD's Track Table of Contents and track info.
+   Return true if successful or false if an error.
+ */
+-bool read_toc_win32ioctl (_img_private_t *p_env);
++CDIO_EXTERN bool read_toc_win32ioctl (_img_private_t *p_env);
+ 
+ /*!
+   Get the LSN of the first track of the last session of
+   on the CD.
+  */
+-driver_return_code_t
++CDIO_EXTERN driver_return_code_t
+ get_last_session_win32ioctl (void *p_user_data,
+                              /*out*/ lsn_t *i_last_session);
+ 
+@@ -200,7 +200,7 @@ get_last_session_win32ioctl (void *p_user_data,
+   string when done with it.
+ 
+  */
+-char *get_mcn_win32ioctl (const _img_private_t *p_env);
++CDIO_EXTERN char *get_mcn_win32ioctl (const _img_private_t *p_env);
+ 
+ /*!
+   Return the international standard recording code ISRC.
+@@ -209,7 +209,7 @@ char *get_mcn_win32ioctl (const _img_private_t *p_env);
+   string when done with it.
+ 
+  */
+-char *get_track_isrc_win32ioctl (const _img_private_t *p_env,
++CDIO_EXTERN char *get_track_isrc_win32ioctl (const _img_private_t *p_env,
+ 				 track_t i_track);
+ 
+ /*!
+@@ -219,7 +219,7 @@ char *get_track_isrc_win32ioctl (const _img_private_t *p_env,
+   string when done with it.
+ 
+  */
+-void get_drive_cap_aspi (const _img_private_t *p_env,
++CDIO_EXTERN void get_drive_cap_aspi (const _img_private_t *p_env,
+ 			 cdio_drive_read_cap_t  *p_read_cap,
+ 			 cdio_drive_write_cap_t *p_write_cap,
+ 			 cdio_drive_misc_cap_t  *p_misc_cap);
+@@ -231,7 +231,7 @@ void get_drive_cap_aspi (const _img_private_t *p_env,
+   string when done with it.
+ 
+  */
+-void get_drive_cap_win32ioctl (const _img_private_t *p_env,
++CDIO_EXTERN void get_drive_cap_win32ioctl (const _img_private_t *p_env,
+ 			       cdio_drive_read_cap_t  *p_read_cap,
+ 			       cdio_drive_write_cap_t *p_write_cap,
+ 			       cdio_drive_misc_cap_t  *p_misc_cap);
+@@ -239,5 +239,5 @@ void get_drive_cap_win32ioctl (const _img_private_t *p_env,
+ /*!
+   Get the format (XA, DATA, AUDIO) of a track.
+ */
+-track_format_t get_track_format_win32ioctl(const _img_private_t *p_env,
++CDIO_EXTERN track_format_t get_track_format_win32ioctl(const _img_private_t *p_env,
+ 					   track_t i_track);
+diff --git a/lib/driver/MSWindows/win32_ioctl.c b/lib/driver/MSWindows/win32_ioctl.c
+index 927bb1f..31db1d8 100644
+--- a/lib/driver/MSWindows/win32_ioctl.c
++++ b/lib/driver/MSWindows/win32_ioctl.c
+@@ -24,13 +24,8 @@
+ # include "config.h"
+ #endif
+ 
+-#ifdef HAVE_WIN32_CDROM
++#if defined(HAVE_WIN32_CDROM) && HAVE_WIN32_CDROM
+ 
+-#if defined (_XBOX)
+-# include "inttypes.h"
+-# include "NtScsi.h"
+-# include "undocumented.h"
+-#else
+ # if defined (__MINGW64_VERSION_MAJOR)
+ #  define _NTSRB_ /* Bad things happen if srb.h gets included */
+ # endif
+@@ -50,7 +45,6 @@
+ # ifdef HAVE_DDK_NTDDSCSI_H
+ #  include <ddk/ntddscsi.h>
+ # endif
+-#endif
+ 
+ #if defined (_WIN32)
+ #include <windows.h>
+@@ -64,7 +58,7 @@
+ #include <cdio/cdio.h>
+ #include <cdio/sector.h>
+ #include <cdio/util.h>
+-#include "cdio_assert.h"
++#include <driver/cdio_assert.h>
+ #include <cdio/mmc.h>
+ #include "cdio/logging.h"
+ 
+@@ -83,10 +77,10 @@
+                         error_msg, sizeof(error_msg), NULL);            \
+   (count != 0) ?                                                        \
+     cdio_log(loglevel, "Error: file %s: line %d (%s)\n\t%s\n",          \
+-             __FILE__, __LINE__, __PRETTY_FUNCTION__, error_msg)        \
++             __FILE__, __LINE__, __FUNCTION__, error_msg)        \
+     :                                                                   \
+     cdio_log(loglevel, "Error: file %s: line %d (%s) %ld\n",            \
+-             __FILE__, __LINE__, __PRETTY_FUNCTION__, i_err);           \
++             __FILE__, __LINE__, __FUNCTION__, i_err);           \
+ }
+ #endif
+ 
+diff --git a/lib/driver/_cdio_stdio.h b/lib/driver/_cdio_stdio.h
+index d3f805f..6c8a5d6 100644
+--- a/lib/driver/_cdio_stdio.h
++++ b/lib/driver/_cdio_stdio.h
+@@ -29,12 +29,12 @@
+   cdio_stream_free should be called on the returned value when you
+   don't need the stream any more. No other finalization is needed.
+  */
+-CdioDataSource_t * cdio_stdio_new(const char psz_path[]);
++CDIO_EXTERN CdioDataSource_t * cdio_stdio_new(const char psz_path[]);
+ 
+ /*!
+   Deallocate resources assocaited with obj. After this obj is unusable.
+ */
+-void cdio_stdio_destroy(CdioDataSource_t *p_obj);
++CDIO_EXTERN void cdio_stdio_destroy(CdioDataSource_t *p_obj);
+ 
+ 
+ #endif /* CDIO_STDIO_H_ */
+diff --git a/lib/driver/_cdio_stream.h b/lib/driver/_cdio_stream.h
+index defe1f2..191f428 100644
+--- a/lib/driver/_cdio_stream.h
++++ b/lib/driver/_cdio_stream.h
+@@ -64,10 +64,10 @@ extern "C" {
+      @return unpon successful completion, return value is positive, else,
+      the global variable errno is set to indicate the error.
+   */
+-  off_t cdio_stream_getpos(CdioDataSource_t* p_obj, 
++  CDIO_EXTERN off_t cdio_stream_getpos(CdioDataSource_t* p_obj, 
+                              /*out*/ off_t *i_offset);
+   
+-  CdioDataSource_t *
++  CDIO_EXTERN CdioDataSource_t *
+   cdio_stream_new(void *user_data, const cdio_stream_io_functions *funcs);
+ 
+   /**
+@@ -87,7 +87,7 @@ extern "C" {
+      We do not distinguish between end-of-file and error, and callers
+      must use feof(3) and ferror(3) to determine which occurred.
+   */
+-  ssize_t cdio_stream_read(CdioDataSource_t* p_obj, void *ptr, size_t i_size, 
++  CDIO_EXTERN ssize_t cdio_stream_read(CdioDataSource_t* p_obj, void *ptr, size_t i_size, 
+                            size_t nmemb);
+   
+   /** 
+@@ -106,21 +106,21 @@ extern "C" {
+     DRIVER_OP_ERROR is returned and the global variable errno is set to
+     indicate the error.
+    */
+-  int cdio_stream_seek(CdioDataSource_t *p_obj, off_t i_offset, 
++  CDIO_EXTERN int cdio_stream_seek(CdioDataSource_t *p_obj, off_t i_offset, 
+                            int whence);
+   
+   /**
+     Return whatever size of stream reports, I guess unit size is bytes. 
+     On error return -1;
+   */
+-  off_t cdio_stream_stat(CdioDataSource_t *p_obj);
++  CDIO_EXTERN off_t cdio_stream_stat(CdioDataSource_t *p_obj);
+   
+   /**
+     Deallocate resources associated with p_obj. After this p_obj is unusable.
+   */
+-  void cdio_stream_destroy(CdioDataSource_t *p_obj);
++  CDIO_EXTERN void cdio_stream_destroy(CdioDataSource_t *p_obj);
+   
+-  void cdio_stream_close(CdioDataSource_t *p_obj);
++  CDIO_EXTERN void cdio_stream_close(CdioDataSource_t *p_obj);
+   
+ #ifdef __cplusplus
+ }
+diff --git a/lib/driver/cd_types.c b/lib/driver/cd_types.c
+index f756426..95553b6 100644
+--- a/lib/driver/cd_types.c
++++ b/lib/driver/cd_types.c
+@@ -20,7 +20,7 @@
+    track we've got.
+ */
+ #ifdef HAVE_CONFIG_H
+-# include "config.h"
++# include <config.h>
+ # define __CDIO_CONFIG_H__ 1
+ #endif
+ 
+diff --git a/lib/driver/cdio_private.h b/lib/driver/cdio_private.h
+index 6a141f9..c1d577e 100644
+--- a/lib/driver/cdio_private.h
++++ b/lib/driver/cdio_private.h
+@@ -477,7 +477,9 @@ extern "C" {
+     track_t index;            /* Current track index in tocent. */
+     lba_t   lba;              /* Current LBA */
+   } internal_position_t;
+-
++  
++struct _generic_img_private_t;
++typedef struct _generic_img_private_t generic_img_private_t;
+   CdIo_t * cdio_new (generic_img_private_t *p_env, cdio_funcs_t *p_funcs);
+ 
+   /* The below structure describes a specific CD Input driver  */
+@@ -517,56 +519,8 @@ extern "C" {
+   void cdio_add_device_list(char **device_list[], const char *psz_drive,
+                             unsigned int *i_drives);
+ 
+-  driver_return_code_t close_tray_bsdi    (const char *psz_drive);
+-  driver_return_code_t close_tray_freebsd (const char *psz_drive);
+-  driver_return_code_t close_tray_linux   (const char *psz_drive);
+-  driver_return_code_t close_tray_netbsd  (const char *psz_drive);
+-  driver_return_code_t close_tray_os2     (const char *psz_drive);
+-  driver_return_code_t close_tray_osx     (const char *psz_drive);
+-  driver_return_code_t close_tray_solaris (const char *psz_drive);
+   driver_return_code_t close_tray_win32   (const char *psz_drive);
+ 
+-  bool cdio_have_netbsd(void);
+-  CdIo_t * cdio_open_netbsd (const char *psz_source);
+-  char * cdio_get_default_device_netbsd(void);
+-  char **cdio_get_devices_netbsd(void);
+-  /*! Set up CD-ROM for reading using the NetBSD driver. The device_name is
+-      the some sort of device name.
+-
+-     NULL is returned on error or there is no FreeBSD driver.
+-
+-     @see cdio_open_cd, cdio_open
+-   */
+-  CdIo_t * cdio_open_am_netbsd (const char *psz_source,
+-                                const char *psz_access_mode);
+-
+-  /*! DEPRICATED: use cdio_have_driver().
+-    True if AIX driver is available. */
+-  bool cdio_have_aix    (void);
+-
+-  /*! DEPRICATED: use cdio_have_driver().
+-    True if BSDI driver is available. */
+-  bool cdio_have_bsdi    (void);
+-
+-  /*! DEPRICATED: use cdio_have_driver().
+-    True if FreeBSD driver is available. */
+-  bool cdio_have_freebsd (void);
+-
+-  /*! DEPRICATED: use cdio_have_driver().
+-    True if GNU/Linux driver is available. */
+-  bool cdio_have_linux   (void);
+-
+-  /*! DEPRICATED: use cdio_have_driver().
+-    True if Sun Solaris driver is available. */
+-  bool cdio_have_solaris (void);
+-
+-  /*! DEPRICATED: use cdio_have_driver().
+-    True if IBM OS2 driver is available. */
+-  bool cdio_have_os2     (void);
+-
+-  /*! DEPRICATED: use cdio_have_driver().
+-    True if Apple OSX driver is available. */
+-  bool cdio_have_osx     (void);
+ 
+   /*! DEPRICATED: use cdio_have_driver().
+     True if Microsoft Windows driver is available. */
+diff --git a/lib/driver/device.c b/lib/driver/device.c
+index eb9fa9c..def08d9 100644
+--- a/lib/driver/device.c
++++ b/lib/driver/device.c
+@@ -108,111 +108,7 @@ CdIo_driver_t CdIo_all_drivers[] = {
+    NULL,
+    NULL
+   },
+-
+-  {DRIVER_AIX,
+-   CDIO_SRC_IS_DEVICE_MASK|CDIO_SRC_IS_NATIVE_MASK|CDIO_SRC_IS_SCSI_MASK,
+-   "AIX",
+-   "AIX SCSI driver",
+-   &cdio_have_aix,
+-   &cdio_open_aix,
+-   &cdio_open_am_aix,
+-   &cdio_get_default_device_aix,
+-   &cdio_is_device_generic,
+-   &cdio_get_devices_aix,
+-   NULL
+-  },
+-
+-  {DRIVER_BSDI,
+-   CDIO_SRC_IS_DEVICE_MASK|CDIO_SRC_IS_NATIVE_MASK|CDIO_SRC_IS_SCSI_MASK,
+-   "BSDI",
+-   "BSDI ATAPI and SCSI driver",
+-   &cdio_have_bsdi,
+-   &cdio_open_bsdi,
+-   &cdio_open_am_bsdi,
+-   &cdio_get_default_device_bsdi,
+-   &cdio_is_device_generic,
+-   &cdio_get_devices_bsdi,
+-   &close_tray_bsdi
+-  },
+-
+-  {DRIVER_FREEBSD,
+-   CDIO_SRC_IS_DEVICE_MASK|CDIO_SRC_IS_NATIVE_MASK|CDIO_SRC_IS_SCSI_MASK,
+-   "FreeBSD",
+-   "FreeBSD driver",
+-   &cdio_have_freebsd,
+-   &cdio_open_freebsd,
+-   &cdio_open_am_freebsd,
+-   &cdio_get_default_device_freebsd,
+-   &cdio_is_device_generic,
+-   &cdio_get_devices_freebsd,
+-   &close_tray_freebsd
+-  },
+-
+-  {DRIVER_NETBSD,
+-   CDIO_SRC_IS_DEVICE_MASK|CDIO_SRC_IS_NATIVE_MASK|CDIO_SRC_IS_SCSI_MASK,
+-   "NetBSD",
+-   "NetBSD driver",
+-   &cdio_have_netbsd,
+-   &cdio_open_netbsd,
+-   &cdio_open_am_netbsd,
+-   &cdio_get_default_device_netbsd,
+-   &cdio_is_device_generic,
+-   &cdio_get_devices_netbsd,
+-   &close_tray_netbsd
+-  },
+-
+-  {DRIVER_LINUX,
+-   CDIO_SRC_IS_DEVICE_MASK|CDIO_SRC_IS_NATIVE_MASK,
+-   "GNU/Linux",
+-   "GNU/Linux ioctl and MMC driver",
+-   &cdio_have_linux,
+-   &cdio_open_linux,
+-   &cdio_open_am_linux,
+-   &cdio_get_default_device_linux,
+-   &cdio_is_device_generic,
+-   &cdio_get_devices_linux,
+-   &close_tray_linux
+-  },
+-
+-  {DRIVER_SOLARIS,
+-   CDIO_SRC_IS_DEVICE_MASK|CDIO_SRC_IS_NATIVE_MASK|CDIO_SRC_IS_SCSI_MASK,
+-   "Solaris",
+-   "Solaris ATAPI and SCSI driver",
+-   &cdio_have_solaris,
+-   &cdio_open_solaris,
+-   &cdio_open_am_solaris,
+-   &cdio_get_default_device_solaris,
+-   &cdio_is_device_generic,
+-   &cdio_get_devices_solaris,
+-   &close_tray_solaris
+-  },
+-
+-  {DRIVER_OS2,
+-   CDIO_SRC_IS_DEVICE_MASK|CDIO_SRC_IS_NATIVE_MASK|CDIO_SRC_IS_SCSI_MASK,
+-   "OS2",
+-   "IBM OS/2 driver",
+-   &cdio_have_os2,
+-   &cdio_open_os2,
+-   &cdio_open_am_os2,
+-   &cdio_get_default_device_os2,
+-   &cdio_is_device_os2,
+-   &cdio_get_devices_os2,
+-   &close_tray_os2
+-  },
+-
+-  {DRIVER_OSX,
+-   CDIO_SRC_IS_DEVICE_MASK|CDIO_SRC_IS_NATIVE_MASK|CDIO_SRC_IS_SCSI_MASK,
+-   "OS X",
+-   "Apple Darwin OS X driver",
+-   &cdio_have_osx,
+-   &cdio_open_osx,
+-   &cdio_open_am_osx,
+-   &cdio_get_default_device_osx,
+-   &cdio_is_device_generic,
+-   &cdio_get_devices_osx,
+-   &close_tray_osx
+-  },
+-
++#if HAVE_WIN32_CDROM
+   {DRIVER_WIN32,
+    CDIO_SRC_IS_DEVICE_MASK|CDIO_SRC_IS_NATIVE_MASK|CDIO_SRC_IS_SCSI_MASK,
+    "WIN32",
+@@ -225,7 +121,7 @@ CdIo_driver_t CdIo_all_drivers[] = {
+    &cdio_get_devices_win32,
+    &close_tray_win32
+   },
+-
++#endif
+   {DRIVER_CDRDAO,
+    CDIO_SRC_IS_DISK_IMAGE_MASK,
+    "CDRDAO",
+@@ -274,14 +170,6 @@ CdIo_driver_t CdIo_driver[sizeof(CdIo_all_drivers)/sizeof(CdIo_all_drivers[0])-1
+   {0, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL} };
+ 
+ const driver_id_t cdio_drivers[] = {
+-  DRIVER_AIX,
+-  DRIVER_BSDI,
+-  DRIVER_FREEBSD,
+-  DRIVER_NETBSD,
+-  DRIVER_LINUX,
+-  DRIVER_SOLARIS,
+-  DRIVER_OS2,
+-  DRIVER_OSX,
+   DRIVER_WIN32,
+   DRIVER_CDRDAO,
+   DRIVER_BINCUE,
+@@ -290,14 +178,6 @@ const driver_id_t cdio_drivers[] = {
+ };
+ 
+ const driver_id_t cdio_device_drivers[] = {
+-  DRIVER_AIX,
+-  DRIVER_BSDI,
+-  DRIVER_FREEBSD,
+-  DRIVER_NETBSD,
+-  DRIVER_LINUX,
+-  DRIVER_SOLARIS,
+-  DRIVER_OS2,
+-  DRIVER_OSX,
+   DRIVER_WIN32,
+   DRIVER_UNKNOWN
+ };
+@@ -994,15 +874,7 @@ cdio_open_am (const char *psz_orig_source, driver_id_t driver_id,
+       return ret;
+     }
+     break;
+-  case DRIVER_AIX:
+-  case DRIVER_BSDI:
+-  case DRIVER_FREEBSD:
+-  case DRIVER_LINUX:
+-  case DRIVER_NETBSD:
+-  case DRIVER_SOLARIS:
+   case DRIVER_WIN32:
+-  case DRIVER_OSX:
+-  case DRIVER_OS2:
+   case DRIVER_NRG:
+   case DRIVER_BINCUE:
+   case DRIVER_CDRDAO:
+diff --git a/lib/driver/disc.c b/lib/driver/disc.c
+index 9ae0193..78c4bf5 100644
+--- a/lib/driver/disc.c
++++ b/lib/driver/disc.c
+@@ -61,7 +61,7 @@ const char *discmode2str[] = {
+   or CD-TEXT information does not exist.
+ */
+ cdtext_t *
+-cdio_get_cdtext (CdIo *obj)
++cdio_get_cdtext (CdIo_t *obj)
+ {
+   if (obj == NULL) return NULL;
+   
+@@ -81,7 +81,7 @@ cdio_get_cdtext (CdIo *obj)
+   must be freed with cdio_free() when done with it and not NULL.
+ */
+ uint8_t *
+-cdio_get_cdtext_raw (CdIo *obj)
++cdio_get_cdtext_raw (CdIo_t *obj)
+ {
+   if (obj == NULL) return NULL;
+ 
+diff --git a/lib/driver/generic.h b/lib/driver/generic.h
+index 8069ad5..44264a0 100644
+--- a/lib/driver/generic.h
++++ b/lib/driver/generic.h
+@@ -29,6 +29,7 @@
+ #include <cdio/cdio.h>
+ #include <cdio/cdtext.h>
+ #include <cdio/iso9660.h>
++#include <driver/cdio_private.h>
+ 
+ #ifdef HAVE_STDBOOL_H
+ # include <stdbool.h>
+@@ -44,7 +45,7 @@ extern "C" {
+     we facilitate writing generic routines and even cut-and-paste
+     code.
+    */
+-  typedef struct {
++  typedef struct _generic_img_private_t {
+     char *source_name;      /**< Name used in open. */
+     bool  init;             /**< True if structure has been initialized */
+     bool  toc_init;         /**< True if TOC read in */
+@@ -93,14 +94,14 @@ extern "C" {
+     Bogus eject media when there is no ejectable media, e.g. a disk image
+     We always return 2. Should we also free resources?
+   */
+-  driver_return_code_t cdio_generic_unimplemented_eject_media (void *p_env);
++  CDIO_EXTERN driver_return_code_t cdio_generic_unimplemented_eject_media (void *p_env);
+ 
+   /*!
+     Set the blocksize for subsequent reads.
+ 
+     @return -2 since it's not implemented.
+   */
+-  driver_return_code_t
++  CDIO_EXTERN driver_return_code_t
+   cdio_generic_unimplemented_set_blocksize (void *p_user_data,
+                                             uint16_t i_blocksize);
+ 
+@@ -109,50 +110,50 @@ extern "C" {
+ 
+     @return -2 since it's not implemented.
+   */
+-  driver_return_code_t cdio_generic_unimplemented_set_speed (void *p_user_data,
++  CDIO_EXTERN driver_return_code_t cdio_generic_unimplemented_set_speed (void *p_user_data,
+                                                              int i_speed);
+ 
+   /*!
+     Release and free resources associated with cd.
+   */
+-  void cdio_generic_free (void *p_env);
++  CDIO_EXTERN void cdio_generic_free (void *p_env);
+ 
+   /*!
+     Initialize CD device.
+   */
+-  bool cdio_generic_init (void *p_env, int open_mode);
++  CDIO_EXTERN bool cdio_generic_init (void *p_env, int open_mode);
+ 
+   /*!
+     Reads into buf the next size bytes.
+     Returns -1 on error.
+     Is in fact libc's read().
+   */
+-  off_t cdio_generic_lseek (void *p_env, off_t offset, int whence);
++  CDIO_EXTERN off_t cdio_generic_lseek (void *p_env, off_t offset, int whence);
+ 
+   /*!
+     Reads into buf the next size bytes.
+     Returns -1 on error.
+     Is in fact libc's read().
+   */
+-  ssize_t cdio_generic_read (void *p_env, void *p_buf, size_t size);
++  CDIO_EXTERN ssize_t cdio_generic_read (void *p_env, void *p_buf, size_t size);
+ 
+   /*!
+     Reads a single form1 sector from cd device into data starting
+     from lsn. Returns 0 if no error.
+   */
+-  int cdio_generic_read_form1_sector (void * user_data, void *data,
++  CDIO_EXTERN int cdio_generic_read_form1_sector (void * user_data, void *data,
+                                       lsn_t lsn);
+ 
+   /*!
+     Release and free resources associated with stream or disk image.
+   */
+-  void cdio_generic_stdio_free (void *env);
++  CDIO_EXTERN void cdio_generic_stdio_free (void *env);
+ 
+   /*!
+     Return true if source_name could be a device containing a CD-ROM on
+     Win32
+   */
+-  bool cdio_is_device_win32(const char *source_name);
++  CDIO_EXTERN bool cdio_is_device_win32(const char *source_name);
+ 
+   /*!
+     Return true if source_name could be a device containing a CD-ROM on
+@@ -165,13 +166,13 @@ extern "C" {
+     Return true if source_name could be a device containing a CD-ROM on
+     most Unix servers with block and character devices.
+   */
+-  bool cdio_is_device_generic(const char *source_name);
++  CDIO_EXTERN bool cdio_is_device_generic(const char *source_name);
+ 
+ 
+   /*!
+     Like above, but don't give a warning device doesn't exist.
+   */
+-  bool cdio_is_device_quiet_generic(const char *source_name);
++  CDIO_EXTERN bool cdio_is_device_quiet_generic(const char *source_name);
+ 
+   /*!
+     Get cdtext information for a CdIo object .
+@@ -180,39 +181,39 @@ extern "C" {
+     @return the CD-TEXT object or NULL if obj is NULL
+     or CD-TEXT information does not exist.
+   */
+-  cdtext_t *get_cdtext_generic (void *p_user_data);
++  CDIO_EXTERN cdtext_t *get_cdtext_generic (void *p_user_data);
+ 
+   /*!
+     Return the number of of the first track.
+     CDIO_INVALID_TRACK is returned on error.
+   */
+-  track_t get_first_track_num_generic(void *p_user_data);
++  CDIO_EXTERN track_t get_first_track_num_generic(void *p_user_data);
+ 
+   /*!
+     Return the number of tracks in the current medium.
+   */
+-  track_t get_num_tracks_generic(void *p_user_data);
++  CDIO_EXTERN track_t get_num_tracks_generic(void *p_user_data);
+ 
+   /*!
+     Get disc type associated with cd object.
+   */
+-  discmode_t get_discmode_generic (void *p_user_data );
++  CDIO_EXTERN discmode_t get_discmode_generic (void *p_user_data );
+ 
+   /*!
+     Same as above but only handles CD cases
+   */
+-  discmode_t get_discmode_cd_generic (void *p_user_data );
++  CDIO_EXTERN discmode_t get_discmode_cd_generic (void *p_user_data );
+ 
+   /*! Return number of channels in track: 2 or 4; -2 if not
+     implemented or -1 for error.
+     Not meaningful if track is not an audio track.
+   */
+-  int  get_track_channels_generic(const void *p_user_data, track_t i_track);
++  CDIO_EXTERN int  get_track_channels_generic(const void *p_user_data, track_t i_track);
+ 
+   /*! Return 1 if copy is permitted on the track, 0 if not, or -1 for error.
+     Is this meaningful if not an audio track?
+   */
+-  track_flag_t get_track_copy_permit_generic(void *p_user_data,
++  CDIO_EXTERN track_flag_t get_track_copy_permit_generic(void *p_user_data,
+                                              track_t i_track);
+ 
+   /*! Return 1 if track has pre-emphasis, 0 if not, or -1 for error.
+@@ -220,7 +221,7 @@ extern "C" {
+ 
+     pre-emphasis is a non linear frequency response.
+   */
+-  track_flag_t get_track_preemphasis_generic(const void *p_user_data,
++  CDIO_EXTERN track_flag_t get_track_preemphasis_generic(const void *p_user_data,
+                                              track_t i_track);
+ 
+   /*!
+@@ -229,12 +230,12 @@ extern "C" {
+     return true on success, false on error or CD-Text information does
+     not exist.
+   */
+-  uint8_t * read_cdtext_generic (void *p_env);
++  CDIO_EXTERN uint8_t * read_cdtext_generic (void *p_env);
+ 
+-  void set_track_flags(track_flags_t *p_track_flag, uint8_t flag);
++  CDIO_EXTERN void set_track_flags(track_flags_t *p_track_flag, uint8_t flag);
+ 
+   /*! Read mode 1 or mode2 sectors (using cooked mode).  */
+-  driver_return_code_t read_data_sectors_generic (void *p_user_data,
++  CDIO_EXTERN driver_return_code_t read_data_sectors_generic (void *p_user_data,
+                                                   void *p_buf, lsn_t i_lsn,
+                                                   uint16_t i_blocksize,
+                                                   uint32_t i_blocks);
+diff --git a/lib/driver/image/bincue.c b/lib/driver/image/bincue.c
+index df93c3d..c7fa629 100644
+--- a/lib/driver/image/bincue.c
++++ b/lib/driver/image/bincue.c
+@@ -23,12 +23,6 @@
+    residing inside a disk file (*.bin) and its associated cue sheet.
+    (*.cue).
+ */
+-#include "portable.h"
+-#include "image.h"
+-#include "cdio_assert.h"
+-#include "cdio_private.h"
+-#include "cdtext_private.h"
+-#include "_cdio_stdio.h"
+ 
+ #include <cdio/logging.h>
+ #include <cdio/util.h>
+@@ -68,10 +62,14 @@
+ #include <cdio/utf8.h>
+ #include <cdio/version.h>
+ 
+-#include "image.h"
+-#include "cdio_assert.h"
+-#include "cdio_private.h"
+-#include "_cdio_stdio.h"
++#include <driver/image_common.h>
++#include <udf/udf_private.h>
++#include <driver/image.h>
++#include <string.h>
++#include <driver/cdtext_private.h>
++
++#define WIN32_MEAN_AND_LEAN 1
++#include <windows.h>
+ 
+ /* reader */
+ 
+@@ -85,7 +83,7 @@
+ #endif
+ 
+ static lsn_t get_disc_last_lsn_bincue(void *p_user_data);
+-#include "image_common.h"
++#include <driver/image_common.h>
+ static bool parse_cuefile(_img_private_t *cd, const char *toc_name);
+ 
+ /*!
+@@ -996,27 +994,27 @@ static inline void Win32Glob(const char* pattern, const char* szCurPath, char **
+   HANDLE hFind;
+   BOOL bFound;
+ 
+-  SetCurrentDirectoryA(szCurPath);
++  SetCurrentDirectory(szCurPath);
+ 
+-  hFind = FindFirstFileA(pattern, &ffd);
++  hFind = FindFirstFile(pattern, &ffd);
+   bFound = (hFind != INVALID_HANDLE_VALUE);
+   while (bFound) {
+     cdio_add_device_list(drives, ffd.cFileName, num_files);
+-    bFound = FindNextFileA(hFind, &ffd);
++    bFound = FindNextFile(hFind, &ffd);
+   }
+   if (hFind != INVALID_HANDLE_VALUE)
+     FindClose(hFind);
+ 
+-  hFind = FindFirstFileA("*", &ffd);
++  hFind = FindFirstFile("*", &ffd);
+   bFound = (hFind != INVALID_HANDLE_VALUE);
+   while (bFound) {
+     if ( (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
+          (strcmp(ffd.cFileName, ".") != 0) && (strcmp(ffd.cFileName, "..") != 0) ) {
+-      GetFullPathNameA(ffd.cFileName, sizeof(szPath), szPath, NULL);
++      GetFullPathName(ffd.cFileName, sizeof(szPath), szPath, NULL);
+       Win32Glob(pattern, szPath, drives, num_files);
+-      SetCurrentDirectoryA(szCurPath);
++      SetCurrentDirectory(szCurPath);
+     }
+-    bFound = FindNextFileA(hFind, &ffd);
++    bFound = FindNextFile(hFind, &ffd);
+   }
+   if (hFind != INVALID_HANDLE_VALUE)
+     FindClose(hFind);
+@@ -1042,7 +1040,7 @@ cdio_get_devices_bincue (void)
+   globfree(&globbuf);
+ #elif defined(_WIN32)
+   char szStartDir[MAX_PATH];
+-  GetCurrentDirectoryA(sizeof(szStartDir), szStartDir);
++  GetCurrentDirectory(sizeof(szStartDir), szStartDir);
+   Win32Glob("*.cue", szStartDir, &drives, &num_files);
+ #else
+   cdio_add_device_list(&drives, DEFAULT_CDIO_DEVICE, &num_files);
+diff --git a/lib/driver/image/cdrdao.c b/lib/driver/image/cdrdao.c
+index 0c27d49..3de6124 100644
+--- a/lib/driver/image/cdrdao.c
++++ b/lib/driver/image/cdrdao.c
+@@ -22,7 +22,6 @@
+    residing inside a disk file (*.bin) and its associated cue sheet.
+    (*.cue).
+ */
+-#include "portable.h"
+ 
+ #ifdef HAVE_LIMITS_H
+ #include <limits.h>
+@@ -60,9 +59,6 @@
+ #include <cdio/utf8.h>
+ #include <cdio/version.h>
+ 
+-#include "image.h"
+-#include "cdio_assert.h"
+-#include "_cdio_stdio.h"
+ 
+ /* reader */
+ 
+@@ -75,8 +71,12 @@
+ #define CDIO_FOPEN fopen
+ #endif
+ 
+-#include "image_common.h"
+-#include "cdtext_private.h"
++#include <driver/image_common.h>
++#include <cdio/disc.h>
++#include <driver/image.h>
++#include <udf_private.h>
++#include <string.h>
++#include <driver/cdtext_private.h>
+ 
+ static lsn_t get_disc_last_lsn_cdrdao (void *p_user_data);
+ static bool parse_tocfile (_img_private_t *cd, const char *p_toc_name);
+diff --git a/lib/driver/image/nrg.c b/lib/driver/image/nrg.c
+index 9e2eb48..a4249de 100644
+--- a/lib/driver/image/nrg.c
++++ b/lib/driver/image/nrg.c
+@@ -20,7 +20,7 @@
+    CD-image format residing inside a disk file (*.nrg).
+ */
+ 
+-#include "image.h"
++#include <driver/image.h>
+ 
+ #ifdef HAVE_STDIO_H
+ #include <stdio.h>
+@@ -46,10 +46,15 @@
+ #include <cdio/logging.h>
+ #include <cdio/util.h>
+ #include <cdio/version.h>
+-#include "cdio_assert.h"
+-#include "_cdio_stdio.h"
+ #include "nrg.h"
+-#include "cdtext_private.h"
++#include <cdio/track.h>
++#include <driver/image.h>
++#include <udf/udf_private.h>
++#include <driver/cdio_assert.h>
++#include <driver/cdtext_private.h>
++#include <stdio.h>
++#define WIN32_LEAN_AND_MEAN 1
++#include <windows.h>
+ 
+ nero_id_t    nero_id;
+ nero_dtype_t nero_dtype;
+@@ -70,7 +75,7 @@ typedef struct {
+ 
+ 
+ #define NEED_NERO_STRUCT
+-#include "image_common.h"
++#include <driver/image_common.h>
+ 
+ static bool  parse_nrg (_img_private_t *env, const char *psz_cue_name,
+ 			const cdio_log_level_t log_level);
+@@ -931,7 +936,7 @@ _read_audio_sectors_nrg (void *p_user_data, void *data, lsn_t lsn,
+   _CDIO_LIST_FOREACH (node, p_env->mapping) {
+     _mapping_t *_map = _cdio_list_node_data (node);
+ 
+-    if (IN (lsn, _map->start_lsn, (_map->start_lsn + _map->sec_count - 1))) {
++    if (BETWEEN (lsn, _map->start_lsn, (_map->start_lsn + _map->sec_count - 1))) {
+       int ret;
+       long int img_offset = _map->img_offset;
+ 
+@@ -972,7 +977,7 @@ _read_mode1_sector_nrg (void *p_user_data, void *data, lsn_t lsn,
+   _CDIO_LIST_FOREACH (node, p_env->mapping) {
+     _mapping_t *_map = _cdio_list_node_data (node);
+ 
+-    if (IN (lsn, _map->start_lsn, (_map->start_lsn + _map->sec_count - 1))) {
++    if (BETWEEN (lsn, _map->start_lsn, (_map->start_lsn + _map->sec_count - 1))) {
+       int ret;
+       long int img_offset = _map->img_offset;
+ 
+@@ -1043,7 +1048,7 @@ _read_mode2_sector_nrg (void *p_user_data, void *data, lsn_t lsn,
+   _CDIO_LIST_FOREACH (node, p_env->mapping) {
+     _mapping_t *_map = _cdio_list_node_data (node);
+ 
+-    if (IN (lsn, _map->start_lsn, (_map->start_lsn + _map->sec_count - 1))) {
++    if (BETWEEN (lsn, _map->start_lsn, (_map->start_lsn + _map->sec_count - 1))) {
+       int ret;
+       long int img_offset = _map->img_offset;
+ 
+@@ -1133,27 +1138,27 @@ static inline void Win32Glob(const char* pattern, const char* szCurPath, char **
+   HANDLE hFind;
+   BOOL bFound;
+ 
+-  SetCurrentDirectoryA(szCurPath);
++  SetCurrentDirectory(szCurPath);
+ 
+-  hFind = FindFirstFileA(pattern, &ffd);
++  hFind = FindFirstFile(pattern, &ffd);
+   bFound = (hFind != INVALID_HANDLE_VALUE);
+   while (bFound) {
+     cdio_add_device_list(drives, ffd.cFileName, num_files);
+-    bFound = FindNextFileA(hFind, &ffd);
++    bFound = FindNextFile(hFind, &ffd);
+   }
+   if (hFind != INVALID_HANDLE_VALUE)
+     FindClose(hFind);
+ 
+-  hFind = FindFirstFileA("*", &ffd);
++  hFind = FindFirstFile("*", &ffd);
+   bFound = (hFind != INVALID_HANDLE_VALUE);
+   while (bFound) {
+     if ( (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
+          (strcmp(ffd.cFileName, ".") != 0) && (strcmp(ffd.cFileName, "..") != 0) ) {
+-      GetFullPathNameA(ffd.cFileName, sizeof(szPath), szPath, NULL);
++      GetFullPathName(ffd.cFileName, sizeof(szPath), szPath, NULL);
+       Win32Glob(pattern, szPath, drives, num_files);
+-      SetCurrentDirectoryA(szCurPath);
++      SetCurrentDirectory(szCurPath);
+     }
+-    bFound = FindNextFileA(hFind, &ffd);
++    bFound = FindNextFile(hFind, &ffd);
+   }
+   if (hFind != INVALID_HANDLE_VALUE)
+     FindClose(hFind);
+@@ -1179,7 +1184,7 @@ cdio_get_devices_nrg (void)
+   globfree(&globbuf);
+ #elif defined(_WIN32)
+   char szStartDir[MAX_PATH];
+-  GetCurrentDirectoryA(sizeof(szStartDir), szStartDir);
++  GetCurrentDirectory(sizeof(szStartDir), szStartDir);
+   Win32Glob("*.nrg", szStartDir, &drives, &num_files);
+ #else
+   cdio_add_device_list(&drives, DEFAULT_CDIO_DEVICE, &num_files);
+diff --git a/lib/driver/image_common.h b/lib/driver/image_common.h
+index 3177b3f..bb02046 100644
+--- a/lib/driver/image_common.h
++++ b/lib/driver/image_common.h
+@@ -27,6 +27,9 @@
+ #ifndef CDIO_DRIVER_IMAGE_COMMON_H_
+ #define CDIO_DRIVER_IMAGE_COMMON_H_
+ 
++#include <driver/generic.h>
++#include <driver/image.h>
++
+ typedef struct {
+   /* Things common to all drivers like this. 
+      This must be first. */
+@@ -67,30 +70,30 @@ typedef struct {
+   We don't need the image any more. Free all memory associated with
+   it.
+  */
+-void  _free_image (void *p_user_data);
++CDIO_EXTERN void  _free_image (void *p_user_data);
+ 
+-int _eject_media_image(void *p_user_data);
++CDIO_EXTERN driver_return_code_t _eject_media_image(void *p_user_data);
+ 
+ /*!
+   Return the value associated with the key "arg".
+ */
+-const char * _get_arg_image (void *user_data, const char key[]);
++CDIO_EXTERN const char * _get_arg_image (void *user_data, const char key[]);
+ 
+ /*!
+   Return CD-Text object or NULL
+  */
+-cdtext_t * _get_cdtext_image(void *p_user_data);
++CDIO_EXTERN cdtext_t * _get_cdtext_image(void *p_user_data);
+ 
+ /*! 
+   Get disc type associated with cd_obj.
+ */
+-discmode_t _get_discmode_image (void *p_user_data);
++CDIO_EXTERN discmode_t _get_discmode_image (void *p_user_data);
+ 
+ /*!
+   Return the the kind of drive capabilities of device.
+ 
+  */
+-void _get_drive_cap_image (const void *user_data,
++CDIO_EXTERN void _get_drive_cap_image (const void *user_data,
+                            cdio_drive_read_cap_t  *p_read_cap,
+                            cdio_drive_write_cap_t *p_write_cap,
+                            cdio_drive_misc_cap_t  *p_misc_cap);
+@@ -99,7 +102,7 @@ void _get_drive_cap_image (const void *user_data,
+   Return the number of of the first track. 
+   CDIO_INVALID_TRACK is returned on error.
+ */
+-track_t _get_first_track_num_image(void *p_user_data);
++CDIO_EXTERN track_t _get_first_track_num_image(void *p_user_data);
+ 
+ /*! 
+   Find out if media has changed since the last call.
+@@ -108,7 +111,7 @@ track_t _get_first_track_num_image(void *p_user_data);
+   return codes are the same as driver_return_code_t
+   We always return DRIVER_OP_UNSUPPORTED.
+  */
+-int get_media_changed_image(const void *p_user_data);
++CDIO_EXTERN int get_media_changed_image(const void *p_user_data);
+ 
+ /*!
+   Return the media catalog number (MCN) from the CD or NULL if there
+@@ -117,12 +120,12 @@ int get_media_changed_image(const void *p_user_data);
+   Note: string is malloc'd so caller has to free() the returned
+   string when done with it.
+   */
+-char * _get_mcn_image(const void *p_user_data);
++CDIO_EXTERN char * _get_mcn_image(const void *p_user_data);
+ 
+ /*!
+   Return the number of tracks. 
+ */
+-track_t _get_num_tracks_image(void *p_user_data);
++CDIO_EXTERN track_t _get_num_tracks_image(void *p_user_data);
+ 
+ 
+ /*!  
+@@ -132,32 +135,32 @@ track_t _get_num_tracks_image(void *p_user_data);
+   using track_num LEADOUT_TRACK or the total tracks+1.
+ 
+ */
+-bool _get_track_msf_image(void *p_user_data, track_t i_track, msf_t *msf);
++CDIO_EXTERN bool _get_track_msf_image(void *p_user_data, track_t i_track, msf_t *msf);
+ 
+ /*! Return number of channels in track: 2 or 4; -2 if not
+   implemented or -1 for error.
+   Not meaningful if track is not an audio track.
+ */
+-int get_track_channels_image(const void *p_user_data, track_t i_track);
++CDIO_EXTERN int get_track_channels_image(const void *p_user_data, track_t i_track);
+ 
+ /*! Return 1 if copy is permitted on the track, 0 if not, or -1 for error.
+   Is this meaningful if not an audio track?
+ */
+-track_flag_t get_track_copy_permit_image(void *p_user_data, track_t i_track);
++CDIO_EXTERN track_flag_t get_track_copy_permit_image(void *p_user_data, track_t i_track);
+ 
+ /*! Return 1 if track has pre-emphasis, 0 if not, or -1 for error.
+   Is this meaningful if not an audio track?
+   
+   pre-emphasis is a non linear frequency response.
+ */
+-track_flag_t get_track_preemphasis_image(const void *p_user_data, 
++CDIO_EXTERN track_flag_t get_track_preemphasis_image(const void *p_user_data, 
+                                          track_t i_track);
+ 
+ /*! Return the starting LBA for the pregap for track number i_track.
+   Track numbers start at 1.
+   CDIO_INVALID_LBA is returned on error.
+ */
+-lba_t get_track_pregap_lba_image(const void *p_user_data, track_t i_track);
++CDIO_EXTERN lba_t get_track_pregap_lba_image(const void *p_user_data, track_t i_track);
+ 
+ /*!
+   Return the International Standard Recording Code (ISRC) for track number
+@@ -166,7 +169,7 @@ lba_t get_track_pregap_lba_image(const void *p_user_data, track_t i_track);
+   Note: string is malloc'd so caller has to free() the returned
+   string when done with it.
+ */
+-char *get_track_isrc_image(const void *p_user_data, track_t i_track);
++CDIO_EXTERN char *get_track_isrc_image(const void *p_user_data, track_t i_track);
+ 
+ /*!
+   Read a data sector
+@@ -188,7 +191,7 @@ char *get_track_isrc_image(const void *p_user_data, track_t i_track);
+   @param i_blocks number of blocks to read.
+ 
+   */
+-driver_return_code_t 
++CDIO_EXTERN driver_return_code_t 
+ read_data_sectors_image ( void *p_user_data, void *p_buf, 
+                           lsn_t i_lsn,  uint16_t i_blocksize,
+                           uint32_t i_blocks );
+@@ -200,6 +203,6 @@ read_data_sectors_image ( void *p_user_data, void *p_buf,
+ 
+   0 is returned if no error was found, and nonzero if there as an error.
+ */
+-int _set_arg_image (void *user_data, const char key[], const char value[]);
++CDIO_EXTERN int _set_arg_image (void *user_data, const char key[], const char value[]);
+ 
+ #endif /* CDIO_DRIVER_IMAGE_COMMON_H_ */
+diff --git a/lib/driver/logging.c b/lib/driver/logging.c
+index b89ab37..f590298 100644
+--- a/lib/driver/logging.c
++++ b/lib/driver/logging.c
+@@ -136,11 +136,11 @@ cdio_log(cdio_log_level_t level, const char format[], ...)
+ 
+ #define CDIO_LOG_TEMPLATE(level, LEVEL) \
+ void \
+-cdio_ ## level (const char format[], ...) \
++cdio_##level (const char format[], ...) \
+ { \
+   va_list args; \
+   va_start (args, format); \
+-  cdio_logv (CDIO_LOG_ ## LEVEL, format, args); \
++  cdio_logv (CDIO_LOG_##LEVEL, format, args); \
+   va_end (args); \
+ }
+ 
+diff --git a/lib/driver/mmc/mmc.c b/lib/driver/mmc/mmc.c
+index 4d04d50..d6059d1 100644
+--- a/lib/driver/mmc/mmc.c
++++ b/lib/driver/mmc/mmc.c
+@@ -176,7 +176,7 @@ const char
+     return "BLANK";
+ 
+   case CDIO_MMC_GPCMD_SECURITY_PROTOCOL_IN:
+-    return "SECURITY PROTOCOL IN";
++    return "SECURITY PROTOCOL BETWEEN";
+ 
+   case CDIO_MMC_GPCMD_SEND_KEY:
+     return "SEND KEY";
+diff --git a/lib/driver/mmc/mmc_private.h b/lib/driver/mmc/mmc_private.h
+index c794765..08252a2 100644
+--- a/lib/driver/mmc/mmc_private.h
++++ b/lib/driver/mmc/mmc_private.h
+@@ -16,17 +16,15 @@
+ */
+ 
+ #include <cdio/mmc.h>
++#include <cdio/device.h>
+ 
+ /*! Convert milliseconds to seconds taking the ceiling value, i.e.
+     1002 milliseconds gets rounded to 2 seconds.
+ */
+-#define SECS2MSECS 1000
+-static inline unsigned int 
+-msecs2secs(unsigned int msecs) 
+-{
+-  return (msecs+(SECS2MSECS-1)) / SECS2MSECS;
+-}
+-#undef SECS2MSECS
++//#define SECS2MSECS 1000
++//static __inline unsigned int 
++#define msecs2secs(msecs) ((msecs+(1000-1)) / 1000)
++//#undef SECS2MSECS
+ 
+ /***********************************************************
+   MMC CdIo Operations which a driver may use. 
+@@ -38,7 +36,7 @@ msecs2secs(unsigned int msecs)
+   @param p_user_data the CD object to be acted upon.
+   
+ */
+-driver_return_code_t
++CDIO_EXTERN driver_return_code_t
+ audio_read_subchannel_mmc ( void *p_user_data, 
+ 			    cdio_subchannel_t *p_subchannel);
+ 
+@@ -46,26 +44,26 @@ audio_read_subchannel_mmc ( void *p_user_data,
+   Get the block size for subsequest read requests, via a SCSI MMC 
+   MODE_SENSE 6 command.
+ */
+-int get_blocksize_mmc (void *p_user_data);
++CDIO_EXTERN int get_blocksize_mmc (void *p_user_data);
+ 
+ /*!  
+   Get the lsn of the end of the CD
+   
+   @return the lsn. On error return CDIO_INVALID_LSN.
+ */
+-lsn_t get_disc_last_lsn_mmc( void *p_user_data );
++CDIO_EXTERN lsn_t get_disc_last_lsn_mmc( void *p_user_data );
+   
+-void get_drive_cap_mmc (const void *p_user_data,
++CDIO_EXTERN void get_drive_cap_mmc (const void *p_user_data,
+ 			/*out*/ cdio_drive_read_cap_t  *p_read_cap,
+ 			/*out*/ cdio_drive_write_cap_t *p_write_cap,
+ 			/*out*/ cdio_drive_misc_cap_t  *p_misc_cap);
+ 
+-int get_media_changed_mmc (const void *p_user_data);
++CDIO_EXTERN int get_media_changed_mmc (const void *p_user_data);
+ 
+-char *get_mcn_mmc (const void *p_user_data);
+-char *get_track_isrc_mmc (const void *p_user_data, track_t i_track);
++CDIO_EXTERN char *get_mcn_mmc (const void *p_user_data);
++CDIO_EXTERN char *get_track_isrc_mmc (const void *p_user_data, track_t i_track);
+ 
+-driver_return_code_t get_tray_status (const void *p_user_data);
++CDIO_EXTERN driver_return_code_t get_tray_status (const void *p_user_data);
+ 
+ /*! Read just the user data part of some sort of data sector (via 
+     mmc_read_cd). 
+@@ -85,21 +83,21 @@ driver_return_code_t get_tray_status (const void *p_user_data);
+     M2RAW_SECTOR_SIZE, or M2F2_SECTOR_SIZE. See comment above under p_buf.
+ 
+ */
+-driver_return_code_t read_data_sectors_mmc ( void *p_user_data, 
++CDIO_EXTERN driver_return_code_t read_data_sectors_mmc ( void *p_user_data, 
+ 					     void *p_buf,  lsn_t i_lsn,
+ 					     uint16_t i_blocksize,
+ 					     uint32_t i_blocks );
+-char *get_mcn_mmc (const void *p_user_data);
++CDIO_EXTERN char *get_mcn_mmc (const void *p_user_data);
+ 
+ /* Set read blocksize (via MMC) */
+-driver_return_code_t set_blocksize_mmc (void *p_user_data, 
++CDIO_EXTERN driver_return_code_t set_blocksize_mmc (void *p_user_data, 
+ 					uint16_t i_blocksize);
+ 
+ /* Set the drive speed in CD-ROM speed units (via MMC). */
+-driver_return_code_t set_drive_speed_mmc (void *p_user_data, int i_speed);
++CDIO_EXTERN driver_return_code_t set_drive_speed_mmc (void *p_user_data, int i_speed);
+ 
+ /* Set CD-ROM drive speed  in K bytes per second. (via MMC) */
+-driver_return_code_t set_speed_mmc (void *p_user_data, int i_Kbs_speed);
++CDIO_EXTERN driver_return_code_t set_speed_mmc (void *p_user_data, int i_Kbs_speed);
+ 
+ /***********************************************************
+   Miscellaenous other "private" routines. Probably need
+@@ -114,14 +112,14 @@ typedef driver_return_code_t (*mmc_run_cmd_fn_t)
+        cdio_mmc_direction_t e_direction, 
+        unsigned int i_buf, /*in/out*/ void *p_buf );
+ 			     
+-int mmc_set_blocksize_mmc_private ( const void *p_env, const
++CDIO_EXTERN int mmc_set_blocksize_mmc_private ( const void *p_env, const
+ 				    mmc_run_cmd_fn_t run_mmc_cmd,
+ 				    uint16_t i_blocksize );
+ 
+ /*! 
+   Get the DVD type associated with cd object.
+ */
+-discmode_t 
++CDIO_EXTERN discmode_t 
+ mmc_get_dvd_struct_physical_private ( void *p_env,
+ 				      mmc_run_cmd_fn_t run_mmc_cmd, 
+ 				      cdio_dvd_struct_t *s );
+@@ -131,12 +129,12 @@ mmc_get_dvd_struct_physical_private ( void *p_env,
+   in p. We interpret this and return a bit mask set according to the 
+   capabilities.
+  */
+-void mmc_get_drive_cap_buf(const uint8_t *p,
++CDIO_EXTERN void mmc_get_drive_cap_buf(const uint8_t *p,
+ 			   /*out*/ cdio_drive_read_cap_t  *p_read_cap,
+ 			   /*out*/ cdio_drive_write_cap_t *p_write_cap,
+ 			   /*out*/ cdio_drive_misc_cap_t  *p_misc_cap);
+ 
+-driver_return_code_t
++CDIO_EXTERN driver_return_code_t
+ mmc_set_blocksize_private ( void *p_env, 
+ 			    const mmc_run_cmd_fn_t run_mmc_cmd, 
+ 			    uint16_t i_blocksize);
+@@ -147,7 +145,7 @@ mmc_set_blocksize_private ( void *p_env,
+   Note: string is malloc'd so caller should free() then returned
+   string when done with it.
+  */
+-char *
++CDIO_EXTERN char *
+ mmc_get_mcn_isrc_private ( const CdIo_t *p_cdio,
+                             track_t i_track,
+                             unsigned char sub_chan_param
+diff --git a/lib/driver/portable.h b/lib/driver/portable.h
+index 8b0ad7b..6e4079c 100644
+--- a/lib/driver/portable.h
++++ b/lib/driver/portable.h
+@@ -37,13 +37,13 @@
+ 
+ #if !defined(HAVE_SNPRINTF)
+ # if defined (_MSC_VER)
+-#  define snprintf _snprintf
++//#  define snprintf _snprintf
+ # endif
+ #endif /*HAVE_SNPRINTF*/
+ 
+ #if !defined(HAVE_VSNPRINTF)
+ # if defined (_MSC_VER)
+-#  define vsnprintf _vsnprintf
++//#  define vsnprintf _vsnprintf
+ # endif
+ #endif /*HAVE_SNPRINTF*/
+ 
+diff --git a/lib/iso9660/iso9660.c b/lib/iso9660/iso9660.c
+index 009a88b..cc5e50c 100644
+--- a/lib/iso9660/iso9660.c
++++ b/lib/iso9660/iso9660.c
+@@ -21,11 +21,11 @@
+     Note should come *before* #include <cdio/iso9660.h> which does
+     a #define of this name.
+ */
++#include <driver/cdio_assert.h>
+ const char ISO_STANDARD_ID[] = {'C', 'D', '0', '0', '1'};
+ 
+ /* Private headers */
+ #include "iso9660_private.h"
+-#include "cdio_assert.h"
+ 
+ /* Public headers */
+ #include <cdio/bytesex.h>
+@@ -551,9 +551,9 @@ iso9660_strncpy_pad(char dst[], const char src[], size_t len,
+ bool
+ iso9660_is_dchar (int c)
+ {
+-  if (!IN (c, 0x30, 0x5f)
+-      || IN (c, 0x3a, 0x40)
+-      || IN (c, 0x5b, 0x5e))
++  if (!BETWEEN (c, 0x30, 0x5f)
++      || BETWEEN (c, 0x3a, 0x40)
++      || BETWEEN (c, 0x5b, 0x5e))
+     return false;
+ 
+   return true;
+@@ -568,10 +568,10 @@ iso9660_is_dchar (int c)
+ bool
+ iso9660_is_achar (int c)
+ {
+-  if (!IN (c, 0x20, 0x5f)
+-      || IN (c, 0x23, 0x24)
++  if (!BETWEEN (c, 0x20, 0x5f)
++      || BETWEEN (c, 0x23, 0x24)
+       || c == 0x40
+-      || IN (c, 0x5b, 0x5e))
++      || BETWEEN (c, 0x5b, 0x5e))
+     return false;
+ 
+   return true;
+diff --git a/lib/iso9660/iso9660_fs.c b/lib/iso9660/iso9660_fs.c
+index 4b7e92b..ae1e197 100644
+--- a/lib/iso9660/iso9660_fs.c
++++ b/lib/iso9660/iso9660_fs.c
+@@ -49,9 +49,9 @@
+ #include <cdio/utf8.h>
+ 
+ /* Private headers */
+-#include "cdio_assert.h"
+-#include "_cdio_stdio.h"
+-#include "cdio_private.h"
++#include <driver/cdio_private.h>
++#include <udf/udf_private.h>
++#include <driver/cdio_assert.h>
+ 
+ /** Implementation of iso9660_t type */
+ struct _iso9660_s {
+diff --git a/lib/iso9660/rock.c b/lib/iso9660/rock.c
+index 00a22e8..cf784ad 100644
+--- a/lib/iso9660/rock.c
++++ b/lib/iso9660/rock.c
+@@ -37,7 +37,7 @@
+ #include <cdio/iso9660.h>
+ #include <cdio/logging.h>
+ #include <cdio/bytesex.h>
+-#include "filemode.h"
++#include <driver/filemode.h>
+ 
+ #define CDIO_MKDEV(ma,mi)	((ma)<<16 | (mi))
+ 
+diff --git a/lib/iso9660/xa.c b/lib/iso9660/xa.c
+index 93bf634..a83a443 100644
+--- a/lib/iso9660/xa.c
++++ b/lib/iso9660/xa.c
+@@ -29,6 +29,8 @@
+ #ifdef HAVE_SYS_STAT_H
+ #include <sys/stat.h>
+ #endif
++#include <driver/cdio_assert.h>
++#include <driver/filemode.h>
+ 
+ /*! String inside frame which identifies XA attributes.  Note should
+     come *before* public headers which does a #define of
+@@ -42,8 +44,6 @@ const char ISO_XA_MARKER_STRING[] = {'C', 'D', '-', 'X', 'A', '0', '0', '1'};
+ #include <cdio/bytesex.h>
+ 
+ /* Private headers */
+-#include "cdio_assert.h"
+-#include "filemode.h"
+ 
+ /** The below variable is trickery to force enum symbol values to be
+     recorded in debug symbol tables. It is used to allow one to refer
+diff --git a/lib/udf/filemode.c b/lib/udf/filemode.c
+index de6a621..be4c5bb 100644
+--- a/lib/udf/filemode.c
++++ b/lib/udf/filemode.c
+@@ -28,7 +28,7 @@
+ #endif 
+ 
+ #include <cdio/udf.h>
+-#include "filemode.h"
++#include <driver/filemode.h>
+ 
+ 
+ /* Set the 's' and 't' flags in file attributes string CHARS,
+diff --git a/lib/udf/udf.c b/lib/udf/udf.c
+index bd8cb86..3db1530 100644
+--- a/lib/udf/udf.c
++++ b/lib/udf/udf.c
+@@ -20,15 +20,10 @@
+    say opensolaris. */
+ #include "udf_private.h"
+ #include <cdio/bytesex.h>
+-#include "filemode.h"
++#include <driver/filemode.h>
++#include <sys/stat.h>
+ 
+-#ifdef HAVE_STRING_H
+ # include <string.h>
+-#endif
+-
+-#ifdef HAVE_SYS_STAT_H
+-# include <sys/stat.h>
+-#endif
+ 
+ /** The below variables are trickery to force enum symbol values to be
+     recorded in debug symbol tables. They are used to allow one to refer
+diff --git a/lib/udf/udf_file.c b/lib/udf/udf_file.c
+index d969dcf..720079b 100644
+--- a/lib/udf/udf_file.c
++++ b/lib/udf/udf_file.c
+@@ -22,13 +22,8 @@
+ #include <cdio/bytesex.h>
+ #include "udf_fs.h"
+ 
+-#ifdef HAVE_STRING_H
+ # include <string.h>
+-#endif
+ 
+-#ifdef HAVE_STDIO_H
+-#include <stdio.h>  /* Remove when adding cdio/logging.h */
+-#endif
+ 
+ /* Useful defines */
+ 
+diff --git a/lib/udf/udf_fs.c b/lib/udf/udf_fs.c
+index a0a3903..2d02e28 100644
+--- a/lib/udf/udf_fs.c
++++ b/lib/udf/udf_fs.c
+@@ -31,33 +31,25 @@
+  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+- * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
++ * ARE DISCLAIMED.  BETWEEN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+  * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER BETWEEN CONTRACT, STRICT
++ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING BETWEEN ANY WAY
+  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+  * SUCH DAMAGE.
+  */
+ 
+ 
+ #ifdef HAVE_CONFIG_H
+-# include "config.h"
++# include <config.h>
+ # define __CDIO_CONFIG_H__ 1
+ #endif
+ 
+-#ifdef HAVE_STDIO_H
+ #include <stdio.h>
+-#endif
+-
+-#ifdef HAVE_STRING_H
+-# include <string.h>
+-#endif
+-
+-#ifdef HAVE_STDLIB_H
+-# include <stdlib.h>
+-#endif
++#include <string.h>
++#include <stdlib.h>
+ 
+ /* These definitions are also to make debugging easy. Note that they
+    have to come *before* #include <cdio/ecma_167.h> which sets
+@@ -76,7 +68,7 @@ const char VSD_STD_ID_TEA01[] = {'T', 'E', 'A', '0', '1'};
+ 
+ #include "udf_private.h"
+ #include "udf_fs.h"
+-#include "cdio_assert.h"
++#include <driver/cdio_assert.h>
+ 
+ /*
+  * The UDF specs are pretty clear on how each data structure is made
+diff --git a/lib/udf/udf_fs.h b/lib/udf/udf_fs.h
+index 913953b..cc4835f 100644
+--- a/lib/udf/udf_fs.h
++++ b/lib/udf/udf_fs.h
+@@ -23,7 +23,7 @@
+  * Check the descriptor tag for both the correct id and correct checksum.
+  * Return zero if all is good, -1 if not.
+  */
+-int udf_checktag(const udf_tag_t *p_tag, udf_Uint16_t tag_id);
++CDIO_EXTERN int udf_checktag(const udf_tag_t *p_tag, udf_Uint16_t tag_id);
+ 
+ #endif /* CDIO_UDF_UDF_FS_H_ */
+ 
+diff --git a/lib/udf/udf_private.h b/lib/udf/udf_private.h
+index d958ec8..e8e890e 100644
+--- a/lib/udf/udf_private.h
++++ b/lib/udf/udf_private.h
+@@ -18,19 +18,12 @@
+ #ifndef CDIO_UDF_UDF_PRIVATE_H_
+ #define CDIO_UDF_UDF_PRIVATE_H_
+ 
+-#if defined(HAVE_CONFIG_H) && !defined(LIBCDIO_CONFIG_H) && !defined(__CDIO_CONFIG_H__)
+-# include "config.h"
+-# define __CDIO_CONFIG_H__ 1
+-#endif
+-
+-#ifdef HAVE_STDBOOL_H
+-# include <stdbool.h>
+-#endif 
++#include <stdbool.h>
+ 
+ #include <cdio/types.h>
+ #include <cdio/ecma_167.h>
+ #include <cdio/udf.h>
+-#include "_cdio_stdio.h"
++#include <driver/_cdio_stdio.h>
+ 
+ /* Implementation of opaque types */
+ 
+diff --git a/lib/udf/udf_time.c b/lib/udf/udf_time.c
+index 3d8a9f5..5145b8f 100644
+--- a/lib/udf/udf_time.c
++++ b/lib/udf/udf_time.c
+@@ -39,7 +39,7 @@
+  */
+ 
+ #ifdef HAVE_CONFIG_H
+-#include "config.h"
++#include <config.h>
+ # define __CDIO_CONFIG_H__ 1
+ #endif
+ 
+-- 
+2.10.2.windows.1
+
