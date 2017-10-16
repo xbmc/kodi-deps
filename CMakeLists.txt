@@ -619,7 +619,9 @@ ExternalProject_Add(libxml2
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL ftp://xmlsoft.org/libxml2/libxml2-2.9.4.tar.gz
 	URL_HASH SHA256=ffb911191e509b966deb55de705387f14156e1a56b21824357cdf0053233633c
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	PATCH_COMMAND 
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0001-fix-uwp-api.patch
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
