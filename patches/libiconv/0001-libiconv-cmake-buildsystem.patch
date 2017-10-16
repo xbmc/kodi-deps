@@ -1,0 +1,127 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+new file mode 100644
+index 0000000..1159a13
+--- /dev/null
++++ b/CMakeLists.txt
+@@ -0,0 +1,110 @@
++##
++## CMake support for libiconv
++## based on the work here: https://github.com/vovythevov/libiconv-cmake
++##
++
++cmake_minimum_required(VERSION 3.2)
++project(iconv VERSION 1.15)
++
++#
++# Options
++#
++
++# Config file
++configure_file(
++  ${iconv_SOURCE_DIR}/config.h.in
++  ${iconv_BINARY_DIR}/config.h
++)
++
++if(BUILD_SHARED_LIBS)
++  set(LIBICONV_DYNAMIC "1 /*LIBICONV_DYNAMIC*/")
++else()
++  set(LIBICONV_DYNAMIC "0 /*LIBICONV_DYNAMIC*/")
++endif()
++set(HAVE_WCHAR_T "1 /*HAVE_WCHAR_T*/")
++set(USE_MBSTATE_T "0 /*USE_MBSTATE_T*/")
++set(BROKEN_WCHAR_H "0 /*BROKEN_WCHAR_H*/")
++set(HAVE_VISIBILITY "0 /*HAVE_VISIBILITY*/")
++
++include_directories(${iconv_SOURCE_DIR} ${iconv_BINARY_DIR})
++
++#
++# Build libiconv
++#
++set(libcharset_SOURCE_dir ${iconv_SOURCE_DIR}/libcharset)
++add_definitions(-D_CRT_SECURE_NO_WARNINGS -DLIBDIR)
++  
++configure_file(
++  ${iconv_SOURCE_DIR}/libcharset/include/localcharset.h.build.in
++  ${iconv_BINARY_DIR}/localcharset.h
++)
++configure_file(
++  ${iconv_SOURCE_DIR}/include/iconv.h.build.in
++  ${iconv_BINARY_DIR}/iconv.h
++  )
++
++set(iconv_sources
++  ${libcharset_SOURCE_dir}/lib/localcharset.c
++  ${iconv_SOURCE_DIR}/lib/iconv.c
++  ${iconv_BINARY_DIR}/localcharset.h
++  ${iconv_BINARY_DIR}/iconv.h
++)
++
++add_library(${PROJECT_NAME} ${iconv_sources})
++add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
++target_include_directories(
++  ${PROJECT_NAME} PRIVATE
++  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
++  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib> 
++  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libcharset/include> 
++  INTERFACE
++  $<INSTALL_INTERFACE:include>
++  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
++)
++
++include(CMakePackageConfigHelpers)
++write_basic_package_version_file(
++  ${CMAKE_CURRENT_BINARY_DIR}/iconv-config-version.cmake
++  VERSION ${iconv_VERSION}
++  COMPATIBILITY AnyNewerVersion
++)
++
++#
++# Export targets
++#
++install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}
++  RUNTIME DESTINATION bin
++  LIBRARY DESTINATION lib
++  ARCHIVE DESTINATION lib
++)
++install(FILES ${iconv_BINARY_DIR}/iconv.h DESTINATION include)
++
++if(MSVC)
++  set_target_properties(${PROJECT_NAME} PROPERTIES 
++    OUTPUT_NAME libiconv
++    COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} 
++    COMPILE_PDB_NAME libiconv COMPILE_PDB_NAME_DEBUG libiconvd)
++  install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/libiconv.pdb DESTINATION lib CONFIGURATIONS RelWithDebInfo)
++  install(FILES ${PROJECT_BINARY_DIR}/Debug/libiconvd.pdb DESTINATION lib CONFIGURATIONS Debug)
++endif()
++
++install(EXPORT ${PROJECT_NAME}
++  FILE
++    iconv.cmake
++  NAMESPACE
++    iconv::
++  DESTINATION
++    lib/cmake/iconv
++) 
++install(
++  FILES
++    cmake/iconv-config.cmake
++    ${CMAKE_CURRENT_BINARY_DIR}/iconv-config-version.cmake
++  DESTINATION
++    lib/cmake/iconv
++)
++export(TARGETS ${iconv_TARGETS}
++  FILE
++  ${CMAKE_CURRENT_BINARY_DIR}/iconv-config.cmake
++  NAMESPACE iconv::
++)
+diff --git a/cmake/iconv-config.cmake b/cmake/iconv-config.cmake
+new file mode 100644
+index 0000000..5154fea
+--- /dev/null
++++ b/cmake/iconv-config.cmake
+@@ -0,0 +1 @@
++include(${CMAKE_CURRENT_LIST_DIR}/iconv.cmake)
+\ No newline at end of file
+-- 
+2.10.2.windows.1
+

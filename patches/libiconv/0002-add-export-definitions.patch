@@ -1,0 +1,20 @@
+diff --git a/include/iconv.h.build.in b/include/iconv.h.build.in
+index 2618419..3de0613 100644
+--- a/include/iconv.h.build.in
++++ b/include/iconv.h.build.in
+@@ -24,6 +24,12 @@
+ 
+ #if @HAVE_VISIBILITY@ && BUILDING_LIBICONV
+ #define LIBICONV_DLL_EXPORTED __attribute__((__visibility__("default")))
++#elif defined(_WIN32) && @LIBICONV_DYNAMIC@
++  #if defined(libiconv_EXPORTS)
++    #define LIBICONV_DLL_EXPORTED __declspec(dllexport)
++  #else
++    #define LIBICONV_DLL_EXPORTED __declspec(dllimport)
++  #endif
+ #else
+ #define LIBICONV_DLL_EXPORTED
+ #endif
+-- 
+2.10.2.windows.1
+

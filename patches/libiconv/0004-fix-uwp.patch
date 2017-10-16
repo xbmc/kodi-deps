@@ -1,0 +1,23 @@
+diff --git a/libcharset/lib/localcharset.c b/libcharset/lib/localcharset.c
+index f3d7f27..7e13306 100644
+--- a/libcharset/lib/localcharset.c
++++ b/libcharset/lib/localcharset.c
+@@ -518,7 +518,14 @@ locale_charset (void)
+         GetConsoleOutputCP() encoding if it is using a TrueType font.
+         But in GUI programs and for output sent to files and pipes, GetACP()
+         encoding is the best bet.  */
+-      sprintf (buf, "CP%u", GetACP ());
++      sprintf (buf, "CP%u", 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
++        // GetACP() not available to UWP apps
++        CP_UTF8
++#else
++        GetACP ()
++#endif
++      );
+     }
+   codeset = buf;
+ 
+-- 
+2.10.2.windows.1
+
