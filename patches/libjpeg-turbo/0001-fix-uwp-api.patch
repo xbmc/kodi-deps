@@ -1,0 +1,130 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 8f5f920..f428849 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -152,6 +152,9 @@ if(MSVC)
+     endforeach()
+   endif()
+   add_definitions(-W3 -wd4996)
++  if(CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
++    set(NO_GETENV 1)
++  endif()
+ endif()
+ 
+ # Detect whether compiler is 64-bit
+diff --git a/tjutil.c b/tjutil.c
+index 6618d15..02f57c7 100644
+--- a/tjutil.c
++++ b/tjutil.c
+@@ -43,7 +43,7 @@ double gettime(void)
+ {
+ 	LARGE_INTEGER t;
+ 	if(f<0.0) f=getfreq();
+-	if(f==0.0) return (double)GetTickCount()/1000.;
++	if(f==0.0) return (double)GetTickCount64()/1000.;
+ 	else
+ 	{
+ 		QueryPerformanceCounter(&t);
+diff --git a/turbojpeg.c b/turbojpeg.c
+index c9bc619..20154fc 100644
+--- a/turbojpeg.c
++++ b/turbojpeg.c
+@@ -797,9 +797,11 @@ DLLEXPORT int DLLCALL tjCompress2(tjhandle handle, const unsigned char *srcBuf,
+ 	cinfo->image_width=width;
+ 	cinfo->image_height=height;
+ 
++#ifdef WITH_SIMD
+ 	if(flags&TJFLAG_FORCEMMX) putenv("JSIMD_FORCEMMX=1");
+ 	else if(flags&TJFLAG_FORCESSE) putenv("JSIMD_FORCESSE=1");
+ 	else if(flags&TJFLAG_FORCESSE2) putenv("JSIMD_FORCESSE2=1");
++#endif // !WITH_SIMD
+ 
+ 	if(flags&TJFLAG_NOREALLOC)
+ 	{
+@@ -914,9 +916,11 @@ DLLEXPORT int DLLCALL tjEncodeYUVPlanes(tjhandle handle,
+ 	cinfo->image_width=width;
+ 	cinfo->image_height=height;
+ 
++#ifdef WITH_SIMD
+ 	if(flags&TJFLAG_FORCEMMX) putenv("JSIMD_FORCEMMX=1");
+ 	else if(flags&TJFLAG_FORCESSE) putenv("JSIMD_FORCESSE=1");
+ 	else if(flags&TJFLAG_FORCESSE2) putenv("JSIMD_FORCESSE2=1");
++#endif // !WITH_SIMD
+ 
+ 	if(setCompDefaults(cinfo, pixelFormat, subsamp, -1, flags)==-1) return -1;
+ 
+@@ -1115,9 +1119,11 @@ DLLEXPORT int DLLCALL tjCompressFromYUVPlanes(tjhandle handle,
+ 	cinfo->image_width=width;
+ 	cinfo->image_height=height;
+ 
++#ifdef WITH_SIMD
+ 	if(flags&TJFLAG_FORCEMMX) putenv("JSIMD_FORCEMMX=1");
+ 	else if(flags&TJFLAG_FORCESSE) putenv("JSIMD_FORCESSE=1");
+ 	else if(flags&TJFLAG_FORCESSE2) putenv("JSIMD_FORCESSE2=1");
++#endif // !WITH_SIMD
+ 
+ 	if(flags&TJFLAG_NOREALLOC)
+ 	{
+@@ -1397,9 +1403,11 @@ DLLEXPORT int DLLCALL tjDecompress2(tjhandle handle,
+ 		|| height<0 || pixelFormat<0 || pixelFormat>=TJ_NUMPF)
+ 		_throw("tjDecompress2(): Invalid argument");
+ 
++#ifdef WITH_SIMD
+ 	if(flags&TJFLAG_FORCEMMX) putenv("JSIMD_FORCEMMX=1");
+ 	else if(flags&TJFLAG_FORCESSE) putenv("JSIMD_FORCESSE=1");
+ 	else if(flags&TJFLAG_FORCESSE2) putenv("JSIMD_FORCESSE2=1");
++#endif // !WITH_SIMD
+ 
+ 	if(setjmp(this->jerr.setjmp_buffer))
+ 	{
+@@ -1600,9 +1608,11 @@ DLLEXPORT int DLLCALL tjDecodeYUVPlanes(tjhandle handle,
+ 	dinfo->image_width=width;
+ 	dinfo->image_height=height;
+ 
++#ifdef WITH_SIMD
+ 	if(flags&TJFLAG_FORCEMMX) putenv("JSIMD_FORCEMMX=1");
+ 	else if(flags&TJFLAG_FORCESSE) putenv("JSIMD_FORCESSE=1");
+ 	else if(flags&TJFLAG_FORCESSE2) putenv("JSIMD_FORCESSE2=1");
++#endif // !WITH_SIMD
+ 
+ 	if(setDecodeDefaults(dinfo, pixelFormat, subsamp, flags)==-1)
+ 	{
+@@ -1782,9 +1792,11 @@ DLLEXPORT int DLLCALL tjDecompressToYUVPlanes(tjhandle handle,
+ 		|| height<0)
+ 		_throw("tjDecompressToYUVPlanes(): Invalid argument");
+ 
++#ifdef WITH_SIMD
+ 	if(flags&TJFLAG_FORCEMMX) putenv("JSIMD_FORCEMMX=1");
+ 	else if(flags&TJFLAG_FORCESSE) putenv("JSIMD_FORCESSE=1");
+ 	else if(flags&TJFLAG_FORCESSE2) putenv("JSIMD_FORCESSE2=1");
++#endif // !WITH_SIMD
+ 
+ 	if(setjmp(this->jerr.setjmp_buffer))
+ 	{
+@@ -2048,9 +2060,11 @@ DLLEXPORT int DLLCALL tjTransform(tjhandle handle,
+ 		|| t==NULL || flags<0)
+ 		_throw("tjTransform(): Invalid argument");
+ 
++#ifdef WITH_SIMD
+ 	if(flags&TJFLAG_FORCEMMX) putenv("JSIMD_FORCEMMX=1");
+ 	else if(flags&TJFLAG_FORCESSE) putenv("JSIMD_FORCESSE=1");
+ 	else if(flags&TJFLAG_FORCESSE2) putenv("JSIMD_FORCESSE2=1");
++#endif // !WITH_SIMD
+ 
+ 	if((xinfo=(jpeg_transform_info *)malloc(sizeof(jpeg_transform_info)*n))
+ 		==NULL)
+diff --git a/win/jconfig.h.in b/win/jconfig.h.in
+index 9d35121..4ba1dfa 100644
+--- a/win/jconfig.h.in
++++ b/win/jconfig.h.in
+@@ -7,6 +7,7 @@
+ #cmakedefine C_ARITH_CODING_SUPPORTED
+ #cmakedefine D_ARITH_CODING_SUPPORTED
+ #cmakedefine MEM_SRCDST_SUPPORTED
++#cmakedefine NO_GETENV
+ 
+ /*
+  * Define BITS_IN_JSAMPLE as either
+-- 
+2.10.2.windows.1
+
