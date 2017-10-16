@@ -604,7 +604,9 @@ ExternalProject_Add(libnfs
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://github.com/sahlberg/libnfs/archive/libnfs-1.11.0.tar.gz
 	URL_HASH SHA256=fc2e45df14d8714ccd07dc2bbe919e45a2e36318bae7f045cbbb883a7854640f
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	PATCH_COMMAND 
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0001-fix-uwp-api.patch
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
