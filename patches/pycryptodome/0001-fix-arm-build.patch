@@ -1,0 +1,53 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 04d0ff2..927598c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -90,9 +90,12 @@ add_library(_raw_aes
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/AES.c
+ )
+ 
++if (NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" OR NOT CMAKE_GENERATOR MATCHES ".*ARM")
++set(HAVE_raw_aesni 1)
+ add_library(_raw_aesni
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/AESNI.c
+ )
++endif()
+ 
+ add_library(_raw_arc2
+   ${CMAKE_CURRENT_SOURCE_DIR}/src/ARC2.c
+@@ -184,7 +187,6 @@ set(CRYPTO_HASH
+ )
+ set(CRYPTO_CIPHER
+   _raw_aes
+-  _raw_aesni
+   _raw_arc2
+   _raw_blowfish
+   _raw_cast
+@@ -200,6 +202,9 @@ set(CRYPTO_CIPHER
+   _Salsa20
+   _chacha20
+ )
++if(HAVE_raw_aesni)
++  list(APPEND CRYPTO_CIPHER _raw_aesni)
++endif()
+ set(CRYPTO_UTIL _strxor _cpuid _galois)
+ set(CRYPTO_PROTOCOL _scrypt)
+ 
+diff --git a/src/cpuid.c b/src/cpuid.c
+index 3119dd7..558a155 100644
+--- a/src/cpuid.c
++++ b/src/cpuid.c
+@@ -49,7 +49,9 @@ EXPORT_SYM int have_aes_ni(void)
+     /* Call cpuid to retrieve x86 Processor Info and Feature bits.
+      * info[2] is ecx. If bit 25 is set, the CPU supports the
+      * AES-NI extension. */
+-#if defined HAVE_CPUID_H
++#if defined(_MSC_VER) && defined(_M_ARM)
++    // skip ckeck
++#elif defined HAVE_CPUID_H
+     __get_cpuid(1, info, info+1, info+2, info+3);
+ #elif defined HAVE_INTRIN_H
+     __cpuidex(info, 1, 0);
+-- 
+2.10.2.windows.1
+
