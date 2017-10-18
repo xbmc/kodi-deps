@@ -1,0 +1,34 @@
+diff --git a/fmt/format.cc b/fmt/format.cc
+index 2bd774e..8cdc369 100644
+--- a/fmt/format.cc
++++ b/fmt/format.cc
+@@ -202,12 +202,13 @@ void format_error_code(Writer &out, int error_code,
+                        StringRef message) FMT_NOEXCEPT {
+   // Report error code making sure that the output fits into
+   // INLINE_BUFFER_SIZE to avoid dynamic memory allocation and potential
+-  // bad_alloc.
++  // bad_alloc.  
+   out.clear();
+-  static const char SEP[] = ": ";
+-  static const char ERROR_STR[] = "error ";
+-  // Subtract 2 to account for terminating null characters in SEP and ERROR_STR.
+-  std::size_t error_code_size = sizeof(SEP) + sizeof(ERROR_STR) - 2;
++  static const char FMT_SEP[] = ": ";
++  static const char FMT_ERROR_STR[] = "error ";
++
++  // Subtract 2 to account for terminating null characters in FMT_SEP and FMT_ERROR_STR.
++  std::size_t error_code_size = sizeof(FMT_SEP) + sizeof(FMT_ERROR_STR) - 2;
+   typedef internal::IntTraits<int>::MainType MainType;
+   MainType abs_value = static_cast<MainType>(error_code);
+   if (internal::is_negative(error_code)) {
+@@ -216,8 +217,8 @@ void format_error_code(Writer &out, int error_code,
+   }
+   error_code_size += internal::count_digits(abs_value);
+   if (message.size() <= internal::INLINE_BUFFER_SIZE - error_code_size)
+-    out << message << SEP;
+-  out << ERROR_STR << error_code;
++    out << message << FMT_SEP;
++  out << FMT_ERROR_STR << error_code;
+   assert(out.size() <= internal::INLINE_BUFFER_SIZE);
+ }
+ 

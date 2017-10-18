@@ -206,6 +206,8 @@ ExternalProject_Add(fmt
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://github.com/fmtlib/fmt/releases/download/3.0.1/fmt-3.0.1.zip
 	URL_HASH SHA256=4c9af0dc919a8ae7022b44e1a03c435e42d65c866f44667d8d920d342b098550
+	PATCH_COMMAND
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0001-fix-kodi-build.patch
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
