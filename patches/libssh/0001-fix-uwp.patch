@@ -1,0 +1,193 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 30b1025..04d4c72 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -35,6 +35,8 @@ include(DefineInstallationPaths)
+ include(DefineOptions.cmake)
+ include(CPackConfig.cmake)
+ 
++add_definitions(-D_CRT_SECURE_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_WARNINGS -D_WINSOCK_DEPRECATED_NO_WARNINGS)
++
+ # disallow in-source build
+ include(MacroEnsureOutOfSourceBuild)
+ macro_ensure_out_of_source_build("${PROJECT_NAME} requires an out of source build. Please create a separate build directory and run 'cmake /path/to/${PROJECT_NAME} [options]' there.")
+diff --git a/src/connector.c b/src/connector.c
+index 6f05008..04a0fbd 100644
+--- a/src/connector.c
++++ b/src/connector.c
+@@ -24,6 +24,10 @@
+ #include "libssh/callbacks.h"
+ #include "libssh/session.h"
+ #include <stdlib.h>
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
++#include <io.h>  
++#endif
++
+ #define CHUNKSIZE 4096
+ 
+ struct ssh_connector_struct {
+diff --git a/src/external/curve25519_ref.c b/src/external/curve25519_ref.c
+index 6ffb14a..f8f8cd4 100644
+--- a/src/external/curve25519_ref.c
++++ b/src/external/curve25519_ref.c
+@@ -53,6 +53,11 @@ static const unsigned int minusp[32] = {
+  19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128
+ } ;
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
++#pragma warning( push )  
++#pragma warning( disable : 4146 ) 
++#endif
++
+ static void freeze(unsigned int a[32])
+ {
+   unsigned int aorig[32];
+@@ -64,6 +69,9 @@ static void freeze(unsigned int a[32])
+   negative = -((a[31] >> 7) & 1);
+   for (j = 0;j < 32;++j) a[j] ^= negative & (aorig[j] ^ a[j]);
+ }
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
++#pragma warning( pop )
++#endif
+ 
+ static void mult(unsigned int out[32],const unsigned int a[32],const unsigned int b[32])
+ {
+diff --git a/src/external/fe25519.c b/src/external/fe25519.c
+index db31f65..8b4eb1a 100644
+--- a/src/external/fe25519.c
++++ b/src/external/fe25519.c
+@@ -74,6 +74,11 @@ static void reduce_mul(fe25519 *r)
+     }
+ }
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
++#pragma warning( push )  
++#pragma warning( disable : 4146 ) 
++#endif
++
+ /* reduction modulo 2^255-19 */
+ void fe25519_freeze(fe25519 *r)
+ {
+@@ -94,6 +99,10 @@ void fe25519_freeze(fe25519 *r)
+     r->v[0] -= m&237;
+ }
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
++#pragma warning( pop )  
++#endif
++
+ void fe25519_unpack(fe25519 *r, const unsigned char x[32])
+ {
+     int i;
+@@ -152,6 +161,10 @@ int fe25519_iseq_vartime(const fe25519 *x, const fe25519 *y)
+     return 1;
+ }
+ 
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
++#pragma warning( push )  
++#pragma warning( disable : 4146 ) 
++#endif
+ void fe25519_cmov(fe25519 *r, const fe25519 *x, unsigned char b)
+ {
+     int i;
+@@ -163,6 +176,9 @@ void fe25519_cmov(fe25519 *r, const fe25519 *x, unsigned char b)
+         r->v[i] ^= mask & (x->v[i] ^ r->v[i]);
+     }
+ }
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
++#pragma warning( pop )  
++#endif
+ 
+ unsigned char fe25519_getparity(const fe25519 *x)
+ {
+diff --git a/src/getpass.c b/src/getpass.c
+index c36f263..2bd7f88 100644
+--- a/src/getpass.c
++++ b/src/getpass.c
+@@ -124,6 +124,10 @@ int ssh_getpass(const char *prompt,
+                 size_t len,
+                 int echo,
+                 int verify) {
++
++#if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
++    return -1;
++#else
+     HANDLE h;
+     DWORD mode = 0;
+     int ok;
+@@ -160,6 +164,7 @@ int ssh_getpass(const char *prompt,
+     buf[len - 1] = '\0';
+ 
+     return 0;
++#endif
+ }
+ 
+ #else
+diff --git a/src/misc.c b/src/misc.c
+index 64cda47..065ec1a 100644
+--- a/src/misc.c
++++ b/src/misc.c
+@@ -98,6 +98,7 @@
+ 
+ #ifdef _WIN32
+ char *ssh_get_user_home_dir(void) {
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP)
+   char tmp[MAX_PATH] = {0};
+   char *szPath = NULL;
+ 
+@@ -110,8 +111,9 @@ char *ssh_get_user_home_dir(void) {
+     strcpy(szPath, tmp);
+     return szPath;
+   }
+-
++#else
+   return NULL;
++#endif
+ }
+ 
+ /* we have read access on file */
+@@ -140,6 +142,7 @@ int gettimeofday(struct timeval *__p, void *__t) {
+ }
+ 
+ char *ssh_get_local_username(void) {
++#if !defined(WINAPI_FAMILY) || (WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP)
+     DWORD size = 0;
+     char *user;
+ 
+@@ -154,8 +157,9 @@ char *ssh_get_local_username(void) {
+     if (GetUserName(user, &size)) {
+         return user;
+     }
+-
++#else
+     return NULL;
++#endif
+ }
+ 
+ int ssh_is_ipaddr_v4(const char *str) {
+diff --git a/src/options.c b/src/options.c
+index e238c7b..cc2cc01 100644
+--- a/src/options.c
++++ b/src/options.c
+@@ -1415,7 +1415,7 @@ int ssh_bind_options_set(ssh_bind sshbind, enum ssh_bind_options_e type,
+           int key_type;
+           ssh_key key;
+           ssh_key *bind_key_loc = NULL;
+-          char **bind_key_path_loc;
++          char **bind_key_path_loc = NULL;
+ 
+           rc = ssh_pki_import_privkey_file(value, NULL, NULL, NULL, &key);
+           if (rc != SSH_OK) {
+diff --git a/src/pki_container_openssh.c b/src/pki_container_openssh.c
+index 551a7f0..74a068c 100644
+--- a/src/pki_container_openssh.c
++++ b/src/pki_container_openssh.c
+@@ -160,7 +160,7 @@ static int pki_private_key_decrypt(ssh_string blob,
+     char passphrase_buffer[128];
+     size_t key_material_len;
+     ssh_buffer buffer;
+-    ssh_string salt;
++    ssh_string salt = NULL;
+     uint32_t rounds;
+     int cmp;
+     int rc;

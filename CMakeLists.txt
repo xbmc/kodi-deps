@@ -433,6 +433,24 @@ ExternalProject_Add(libssh2
 )
 add_dependency_project_package(libssh2 1.8.0)
 
+ExternalProject_Add(libssh
+	DEPENDS openssl zlib
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+  DOWNLOAD_NAME libssh-master.zip
+	URL https://github.com/xbmc/libssh/archive/master.zip
+	URL_HASH SHA512=35b68f46912685954def328d3fa1db8e9366d28a7cb7017c5b2d2d897c0594d391f6cb9e9dde1046da348b8b8aa752bb58a33169b4d0ce2c234468681cf86669
+	PATCH_COMMAND 
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0001-fix-uwp.patch
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/openssl%3B%3B${PACKAGES_DIRECTORY}/zlib
+		-DWITH_ZLIB:BOOL=ON
+		-DWITH_EXAMPLES:BOOL=OFF
+		-DWITH_TESTING:BOOL=OFF
+)
+add_dependency_project_package(libssh 0.7.0)
+
 ExternalProject_Add(curl
 	DEPENDS openssl zlib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
