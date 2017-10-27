@@ -1,0 +1,28 @@
+diff --git a/sljit/sljitConfigInternal.h b/sljit/sljitConfigInternal.h
+index 5a9827d..f4eee11 100644
+--- a/sljit/sljitConfigInternal.h
++++ b/sljit/sljitConfigInternal.h
+@@ -337,11 +337,15 @@
+ #define SLJIT_CACHE_FLUSH(from, to) \
+ 	__clear_cache((char*)(from), (char*)(to))
+ #elif(_WIN32)
+-#pragma comment(lib, "kernel32.lib")
+-uint32_t FlushInstructionCache(void *hProcess, void *lpBaseAddress, uintptr_t dwSize);
+-#define SLJIT_CACHE_FLUSH(from, to) \
+-	FlushInstructionCache(GetCurrentProcess(), (void*)(from), (uintptr_t)(to - from));
+-#endif
++#  if defined(WINAPI_FAMILY) && (WINAPI_FAMILY != WINAPI_FAMILY_DESKTOP_APP)
++#    define SLJIT_CACHE_FLUSH(from, to)
++#  else
++#    pragma comment(lib, "kernel32.lib")
++     uint32_t FlushInstructionCache(void *hProcess, void *lpBaseAddress, uintptr_t dwSize);
++#    define SLJIT_CACHE_FLUSH(from, to) \
++		FlushInstructionCache(GetCurrentProcess(), (void*)(from), (uintptr_t)(to - from));
++#  endif // WINAPI_FAMILY
++#endif // _WIN32
+ 
+ #endif
+ 
+-- 
+2.10.2.windows.1
+

@@ -312,7 +312,10 @@ ExternalProject_Add(pcre
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://ftp.pcre.org/pub/pcre/pcre-8.40.tar.gz
 	URL_HASH SHA256=1d75ce90ea3f81ee080cdc04e68c9c25a9fb984861a0618be7bbf676b18eda3e
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	PATCH_COMMAND 
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0001-fix-arm-config-define.patch
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName)/0002-fix-kernel32-linkage.patch
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
