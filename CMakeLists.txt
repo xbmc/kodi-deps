@@ -816,6 +816,38 @@ ExternalProject_Add(libbluray
 )
 add_dependency_project_package(libbluray 1.0.1)
 
+ExternalProject_Add(libdvdcss
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	DOWNLOAD_NAME libdvdcss-15d210a.tar.gz
+	URL https://github.com/xbmc/libdvdcss/archive/15d210ac9afab5f1b1a17fbe632a68e0e02ae491.tar.gz
+	URL_HASH SHA512=12ba7aa653fcb26d5336bf2a8110c924d634cec79f684bbf19dc38ea33f69fb68c22c97f4c09e5ca7c35f95f6c324a6d70ccc2c501a99122a9321cafd33b2cd9
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+ExternalProject_Add(libdvdread
+	DEPENDS libdvdcss
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	DOWNLOAD_NAME libdvdread-562c2eb.tar.gz
+	URL https://github.com/xbmc/libdvdread/archive/562c2eb72a572d119d5cb377d6911db771c74e70.tar.gz
+	URL_HASH SHA512=e59ae0bfdc62698e407e3d70503c6a7c5e308545c9dae7843e25db3b5b62d9b26256be77ef4e884263add6b4abec3438c324bfd5715f6ca2ce7fa5962d43a6c2
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/libdvdcss
+)
+ExternalProject_Add(libdvdnav
+	DEPENDS libdvdcss libdvdcss
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	DOWNLOAD_NAME libdvdnav-77042aa.tar.gz
+	URL https://github.com/xbmc/libdvdnav/archive/77042aa9722be2d0a8b9190c45e3d3b97aa66e34.tar.gz
+	URL_HASH SHA512=005355da5e3d34f69737f7c3fe7884e82ffdc8f654f337e97d4a4d1e486c9f346f63b4dee74de2765e7a8d94925de5d25c3c82da732d2e8d4f58fcfeb9dd2586
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PACKAGES_DIRECTORY}%3B%3B${PACKAGES_DIRECTORY}/libdvdcss%3B%3B${PACKAGES_DIRECTORY}/libdvdread
+)
+
 if(FOLDER_PER_TARGET)
 	add_custom_target(DependenciesPackages
 		DEPENDS
