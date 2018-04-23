@@ -20,7 +20,7 @@
 2. add the following template and add the missing values
    - `DOWNLOAD_NAME`, `BUILD_COMMAND` is not needed in most cases and can be removed
    - If the package has dependencies add them at `DEPENDS` otherwise remove the line
-     For every dependency you need to add `%3B%3B${PREFIX}/<DEPENDS-NAME>/${KODI_PATH}` at the end of `CMAKE_INSTALL_PREFIX`
+     For every dependency you need to add `%3B%3B${PREFIX}/<DEPENDS-NAME>` at the end of `CMAKE_INSTALL_PREFIX`
    - If the source code needs to be patched save the patch at `patches/<NAME>.diff` otherwise remove the line
    - Additionally cmake arguments can be added after `CMAKE_INSTALL_PREFIX`
 
