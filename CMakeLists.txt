@@ -303,8 +303,8 @@ ExternalProject_Add(libass
 ExternalProject_Add(curl
 	DEPENDS openssl zlib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://curl.haxx.se/download/curl-7.52.1.tar.gz
-	URL_HASH SHA256=a8984e8b20880b621f61a62d95ff3c0763a3152093a9f9ce4287cfd614add6ae
+	URL https://curl.haxx.se/download/curl-7.59.0.tar.gz
+	URL_HASH SHA256=099d9c32dc7b8958ca592597c9fabccdf4c08cfb7c114ff1afbbc4c6f13c9e9e
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -315,6 +315,7 @@ ExternalProject_Add(curl
 		-DBUILD_TESTING:BOOL=OFF
 		-DCMAKE_USE_LIBSSH2:BOOL=OFF
 		-DCMAKE_USE_OPENSSL:BOOL=ON
+		-DCURL_CA_FALLBACK:BOOL=ON
 		-DENABLE_MANUAL:BOOL=OFF
 )
 
