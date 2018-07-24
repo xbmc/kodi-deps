@@ -146,6 +146,16 @@ ExternalProject_Add(freetype
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
 
+ExternalProject_Add(fstrcmp
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL http://fstrcmp.sourceforge.net/fstrcmp-0.7.D001.tar.gz
+	URL_HASH SHA256=e4018e850f80700acee8da296e56e15b1eef711ab15157e542e7d7e1237c3476
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+
 ExternalProject_Add(libcdio
 	DEPENDS libiconv
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
