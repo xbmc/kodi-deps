@@ -1,17 +1,38 @@
 cmake_minimum_required(VERSION 3.2)
 
-project(KodiDependencies LANGUAGES)
+project(KodiDependencies LANGUAGES C)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 option(FOLDER_PER_TARGET "install dependencies in separate folders" ON)
 
-if(NOT PREFIX)
-	set(PREFIX "${CMAKE_SOURCE_DIR}/package")
+include(CheckSymbolExists)
+
+check_symbol_exists(_X86_ "Windows.h" _X86_)
+check_symbol_exists(_AMD64_ "Windows.h" _AMD64_)
+check_symbol_exists(_ARM_ "Windows.h" _ARM_)
+
+if(_X86_)
+   set(ARCH win32)
+elseif(_AMD64_)
+   set(ARCH x64)
+elseif(_ARM_)
+   set(ARCH arm)
+else()
+   set(ARCH unknown)
 endif()
+
+unset(_X86_)
+unset(_AMD64_)
+unset(_ARM_)
 
 if(CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
 	set(ADDITIONAL_ARGS "-DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME}" "-DCMAKE_SYSTEM_VERSION=${CMAKE_SYSTEM_VERSION}")
+	set(ARCH "win10-${ARCH}")
+endif()
+
+if(NOT PREFIX)
+	set(PREFIX "${CMAKE_SOURCE_DIR}/package/${ARCH}")
 endif()
 
 if(FOLDER_PER_TARGET)
