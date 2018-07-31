@@ -55,6 +55,30 @@ endif()
 
 include(ExternalProject)
 
+function(add_dependency_project_package name version)
+	# it's possible to pack dependency only if it was installed in separate folder
+	if(FOLDER_PER_TARGET)
+		set(dep_name "${name}-${version}")
+		if(CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
+			set(dep_name "${dep_name}-win10")
+		endif()
+		set(dep_name "${dep_name}-$(Platform)-$(PlatformToolset)")
+		file(TO_NATIVE_PATH "${PREFIX}/${dep_name}" COPY_DESTINATION)
+
+		ExternalProject_Add_StepTargets(${name} zip)
+		ExternalProject_Add_Step(${name} zip
+			COMMENT "Packaging '${name}'"
+			COMMAND ${CMAKE_COMMAND} -E copy_directory "${name}" "${COPY_DESTINATION}"
+			COMMAND ${CMAKE_COMMAND} -E tar "cf" "${PREFIX}/../${dep_name}.7z" --format=7zip -- "${COPY_DESTINATION}"
+			COMMAND ${CMAKE_COMMAND} -E remove_directory "${COPY_DESTINATION}"
+			WORKING_DIRECTORY ${PREFIX}
+			ALWAYS FALSE
+			EXCLUDE_FROM_MAIN TRUE
+		)
+		ExternalProject_Add_StepDependencies(${name} zip ${name})
+	endif()
+endfunction()
+
 
 # dependencies required by others
 
@@ -67,6 +91,7 @@ ExternalProject_Add(bzip2
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(bzip2 1.0.6)
 
 ExternalProject_Add(expat
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -82,6 +107,7 @@ ExternalProject_Add(expat
 		-DBUILD_tools:BOOL=OFF
 		-DBUILD_shared:BOOL=OFF
 )
+add_dependency_project_package(expat 2.2.0)
 
 ExternalProject_Add(libiconv
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -92,6 +118,7 @@ ExternalProject_Add(libiconv
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(libiconv 1.15)
 
 ExternalProject_Add(openssl
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -103,6 +130,7 @@ ExternalProject_Add(openssl
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(openssl 1.0.2k)
 
 ExternalProject_Add(zlib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -118,6 +146,7 @@ ExternalProject_Add(zlib
 		-DASM686:BOOL=OFF
 		-DAMD64:BOOL=OFF
 )
+add_dependency_project_package(zlib 1.2.11)
 
 
 # Required dependencies
@@ -132,6 +161,7 @@ ExternalProject_Add(crossguid
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(crossguid fef89a4)
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
 ExternalProject_Add(easyhook
@@ -144,6 +174,7 @@ ExternalProject_Add(easyhook
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(easyhook 2.7.6035.0)
 endif()
 
 ExternalProject_Add(fmt
@@ -156,6 +187,7 @@ ExternalProject_Add(fmt
 		-DFMT_DOC:BOOL=OFF
 		-DFMT_TEST:BOOL=OFF
 )
+add_dependency_project_package(fmt 3.0.1)
 
 ExternalProject_Add(freetype
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -166,6 +198,7 @@ ExternalProject_Add(freetype
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(freetype 2.8)
 
 ExternalProject_Add(fstrcmp
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -176,6 +209,7 @@ ExternalProject_Add(fstrcmp
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(fstrcmp 0.7)
 
 ExternalProject_Add(libcdio
 	DEPENDS libiconv
@@ -188,6 +222,7 @@ ExternalProject_Add(libcdio
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libiconv
 )
+add_dependency_project_package(libcdio 0.94)
 
 ExternalProject_Add(libfribidi
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -198,6 +233,7 @@ ExternalProject_Add(libfribidi
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(libfribidi 0.19.7)
 
 ExternalProject_Add(libyajl
 	DOWNLOAD_NAME yajl-2.1.0.tar.gz
@@ -222,6 +258,7 @@ ExternalProject_Add(lzo2
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(lzo2 2.09)
 
 ExternalProject_Add(pcre
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -242,6 +279,7 @@ ExternalProject_Add(pcre
 		-DPCRE_SUPPORT_UNICODE_PROPERTIES:BOOL=ON
 		-DPCRE_SUPPORT_UTF:BOOL=ON
 )
+add_dependency_project_package(pcre 8.40)
 
 ExternalProject_Add(sqlite
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -253,6 +291,7 @@ ExternalProject_Add(sqlite
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(sqlite 3170000)
 
 ExternalProject_Add(taglib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -263,6 +302,7 @@ ExternalProject_Add(taglib
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(taglib 1.11.1)
 
 ExternalProject_Add(tinyxml
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -273,6 +313,7 @@ ExternalProject_Add(tinyxml
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(tinyxml 2.6.2)
 
 add_custom_target(DependenciesRequired
 	DEPENDS
@@ -317,6 +358,7 @@ ExternalProject_Add(libass
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype%3B%3B${PREFIX}/libfribidi%3B%3B${PREFIX}/libiconv
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(libass 0.13.6)
 
 ExternalProject_Add(curl
 	DEPENDS openssl zlib
@@ -336,6 +378,7 @@ ExternalProject_Add(curl
 		-DCURL_CA_FALLBACK:BOOL=ON
 		-DENABLE_MANUAL:BOOL=OFF
 )
+add_dependency_project_package(curl 7.52.1)
 
 add_custom_target(DependenciesDllRequired
 	DEPENDS
@@ -354,6 +397,7 @@ ExternalProject_Add(dnssd
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(dnssd 765.50.9)
 
 ExternalProject_Add(lcms2
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -365,6 +409,7 @@ ExternalProject_Add(lcms2
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(lcms2 2.8)
 
 ExternalProject_Add(platform
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -386,6 +431,7 @@ ExternalProject_Add(libcec
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/platform
 )
+add_dependency_project_package(libcec 4.0.2)
 
 ExternalProject_Add(libgpg-error
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -431,6 +477,7 @@ ExternalProject_Add(libaacs
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgcrypt%3B%3B${PREFIX}/libgpg-error%3B%3B${PREFIX}/winflexbison
 )
+add_dependency_project_package(libaacs 0.9.0)
 
 ExternalProject_Add(libbdplus
 	DOWNLOAD_NAME libbdplus-45c76dd.tar.gz
@@ -444,6 +491,7 @@ ExternalProject_Add(libbdplus
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgcrypt%3B%3B${PREFIX}/libgpg-error
 )
+add_dependency_project_package(libbdplus 45c76dd)
 
 ExternalProject_Add(libmicrohttpd
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -454,6 +502,7 @@ ExternalProject_Add(libmicrohttpd
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(libmicrohttpd 0.9.55)
 
 ExternalProject_Add(libnfs
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -465,6 +514,7 @@ ExternalProject_Add(libnfs
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(libnfs 1.11.0)
 
 ExternalProject_Add(libxml2
 	DEPENDS libiconv
@@ -478,6 +528,7 @@ ExternalProject_Add(libxml2
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libiconv
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(libxml2 2.9.4)
 
 ExternalProject_Add(libxslt
 	DEPENDS libiconv
@@ -491,6 +542,7 @@ ExternalProject_Add(libxslt
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libiconv%3B%3B${PREFIX}/libxml2
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(libxslt 1.1.29)
 
 ExternalProject_Add(libplist
 	DEPENDS libiconv libxml2
@@ -504,6 +556,7 @@ ExternalProject_Add(libplist
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libiconv%3B%3B${PREFIX}/libxml2
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(libplist 1.12)
 
 ExternalProject_Add(libwebp
 	DOWNLOAD_NAME libwebp-0.6.0.tar.gz
@@ -529,6 +582,7 @@ ExternalProject_Add(mysql-connector-c
 		-DINSTALL_DOC:BOOL=OFF
 		-DWITH_SSL:STRING=yes
 )
+add_dependency_project_package(mysql-connector-c 6.1.9)
 
 ExternalProject_Add(python
 	DEPENDS bzip2 openssl sqlite zlib
@@ -550,6 +604,7 @@ ExternalProject_Add(python
 		-DINSTALL_MANUAL:BOOL=OFF
 		-DINSTALL_TEST:BOOL=OFF
 )
+add_dependency_project_package(python 2.7.13)
 
 ExternalProject_Add(libjpeg-turbo
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -576,6 +631,7 @@ ExternalProject_Add(pillow
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype%3B%3B${PREFIX}/libjpeg-turbo%3B%3B${PREFIX}/python%3B%3B${PREFIX}/zlib
 )
+add_dependency_project_package(pillow 4.2.1)
 
 ExternalProject_Add(pycryptodome
 	DEPENDS python
@@ -591,6 +647,7 @@ ExternalProject_Add(pycryptodome
 		-DBUILD_SHARED_LIBS:BOOL=ON
 		-DSEPARATE_NAMESPACE:BOOL=ON
 )
+add_dependency_project_package(pycryptodome 3.4.7)
 
 ExternalProject_Add(shairplay
 	DOWNLOAD_NAME shairplay-ce80e00.tar.gz
@@ -603,6 +660,7 @@ ExternalProject_Add(shairplay
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
+add_dependency_project_package(shairplay ce80e00)
 
 ExternalProject_Add(libbluray
 	DEPENDS freetype libiconv libxml2
@@ -615,3 +673,4 @@ ExternalProject_Add(libbluray
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype%3B%3B${PREFIX}/libiconv%3B%3B${PREFIX}/libxml2
 )
+add_dependency_project_package(libbluray 1.0.1)
