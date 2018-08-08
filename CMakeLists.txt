@@ -82,6 +82,24 @@ function(add_dependency_project_package name version)
 endfunction()
 
 
+# Executables for build
+
+ExternalProject_Add(flatc
+	DOWNLOAD_NAME flatbuffers-1.9.0.tar.gz
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://github.com/google/flatbuffers/archive/v1.9.0.tar.gz
+	URL_HASH SHA256=5ca5491e4260cacae30f1a5786d109230db3f3a6e5a0eb45d0d0608293d247e3
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DFLATBUFFERS_BUILD_FLATHASH:BOOL=OFF
+		-DFLATBUFFERS_BUILD_FLATLIB:BOOL=OFF
+		-DFLATBUFFERS_BUILD_TESTS:BOOL=OFF
+)
+add_dependency_project_package(flatc 1.9.0)
+
+
 # dependencies required by others
 
 ExternalProject_Add(bzip2

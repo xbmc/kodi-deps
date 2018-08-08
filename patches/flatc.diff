@@ -1,0 +1,19 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -257,8 +257,6 @@
+ if(FLATBUFFERS_INSTALL)
+   include(GNUInstallDirs)
+ 
+-  install(DIRECTORY include/flatbuffers DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+-
+   set(FB_CMAKE_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/flatbuffers")
+ 
+   configure_file(CMake/FlatbuffersConfigVersion.cmake.in FlatbuffersConfigVersion.cmake @ONLY)
+@@ -292,7 +290,6 @@ if(FLATBUFFERS_INSTALL)
+     install(
+       TARGETS flatc EXPORT FlatcTargets
+       RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+-      CONFIGURATIONS Release
+     )
+ 
+     install(
