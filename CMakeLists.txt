@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.4)
 
 project(KodiDependencies LANGUAGES C)
 
@@ -59,10 +59,12 @@ function(add_dependency_project_package name version)
 	# it's possible to pack dependency only if it was installed in separate folder
 	if(FOLDER_PER_TARGET)
 		set(dep_name "${name}-${version}")
-		if(CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
-			set(dep_name "${dep_name}-win10")
+		if(NOT ANY IN_LIST ARGN)
+			if(CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
+				set(dep_name "${dep_name}-win10")
+			endif()
+			set(dep_name "${dep_name}-$(Platform)-$(PlatformToolset)")
 		endif()
-		set(dep_name "${dep_name}-$(Platform)-$(PlatformToolset)")
 		file(TO_NATIVE_PATH "${PREFIX}/${dep_name}" COPY_DESTINATION)
 
 		ExternalProject_Add_StepTargets(${name} zip)
