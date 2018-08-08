@@ -197,6 +197,21 @@ ExternalProject_Add(easyhook
 add_dependency_project_package(easyhook 2.7.6035.0)
 endif()
 
+ExternalProject_Add(flatbuffers
+	DOWNLOAD_NAME flatbuffers-1.9.0.tar.gz
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://github.com/google/flatbuffers/archive/v1.9.0.tar.gz
+	URL_HASH SHA256=5ca5491e4260cacae30f1a5786d109230db3f3a6e5a0eb45d0d0608293d247e3
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DFLATBUFFERS_BUILD_FLATC:BOOL=OFF
+		-DFLATBUFFERS_BUILD_FLATHASH:BOOL=OFF
+		-DFLATBUFFERS_BUILD_FLATLIB:BOOL=OFF
+		-DFLATBUFFERS_BUILD_TESTS:BOOL=OFF
+)
+add_dependency_project_package(flatbuffers 1.9.0 ANY)
+
 ExternalProject_Add(fmt
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://github.com/fmtlib/fmt/releases/download/3.0.1/fmt-3.0.1.zip
@@ -339,6 +354,7 @@ add_custom_target(DependenciesRequired
 	DEPENDS
 		crossguid
 		easyhook
+		flatbuffers
 		fmt
 		freetype
 		libcdio
