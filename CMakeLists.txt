@@ -642,6 +642,39 @@ ExternalProject_Add(python
 )
 add_dependency_project_package(python 2.7.13)
 
+ExternalProject_Add(python3
+	DEPENDS bzip2 openssl sqlite zlib
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://www.python.org/ftp/python/3.6.5/Python-3.6.5.tgz
+	URL_HASH MD5=ab25d24b1f8cc4990ade979f6dc37883
+	PATCH_COMMAND
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/python-cmake-buildsystem-76a3576.diff
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/bzip2%3B%3B${PREFIX}/openssl%3B%3B${PREFIX}/sqlite%3B%3B${PREFIX}/zlib
+		-DCMAKE_CONFIGURATION_TYPES:STRING=RelWithDebInfo
+		-DBUILD_EXTENSIONS_AS_BUILTIN:BOOL=ON
+		-DBUILD_LIBPYTHON_SHARED:BOOL=ON
+		-DBUILD_TESTING:BOOL=OFF
+		-DBUILD_WININST:BOOL=OFF
+		-DENABLE_AUDIOOP:BOOL=OFF
+		-DENABLE_CTYPES_TEST:BOOL=OFF
+		-DENABLE_DECIMAL:BOOL=OFF
+		-DENABLE_MSI:BOOL=OFF
+		-DENABLE_OVERLAPPED:BOOL=OFF
+		-DENABLE_TESTBUFFER:BOOL=OFF
+		-DENABLE_TESTCAPI:BOOL=OFF
+		-DENABLE_TESTIMPORTMULTIPLE:BOOL=OFF
+		-DENABLE_TESTMULTIPHASE:BOOL=OFF
+		-DENABLE_TKINTER:BOOL=OFF
+		-DDOWNLOAD_SOURCES:BOOL=OFF
+		-DINSTALL_MANUAL:BOOL=OFF
+		-DINSTALL_TEST:BOOL=OFF
+)
+add_dependency_project_package(python3 3.6.5)
+
 ExternalProject_Add(libjpeg-turbo
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://sourceforge.net/projects/libjpeg-turbo/files/1.5.2/libjpeg-turbo-1.5.2.tar.gz

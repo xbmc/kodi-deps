@@ -1,0 +1,136 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -203,6 +203,7 @@
+ set(_download_3.6.2_md5 "e1a36bfffdd1d3a780b1825daf16e56c")
+ set(_download_3.6.3_md5 "e9180c69ed9a878a4a8a3ab221e32fa9")
+ set(_download_3.6.4_md5 "9de6494314ea199e3633211696735f65")
++set(_download_3.6.5_md5 "ab25d24b1f8cc4990ade979f6dc37883")
+ 
+ set(_extracted_dir "Python-${PY_VERSION}")
+ 
+@@ -306,7 +307,7 @@
+ 
+ # This is the major version number of Python
+ set(LIBPYTHON_VERSION ${PY_VERSION_MAJOR}.${PY_VERSION_MINOR})
+-if(WIN32)
++if(WIN32 AND OFF)
+     set(LIBPYTHON_VERSION ${PY_VERSION_MAJOR}${PY_VERSION_MINOR})
+ endif()
+ set(LIBPYTHON python${LIBPYTHON_VERSION})
+@@ -323,7 +324,7 @@
+     set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
+     set(LIBDIR "lib64")
+ endif()
+-set(PYTHONHOME "${LIBDIR}")
++set(PYTHONHOME "bin/python/Lib")
+ if(UNIX)
+     set(PYTHONHOME "${PYTHONHOME}/${LIBPYTHON}")
+ endif()
+@@ -347,7 +348,7 @@
+     set(EXTENSION_INSTALL_DIR DLLs)
+ endif()
+ set(INCLUDE_INSTALL_DIR include/python${LD_VERSION})
+-if(MSVC)
++if(MSVC AND OFF)
+     set(INCLUDE_INSTALL_DIR include)
+ endif()
+ # Build tree directory
+@@ -356,7 +357,7 @@
+ set(EXTENSION_BUILD_DIR ${PROJECT_BINARY_DIR}/${PYTHONHOME}/lib-dynload)
+ set(INCLUDE_BUILD_DIR ${SRC_DIR}/Include)
+ 
+-set(ARCHIVEDIR "libs")      # Contains the static (*.a) and import libraries (*.lib)
++set(ARCHIVEDIR "lib")      # Contains the static (*.a) and import libraries (*.lib)
+ 
+ # Directories specific to 'libpython'
+ set(LIBPYTHON_LIBDIR ${LIBDIR})
+--- a/cmake/ConfigureChecks.cmake
++++ b/cmake/ConfigureChecks.cmake
+@@ -308,6 +308,7 @@
+ check_include_files(sys/sys_domain.h HAVE_SYS_SYS_DOMAIN_H)
+ check_include_files(sys/uio.h HAVE_SYS_UIO_H)
+ check_include_files(sys/xattr.h HAVE_SYS_XATTR_H)
++set(HAVE_SYS_XATTR_H ON)
+ 
+ # On Darwin (OS X) net/if.h requires sys/socket.h to be imported first.
+ set(NET_IF_HEADERS stdio.h)
+--- a/cmake/extensions/CMakeLists.txt
++++ b/cmake/extensions/CMakeLists.txt
+@@ -105,11 +105,13 @@
+ 
+ # Python3
+ add_python_extension(atexit BUILTIN REQUIRES IS_PY3 SOURCES atexitmodule.c) # Register functions to be run at interpreter-shutdown
++add_python_extension(_blake2 REQUIRES IS_PY3 SOURCES _blake2/blake2b2s.py _blake2/blake2b_impl.c _blake2/blake2module.c _blake2/blake2s_impl.c)
+ add_python_extension(_codecs BUILTIN REQUIRES IS_PY3 SOURCES _codecsmodule.c) # access to the builtin codecs and codec registry
+ add_python_extension(faulthandler BUILTIN REQUIRES IS_PY3 SOURCES faulthandler.c)
+ add_python_extension(_opcode BUILTIN REQUIRES IS_PY3 SOURCES _opcode.c)
+ add_python_extension(_operator ${WIN32_BUILTIN} REQUIRES IS_PY3 SOURCES _operator.c)
+ add_python_extension(_pickle BUILTIN REQUIRES IS_PY3 SOURCES _pickle.c)
++add_python_extension(_sha3 BUILTIN REQUIRES IS_PY3 SOURCES _sha3/sha3module.c)
+ add_python_extension(_sre BUILTIN REQUIRES IS_PY3 SOURCES _sre.c) # Fredrik Lundh's new regular expressions
+ add_python_extension(_stat BUILTIN REQUIRES IS_PY3 SOURCES _stat.c) # stat.h interface
+ add_python_extension(_symtable BUILTIN REQUIRES IS_PY3 SOURCES symtablemodule.c)
+@@ -210,6 +212,7 @@
+         SOURCES _multiprocessing/multiprocessing.c
+                 _multiprocessing/semaphore.c
+                 ${_multiprocessing${PY_VERSION_MAJOR}_SOURCES}
++        REQUIRES WITH_THREAD
+         LIBRARIES ws2_32
+     )
+ endif()
+--- a/cmake/libpython/CMakeLists.txt
++++ b/cmake/libpython/CMakeLists.txt
+@@ -392,7 +392,7 @@
+ endif()
+ 
+ set(LIBPYTHON_FROZEN_SOURCES )
+-if(IS_PY3)
++if(IS_PY3 AND OFF)
+ 
+ # Build _freeze_importlib executable
+ add_executable(_freeze_importlib
+@@ -401,7 +401,7 @@
+   )
+ target_link_libraries(_freeze_importlib ${LIBPYTHON_TARGET_LIBRARIES})
+ if(builtin_compile_definitions_without_py_limited_api)
+-  target_compile_definitions(_freeze_importlib PUBLIC ${builtin_compile_definitions_without_py_limited_api})
++  target_link_libraries(_freeze_importlib ${LIBPYTHON_TARGET_LIBRARIES} Shlwapi version)
+ endif()
+ 
+ # Freeze modules
+@@ -518,7 +518,7 @@
+ 
+     set(targetname "libpython3-shared")
+ 
+-    if(IS_PY3 AND MSVC)
++    if(IS_PY3 AND MSVC AND OFF)
+         # XXX Add BuildPython3_dDef
+ 
+         # Generate 'python3stub.def'
+--- a/PC/pyconfig.h
++++ b/PC/pyconfig.h
+@@ -282,24 +282,6 @@
+ /*  All windows compilers that use this header support __declspec */
+ #define HAVE_DECLSPEC_DLL
+ 
+-/* For an MSVC DLL, we can nominate the .lib files used by extensions */
+-#ifdef MS_COREDLL
+-#	ifndef Py_BUILD_CORE /* not building the core - must be an ext */
+-#		if defined(_MSC_VER)
+-			/* So MSVC users need not specify the .lib file in
+-			their Makefile (other compilers are generally
+-			taken care of by distutils.) */
+-#			if defined(_DEBUG)
+-#				pragma comment(lib,"python36_d.lib")
+-#			elif defined(Py_LIMITED_API)
+-#				pragma comment(lib,"python3.lib")
+-#			else
+-#				pragma comment(lib,"python36.lib")
+-#			endif /* _DEBUG */
+-#		endif /* _MSC_VER */
+-#	endif /* Py_BUILD_CORE */
+-#endif /* MS_COREDLL */
+-
+ #if defined(MS_WIN64)
+ /* maintain "win32" sys.platform for backward compatibility of Python code,
+    the Win64 API should be close enough to the Win32 API to make this
