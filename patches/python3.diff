@@ -134,3 +134,15 @@
  #if defined(MS_WIN64)
  /* maintain "win32" sys.platform for backward compatibility of Python code,
     the Win64 API should be close enough to the Win32 API to make this
+@@ -333,9 +315,11 @@
+ #	endif
+ #endif
+ 
++#if 0
+ #ifdef _DEBUG
+ #	define Py_DEBUG
+ #endif
++#endif
+ 
+ 
+ #ifdef MS_WIN32
