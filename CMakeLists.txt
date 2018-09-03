@@ -104,7 +104,7 @@ add_dependency_project_package(flatc 1.9.0)
 
 ExternalProject_Add(bzip2
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL http://www.bzip.org/1.0.6/bzip2-1.0.6.tar.gz
+	URL https://mirrors.kodi.tv/build-deps/sources/bzip2-1.0.6.tar.gz
 	URL_HASH SHA256=a2848f34fcd5d6cf47def00461fcb528a0484d8edef8208d6d2e2909dc61d9cd
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
@@ -261,7 +261,7 @@ add_dependency_project_package(libcdio 0.94)
 
 ExternalProject_Add(libfribidi
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL http://fribidi.org/download/fribidi-0.19.7.tar.bz2
+	URL https://mirrors.kodi.tv/build-deps/sources/fribidi-0.19.7.tar.bz2
 	URL_HASH SHA256=08222a6212bbc2276a2d55c3bf370109ae4a35b689acbc66571ad2a670595a8e
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
