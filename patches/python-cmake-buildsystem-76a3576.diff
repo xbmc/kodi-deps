@@ -1,9 +1,9 @@
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,662 @@
+@@ -0,0 +1,686 @@
 +cmake_minimum_required(VERSION 2.8.6)
 +
-+set(PYTHON_VERSION "3.5.2" CACHE STRING "The version of Python to build.")
++set(PYTHON_VERSION "3.6.4" CACHE STRING "The version of Python to build.")
 +
 +string(REPLACE "." ";" VERSION_LIST ${PYTHON_VERSION})
 +list(GET VERSION_LIST 0 PY_VERSION_MAJOR)
@@ -179,8 +179,9 @@
 +get_filename_component(_parent_dir ${CMAKE_CURRENT_BINARY_DIR} PATH)
 +string(REGEX REPLACE "rc[1-9]$" "" _py_version_patch_no_rc ${PY_VERSION_PATCH})
 +set(_py_version_no_rc "${PY_VERSION_MAJOR}.${PY_VERSION_MINOR}.${_py_version_patch_no_rc}")
-+set(_download_link "http://www.python.org/ftp/python/${_py_version_no_rc}/Python-${PY_VERSION}.tgz")
-+# Variable below represent the set of supported python version.
++set(_download_link "https://www.python.org/ftp/python/${_py_version_no_rc}/Python-${PY_VERSION}.tgz")
++# Variable below represent the set of available python version.
++# 2.7.x
 +set(_download_2.7.3_md5 "2cf641732ac23b18d139be077bd906cd")
 +set(_download_2.7.4_md5 "592603cfaf4490a980e93ecb92bde44a")
 +set(_download_2.7.5_md5 "b4f01a1d0ba0b46b05c73b2ac909b1df")
@@ -191,8 +192,21 @@
 +set(_download_2.7.10_md5 "d7547558fd673bd9d38e2108c6b42521")
 +set(_download_2.7.11_md5 "6b6076ec9e93f05dd63e47eb9c15728b")
 +set(_download_2.7.12_md5 "88d61f82e3616a4be952828b3694109d")
++set(_download_2.7.13_md5 "17add4bf0ad0ec2f08e0cae6d205c700")
++set(_download_2.7.14_md5 "cee2e4b33ad3750da77b2e85f2f8b724")
++# 3.5.x
 +set(_download_3.5.1_md5 "be78e48cdfc1a7ad90efff146dce6cfe")
 +set(_download_3.5.2_md5 "3fe8434643a78630c61c6464fe2e7e72")
++set(_download_3.5.3_md5 "6192f0e45f02575590760e68c621a488")
++set(_download_3.5.4_md5 "2ed4802b7a2a7e40d2e797272bf388ec")
++set(_download_3.5.5_md5 "7c825b747d25c11e669e99b912398585")
++# 3.6.x
++set(_download_3.6.0_md5 "3f7062ccf8be76491884d0e47ac8b251")
++set(_download_3.6.1_md5 "2d0fc9f3a5940707590e07f03ecb08b9")
++set(_download_3.6.2_md5 "e1a36bfffdd1d3a780b1825daf16e56c")
++set(_download_3.6.3_md5 "e9180c69ed9a878a4a8a3ab221e32fa9")
++set(_download_3.6.4_md5 "9de6494314ea199e3633211696735f65")
++
 +set(_extracted_dir "Python-${PY_VERSION}")
 +
 +if(NOT EXISTS ${SRC_DIR}/${_landmark} AND DOWNLOAD_SOURCES)
@@ -202,6 +216,9 @@
 +        message(STATUS "${_filename} already downloaded")
 +    else()
 +        message(STATUS "Downloading ${_download_link}")
++        if(NOT DEFINED _download_${PY_VERSION}_md5)
++            message(FATAL_ERROR "Selected PY_VERSION [${PY_VERSION}] is not associated with any checksum. Consider updating this CMakeLists.txt setting _download_${PY_VERSION}_md5 variable")
++        endif()
 +        file(
 +          DOWNLOAD ${_download_link} ${_archive_filepath}
 +          EXPECTED_MD5 ${_download_${PY_VERSION}_md5}
@@ -246,12 +263,20 @@
 +    PY_VERSION_MAJOR ${_version})
 +string(REGEX REPLACE "[0-9]\\.([0-9]+)\\..+" "\\1"
 +    PY_VERSION_MINOR ${_version})
-+string(REGEX REPLACE "[0-9]\\.[0-9]+\\.([0-9]+)" "\\1"
++string(REGEX REPLACE "[0-9]\\.[0-9]+\\.([0-9]+)[+]?" "\\1"
 +    PY_VERSION_PATCH ${_version})
 +set(PY_VERSION "${PY_VERSION_MAJOR}.${PY_VERSION_MINOR}.${PY_VERSION_PATCH}")
 +message(STATUS "PY_VERSION: ${PY_VERSION}")
 +if(NOT DEFINED _download_${PY_VERSION}_md5)
-+    message(FATAL_ERROR "error: unknown python version '${PY_VERSION}'. Valid version should match '2.7.[3-12]' or '3.5.[1-2]'")
++    message(WARNING "warning: selected python version '${PY_VERSION}' is not tested. Tested versions match '2.7.[3-14]' or '3.5.[1-5]' or `3.6.[0-4]`")
++endif()
++
++set(PYTHON_VERSION "${PY_VERSION}" CACHE STRING "The version of Python to build." FORCE)
++
++# Apply patches
++option(PYTHON_APPLY_PATCHES "Apply patches" ON)
++if(PYTHON_APPLY_PATCHES)
++  include(cmake/PythonApplyPatches.cmake)
 +endif()
 +
 +# Convenience boolean variables to easily test python version
@@ -260,14 +285,6 @@
 +if(PY_VERSION_MAJOR VERSION_GREATER 2)
 +    set(IS_PY3 1)
 +    set(IS_PY2 0)
-+endif()
-+
-+# Convenience boolean variables to easily test the type of python library being build
-+set(BUILD_STATIC 1)
-+set(BUILD_SHARED 0)
-+if(BUILD_LIBPYTHON_SHARED)
-+  set(BUILD_STATIC 0)
-+  set(BUILD_SHARED 1)
 +endif()
 +
 +# Options depending of the python version
@@ -300,10 +317,6 @@
 +# Proceed to the configure checks
 +include(cmake/ConfigureChecks.cmake)
 +
-+if(NOT BUILD_SHARED AND NOT BUILD_STATIC)
-+    message(FATAL_ERROR "One or both of BUILD_SHARED or BUILD_STATIC must be set")
-+endif()
-+
 +# Set PYTHONHOME
 +set(LIBDIR "Lib") # See Lib/distutils/sysconfig.py - function 'get_python_lib'
 +if(UNIX)
@@ -323,12 +336,20 @@
 +if(INSTALL_WINDOWS_TRADITIONAL)
 +    set(BIN_INSTALL_DIR .)                       # Contains the python executable
 +endif()
++set(LD_VERSION ${LIBPYTHON_VERSION}${ABIFLAGS})
 +set(CONFIG_INSTALL_DIR share/${LIBPYTHON})
 +set(EXTENSION_INSTALL_DIR ${PYTHONHOME}/lib-dynload)
++
++if (${LIBPYTHON_VERSION} GREATER 3.1)
++  set(LIB_CONFIG_INSTALL_DIR ${PYTHONHOME}/config-${LD_VERSION})
++else()
++  set(LIB_CONFIG_INSTALL_DIR ${PYTHONHOME}/config)
++endif()
++
 +if(INSTALL_WINDOWS_TRADITIONAL)
 +    set(EXTENSION_INSTALL_DIR DLLs)
 +endif()
-+set(INCLUDE_INSTALL_DIR include/${LIBPYTHON})
++set(INCLUDE_INSTALL_DIR include/python${LD_VERSION})
 +if(MSVC)
 +    set(INCLUDE_INSTALL_DIR include)
 +endif()
@@ -382,6 +403,9 @@
 +
 +# Set cflags used by all components
 +if(CMAKE_C_COMPILER_ID MATCHES GNU)
++    if(PY_VERSION VERSION_EQUAL "3.6" OR PY_VERSION VERSION_GREATER "3.6")
++        append_if_absent(CMAKE_C_FLAGS "-std=c99")
++    endif()
 +    append_if_absent(CMAKE_C_FLAGS "-Wall")
 +    append_if_absent(CMAKE_C_FLAGS "-Wstrict-prototypes")
 +    append_if_absent(CMAKE_C_FLAGS "-fno-strict-aliasing")
@@ -420,7 +444,7 @@
 +# Define python executable wrapper command to ensure
 +# python executable resolves the expected python library.
 +set(PYTHON_WRAPPER_COMMAND )
-+if(BUILD_SHARED AND UNIX)
++if(BUILD_LIBPYTHON_SHARED AND UNIX)
 +    set(_envvar LD_LIBRARY_PATH)
 +    if(APPLE)
 +        set(_envvar DYLD_LIBRARY_PATH)
@@ -553,7 +577,7 @@
 +                   ${BIN_BUILD_DIR}/Makefile @ONLY)
 +    if(INSTALL_DEVELOPMENT)
 +        install(FILES ${BIN_BUILD_DIR}/Makefile
-+                DESTINATION ${PYTHONHOME}/config/
++                DESTINATION ${LIB_CONFIG_INSTALL_DIR}
 +                RENAME Makefile
 +                COMPONENT Development)
 +    endif()
@@ -561,7 +585,7 @@
 +    # Utility scripts
 +    if(INSTALL_DEVELOPMENT)
 +        install(FILES ${SRC_DIR}/install-sh ${SRC_DIR}/Modules/makesetup
-+                DESTINATION ${PYTHONHOME}/config/
++                DESTINATION ${LIB_CONFIG_INSTALL_DIR}
 +                COMPONENT Development)
 +    endif()
 +
@@ -700,7 +724,7 @@
 +- [GitHub Help](https://help.github.com)
 --- /dev/null
 +++ b/CTestConfig.cmake
-@@ -0,0 +1,7 @@
+@@ -0,0 +1,8 @@
 +set(CTEST_PROJECT_NAME "Python")
 +set(CTEST_NIGHTLY_START_TIME "3:00:00 UTC")
 +
@@ -708,6 +732,7 @@
 +set(CTEST_DROP_SITE "open.cdash.org")
 +set(CTEST_DROP_LOCATION "/submit.php?project=CPython")
 +set(CTEST_DROP_SITE_CDASH TRUE)
++set(CTEST_TEST_TIMEOUT "60")
 --- /dev/null
 +++ b/LICENSE_Apache_20
 @@ -0,0 +1,192 @@
@@ -903,264 +928,6 @@
 +   See the License for the specific language governing permissions and
 +   limitations under the License.
 +
---- /dev/null
-+++ b/README.rst
-@@ -0,0 +1,255 @@
-+CPython CMake Buildsystem
-+=========================
-+
-+Overview
-+--------
-+
-+A replacement buildsystem for CPython.
-+
-+This `CMake <http://cmake.org>`_ buildsystem has the following advantages:
-+
-+* No compiled program for the target architecture is used in the build
-+  itself.  This makes **cross-compiling** easier, less error prone, and
-+  reduces manual steps.
-+* Same build information for all platforms - there's no need to maintain the
-+  autotools configuration separately from four different MSVC project files.
-+* Support for other build systems and IDE's like `Ninja
-+  <https://martine.github.io/ninja/>`_, `Sublime Text
-+  <https://www.sublimetext.com/>`_, and many others.
-+* Easily build C-extensions against other C/C++ libraries built with CMake.
-+* It's much faster to compile: 7 seconds instead of 58 seconds in my
-+  unscientific test.
-+
-+Usage
-+-----
-+
-+How to use this buildsystem:
-+
-+1. Checkout the buildsystem
-+
-+.. code:: bash
-+
-+  cd ~/scratch
-+  git clone git://github.com/python-cmake-buildsystem/python-cmake-buildsystem
-+
-+2. Build
-+
-+.. code:: bash
-+
-+  cd ~/scratch
-+  mkdir -p python-build && mkdir -p python-install
-+  cd python-build
-+  cmake -DCMAKE_INSTALL_PREFIX:PATH=${HOME}/scratch/python-install ../python-cmake-buildsystem
-+  make -j10
-+  make install
-+
-+.. note::
-+
-+  By default, the build system will download the python 2.7.12 source from
-+  http://www.python.org/ftp/python/
-+
-+
-+CMake Options
-+-------------
-+
-+You can pass options to CMake to control the way Python is built.  You only
-+need to give each option once - they get saved in `CMakeCache.txt`.  Pass
-+options on the commandline with `-DOPTION=VALUE`, or use the "ccmake" gui.
-+
-+::
-+
-+  PYTHON_VERSION=major.minor.patch (defaults to 2.7.12)
-+    The version of Python to build.
-+
-+  CMAKE_BUILD_TYPE=Debug|Release
-+    Build with debugging symbols or with optimisations.
-+
-+  CMAKE_INSTALL_PREFIX=<path>   (defaults to /usr/local)
-+    Path in which to install Python.
-+
-+  DOWNLOAD_SOURCES=ON|OFF      (defaults to ON)
-+    Download, check MD5 sum and extract python sources in the parent directory.
-+    Source archive is downloaded from http://www.python.org/ftp/python
-+
-+  BUILD_LIBPYTHON_SHARED=ON|OFF (defaults to OFF)
-+    Build libpython as a shared library (.so or .dll) or a static library
-+    (.a).
-+
-+    Note that Python extensions are always built as shared libraries.  On
-+    Windows it is not possible to build shared .dll extensions against a
-+    static libpython, so you must build any extensions you want into libpython
-+    itself (see the BUILTIN flags below).
-+
-+  BUILD_EXTENSIONS_AS_BUILTIN=ON|OFF (defaults to OFF)
-+    If enabled, all extensions are statically compiled into the built python
-+    libraries (static and/or shared).
-+
-+    Note that all previously set BUILTIN_<extension> options are ignored and
-+    reset to their original value.
-+
-+  WITH_STATIC_DEPENDENCIES=ON|OFF    (defaults to OFF, available only on UNIX)
-+    If this is set to ON then cmake will compile statically libpython and all
-+    extensions. External dependencies (ncurses, sqlite, ...) will be builtin
-+    only if they are available as static libraries.
-+
-+  BUILD_WININST=ON|OFF (only for windows, defaults to ON if not crosscompiling)
-+    If enabled, build the 'Windows Installer' program for distutils if not
-+    already provided in the source tree.
-+
-+  BUILD_WININST_ALWAYS=ON|OFF (only for windows, defaults to OFF)
-+    If enabled, always build 'Windows Installer' program for distutils even
-+    if it is already provided in the source tree.
-+
-+  INSTALL_DEVELOPMENT=ON|OFF (defaults to ON)
-+    If enabled, install files required to develop C extensions.
-+
-+  INSTALL_MANUAL=ON|OFF (defaults to ON)
-+    If enabled, install manuals.
-+
-+  INSTALL_TEST=ON|OFF (defaults to ON)
-+    If enabled, install test files.
-+
-+  ENABLE_<extension>=ON|OFF     (defaults to ON)
-+  BUILTIN_<extension>=ON|OFF    (defaults to OFF except for POSIX, PWD and
-+                                 NT extensions which are builtin by default)
-+    These two options control how individual python extensions are built.
-+    <extension> is the name of the extension in upper case, and without any
-+    leading underscore (_).  Known extensions for 2.7.12 include:
-+
-+      ARRAY AUDIOOP BINASCII BISECT BSDDB BZ2 CMATH CODECS_CN CODECS_HK
-+      CODECS_ISO2022 CODECS_JP CODECS_KR CODECS_TW COLLECTIONS CPICKLE CRYPT
-+      CSTRINGIO CSV CTYPES CTYPES_TEST CURSES CURSES_PANEL DATETIME DBM
-+      ELEMENTTREE FCNTL FUNCTOOLS FUTURE_BUILTINS GDBM GRP HASHLIB HEAPQ
-+      HOTSHOT IO ITERTOOLS JSON LINUXAUDIODEV LOCALE LSPROF MATH MMAP
-+      MULTIBYTECODEC MULTIPROCESSING NIS NT OPERATOR OSSAUDIODEV PARSER POSIX
-+      PWD PYEXPAT RANDOM READLINE RESOURCE SELECT SOCKET SPWD SQLITE3 SSL
-+      STROP STRUCT SYSLOG TERMIOS TESTCAPI TIME TKINTER UNICODEDATA ZLIB
-+
-+    All extensions are enabled by default, but some might depend on system
-+    libraries and will get disabled if they're not available (a list of
-+    extensions that didn't have all their prerequisites available will be
-+    printed when you run cmake).
-+
-+    By default extensions are compiled as separate shared libraries (.so or
-+    .dll files) and installed in lib/python2.7/lib-dynload.  If you set
-+    BUILTIN_<extension> to ON then the extension is compiled into libpython
-+    instead.
-+
-+  USE_LIB64=ON|OFF              (defaults to OFF)
-+    If this is set to ON then cmake will look for dependencies in lib64 as
-+    well as lib directories.  Compiled python extensions will also be
-+    installed into lib64/python2.7/lib-dynload instead of
-+    lib/python2.7/lib-dynload.
-+
-+  Py_USING_UNICODE             (only for python2, defaults to ON)
-+    Enable unicode support. By default, ucs2 is used. It can be
-+    forced to ucs4 setting Py_UNICODE_SIZE to 4.
-+
-+  EXTRA_PYTHONPATH=dir1:dir2    (defaults to "")
-+    Colon (:) separated list of extra directories to add to the compiled-in
-+    PYTHONPATH.
-+
-+  USE_SYSTEM_LIBRARIES=ON|OFF   (defaults to ON)
-+    If set to OFF, no attempt to detect system libraries will be done.
-+    Options documented below allow to enable/disable detection of particular
-+    libraries.
-+
-+  USE_SYSTEM_Curses=ON|OFF      (defaults to ON)
-+    If set to OFF, no attempt to detect Curses libraries will be done.
-+    Associated python extensions are: CURSES, CURSES_PANEL, READLINE
-+    Following CMake variables can manually be set: CURSES_LIBRARIES, PANEL_LIBRARIES
-+
-+  USE_SYSTEM_EXPAT=ON|OFF       (defaults to ON)
-+    If set to OFF, no attempt to detect Expat libraries will be done.
-+    Associated python extensions are: ELEMENTTREE, PYEXPAT
-+    Following CMake variables can manually be set: EXPAT_LIBRARIES, EXPAT_INCLUDE_DIRS
-+
-+  USE_SYSTEM_OpenSSL=ON|OFF     (defaults to ON)
-+    If set to OFF, no attempt to detect OpenSSL libraries will be done.
-+    Associated python extensions are: HASHLIB, SSL, MD5, SHA, SHA256, SHA512
-+    Following CMake variables can manually be set: OPENSSL_INCLUDE_DIR, OPENSSL_LIBRARIES
-+    If [OPENSSL_INCLUDE_DIR, OPENSSL_LIBRARIES] are found, extensions [HASHLIB, SSL] will be built
-+    If [OPENSSL_INCLUDE_DIR, OPENSSL_LIBRARIES] are NOT found, extensions [SHA, SHA256, SHA512] will be built
-+
-+  USE_SYSTEM_TCL=ON|OFF         (defaults to ON)
-+    If set to OFF, no attempt to detect Tcl libraries will be done.
-+    Associated python extensions are: TKINTER
-+    Following CMake variables can manually be set: TCL_LIBRARY, TK_LIBRARY, TCL_INCLUDE_PATH, TK_INCLUDE_PATH
-+
-+  USE_SYSTEM_ZLIB=ON|OFF        (defaults to ON)
-+    If set to OFF, no attempt to detect ZLIB libraries will be done.
-+    Associated python extensions are: BINASCII, ZLIB
-+    Following CMake variables can manually be set: ZLIB_LIBRARY, ZLIB_INCLUDE_DIR, ZLIB_ROOT
-+    ZLIB_ROOT should be set only if USE_SYSTEM_ZLIB is ON
-+    If [ZLIB_LIBRARY, ZLIB_INCLUDE_DIR] are found, extensions [BINASCII] will be built with ZLIB_CRC32
-+
-+  USE_SYSTEM_DB=ON|OFF          (defaults to ON)
-+    If set to OFF, no attempt to detect DB libraries will be done.
-+    Associated python extensions are: BSDDB
-+    Following CMake variables can manually be set: DB_INCLUDE_PATH, DB_LIBRARIES
-+
-+  USE_SYSTEM_GDBM=ON|OFF        (defaults to ON)
-+    If set to OFF, no attempt to detect GDBM libraries will be done.
-+    Associated python extensions are: DBM, GDBM
-+    Following CMake variables can manually be set: GDBM_INCLUDE_PATH, GDBM_LIBRARY, GDBM_COMPAT_LIBRARY
-+
-+  USE_SYSTEM_READLINE=ON|OFF    (defaults to ON)
-+    If set to OFF, no attempt to detect Readline libraries will be done.
-+    Associated python extensions are: READLINE
-+    Following CMake variables can manually be set: READLINE_INCLUDE_PATH, READLINE_LIBRARY
-+
-+  USE_SYSTEM_SQLITE3=ON|OFF     (defaults to ON)
-+    If set to OFF, no attempt to detect SQLITE3 libraries will be done.
-+    Associated python extensions are: SQLITE3
-+    Following CMake variables can manually be set: SQLITE3_INCLUDE_PATH, SQLITE3_LIBRARY
-+
-+  CMAKE_OSX_SDK                (MacOSX, default is autodetected, e.g 'macosx10.06')
-+    By default, the variable is automatically set running `xcrun` and/or `xcodebuild`. Note that its
-+    value can also be explicitly set when doing a clean configuration either by adding a cache entry in
-+    `cmake-gui` or by passing the argument `-DCMAKE_OSX_SDK:STRING=macosx10.6` when running `cmake`.
-+    Then, this variable is used to initialize `CMAKE_OSX_SYSROOT`, `CMAKE_OSX_DEPLOYMENT_TARGET`
-+    and `MACOSX_DEPLOYMENT_TARGET` variables.
-+
-+
-+Cross-compiling
-+---------------
-+
-+Cross-compiling for Windows from Linux
-+......................................
-+
-+There are some patches in the cmake/patches-win32 directory that make it
-+possible to compile Python using the mingw32 compiler.  You have to apply
-+these before running make::
-+
-+  patch -p0 < cmake/patches-win32/01-dynload_win.patch
-+  patch -p0 < cmake/patches-win32/02-signalmodule.patch
-+  patch -p0 < cmake/patches-win32/03-mingw32.patch
-+
-+Remarks
-+-------
-+
-+Note: Currently, multiple versions of Python 2.7 and 3.5 are supported. This
-+repository is maintained separately from Python itself it needs to be manually
-+updated whenever there is a new release of Python.
-+
-+Licenses
-+--------
-+
-+Materials in this repository are distributed under the following licenses:
-+
-+  All software is licensed under the Apache 2.0 License.
-+  See `LICENSE_Apache_20 <LICENSE_Apache_20>`_ file for details.
-+
-+
-+FAQ
-+---
-+
-+Why Apache 2.0 License?
-+.......................
-+
-+From the python.org wiki, the answer to the question `What if I want to
-+contribute my code to the PSF
-+<https://wiki.python.org/moin/PythonSoftwareFoundationLicenseFaq#What_if_I_want_to_contribute_my_code_to_the_PSF.3F>`_
-+mentions that if code is going to end up in Python or the standard library,
-+the PSF will require you to license code under "Academic Free License" or
-+"Apache License 2.0".
 --- /dev/null
 +++ b/cmake/CMakeChecks.cmake
 @@ -0,0 +1,15 @@
@@ -1361,7 +1128,7 @@
 +endmacro()
 --- /dev/null
 +++ b/cmake/ConfigureChecks.cmake
-@@ -0,0 +1,2446 @@
+@@ -0,0 +1,2456 @@
 +include(CheckCSourceCompiles)
 +include(CheckCSourceRuns)
 +include(CheckIncludeFiles)
@@ -1527,6 +1294,7 @@
 +  set(PLATFORM_TRIPLET "${CMAKE_SYSTEM_PROCESSOR}-${lc_system_name}")
 +endif()
 +set(SOABI "cpython-${PY_VERSION_MAJOR}${PY_VERSION_MINOR}${ABIFLAGS}-${PLATFORM_TRIPLET}")
++
 +message(STATUS "${_msg} - ${SOABI}")
 +
 +endif()
@@ -1627,11 +1395,13 @@
 +check_include_files(sys/file.h HAVE_SYS_FILE_H)
 +check_include_files(sys/loadavg.h HAVE_SYS_LOADAVG_H)
 +check_include_files(sys/lock.h HAVE_SYS_LOCK_H)
++check_include_files(sys/sysmacros.h HAVE_SYS_SYSMACROS_H)
 +check_include_files(sys/mkdev.h HAVE_SYS_MKDEV_H)
 +check_include_files(sys/mman.h HAVE_SYS_MMAN_H) # libffi and cpython
 +check_include_files(sys/modem.h HAVE_SYS_MODEM_H)
 +check_include_files(sys/param.h HAVE_SYS_PARAM_H)
 +check_include_files(sys/poll.h HAVE_SYS_POLL_H)
++check_include_files(sys/random.h HAVE_SYS_RANDOM_H)
 +check_include_files(sys/resource.h HAVE_SYS_RESOURCE_H)
 +check_include_files(sys/select.h HAVE_SYS_SELECT_H)
 +check_include_files(sys/statvfs.h HAVE_SYS_STATVFS_H)
@@ -2023,6 +1793,8 @@
 +
 +add_cond(CFG_HEADERS HAVE_SYS_EPOLL_H sys/epoll.h)
 +add_cond(CFG_HEADERS HAVE_SYS_EVENT_H sys/event.h)
++add_cond(CFG_HEADERS HAVE_SYS_RANDOM_H sys/random.h)
++add_cond(CFG_HEADERS HAVE_SYS_SYSMACROS_H sys/sysmacros.h)
 +add_cond(CFG_HEADERS HAVE_SYS_TYPES_H sys/types.h)
 +add_cond(CFG_HEADERS HAVE_SYS_TIME_H sys/time.h)
 +add_cond(CFG_HEADERS HAVE_SYS_FILE_H sys/file.h)
@@ -2127,7 +1899,7 @@
 +check_symbol_exists(getpgid      "${CFG_HEADERS}" HAVE_GETPGID)
 +check_symbol_exists(getpgrp      "${CFG_HEADERS}" HAVE_GETPGRP)
 +check_symbol_exists(getpid       "${CFG_HEADERS}" HAVE_GETPID)
-+check_symbol_exists(getpriority  "${CFG_HEADERS}" HAVE_GETPRIORITY)
++python_check_function(getpriority HAVE_GETPRIORITY)
 +check_symbol_exists(getpwent     "${CFG_HEADERS}" HAVE_GETPWENT)
 +check_symbol_exists(getresgid    "${CFG_HEADERS}" HAVE_GETRESGID)
 +check_symbol_exists(getresuid    "${CFG_HEADERS}" HAVE_GETRESUID)
@@ -2220,7 +1992,7 @@
 +check_symbol_exists(futimes      "${CFG_HEADERS}" HAVE_FUTIMES)
 +check_symbol_exists(futimesat    "${CFG_HEADERS}" HAVE_FUTIMESAT)
 +check_symbol_exists(getentropy   "${CFG_HEADERS}" HAVE_GETENTROPY)
-+check_symbol_exists(getpriority  "${CFG_HEADERS}" HAVE_GETPRIORITY)
++python_check_function(getpriority HAVE_GETPRIORITY)
 +check_symbol_exists(getgrouplist "${CFG_HEADERS}" HAVE_GETGROUPLIST)
 +check_symbol_exists(htole64      "${CFG_HEADERS}" HAVE_HTOLE64)
 +check_symbol_exists(if_nameindex "${CFG_HEADERS}" HAVE_IF_NAMEINDEX)
@@ -3043,6 +2815,7 @@
 +  check_symbol_exists(rl_completion_suppress_append      "${CFG_HEADERS}" HAVE_RL_COMPLETION_SUPPRESS_APPEND)
 +  check_symbol_exists(rl_completion_matches       "${CFG_HEADERS}" HAVE_RL_COMPLETION_MATCHES)
 +  check_symbol_exists(rl_pre_input_hook           "${CFG_HEADERS}" HAVE_RL_PRE_INPUT_HOOK)
++  check_symbol_exists(rl_resize_terminal          "${CFG_HEADERS}" HAVE_RL_RESIZE_TERMINAL)
 +
 +  set(CFG_HEADERS ${CFG_HEADERS_SAVE})
 +  cmake_pop_check_state()
@@ -3509,6 +3282,8 @@
 +  INVERT
 +  )
 +
++endif(IS_PY3)
++
 +# Check whether the compiler supports computed gotos
 +set(check_src ${PROJECT_BINARY_DIR}/CMakeFiles/ac_cv_computed_gotos.c)
 +file(WRITE ${check_src} "int main(int argc, char **argv)
@@ -3528,6 +3303,8 @@
 +  ${check_src}
 +  DIRECT
 +  )
++
++if(IS_PY3)
 +
 +# Availability of -O2
 +cmake_push_check_state()
@@ -3625,7 +3402,7 @@
 +  DIRECT
 +  )
 +
-+endif()
++endif(IS_PY3)
 +
 +if(HAVE_LONG_LONG)
 +  # Checking for %lld and %llu printf() format support
@@ -3963,7 +3740,7 @@
 +        set_property(GLOBAL APPEND PROPERTY extension_${name}_link_libraries ${ADD_PYTHON_EXTENSION_LIBRARIES})
 +        set_property(GLOBAL APPEND PROPERTY extension_${name}_includedirs ${ADD_PYTHON_EXTENSION_INCLUDEDIRS})
 +        set_property(GLOBAL APPEND PROPERTY extension_${name}_definitions ${ADD_PYTHON_EXTENSION_DEFINITIONS})
-+    elseif(WIN32 AND NOT BUILD_SHARED)
++    elseif(WIN32 AND NOT BUILD_LIBPYTHON_SHARED)
 +        # Extensions cannot be built against a static libpython on windows
 +    else()
 +
@@ -4056,6 +3833,88 @@
 +        message(STATUS "")
 +    endif()
 +endfunction()
+--- /dev/null
++++ b/cmake/FindPatch.cmake
+@@ -0,0 +1,79 @@
++# Distributed under the OSI-approved BSD 3-Clause License.  See accompanying
++# file Copyright.txt or https://cmake.org/licensing for details.
++
++#.rst:
++# FindPatch
++# ---------
++#
++# The module defines the following variables:
++#
++# ``Patch_EXECUTABLE``
++#   Path to patch command-line executable.
++# ``Patch_FOUND``
++#   True if the patch command-line executable was found.
++#
++# The following :prop_tgt:`IMPORTED` targets are also defined:
++#
++# ``Patch::patch``
++#   The command-line executable.
++#
++# Example usage:
++#
++# .. code-block:: cmake
++#
++#    find_package(Patch)
++#    if(Patch_FOUND)
++#      message("Patch found: ${Patch_EXECUTABLE}")
++#    endif()
++
++set(_doc "Patch command line executable")
++set(_patch_path )
++
++if(CMAKE_HOST_WIN32)
++  set(_patch_path
++    "$ENV{LOCALAPPDATA}/Programs/Git/bin"
++    "$ENV{LOCALAPPDATA}/Programs/Git/usr/bin"
++    "$ENV{APPDATA}/Programs/Git/bin"
++    "$ENV{APPDATA}/Programs/Git/usr/bin"
++    )
++endif()
++
++# First search the PATH
++find_program(Patch_EXECUTABLE
++  NAME patch
++  PATHS ${_patch_path}
++  DOC ${_doc}
++  )
++
++if(CMAKE_HOST_WIN32)
++  # Now look for installations in Git/ directories under typical installation
++  # prefixes on Windows.
++  find_program(Patch_EXECUTABLE
++    NAMES patch
++    PATH_SUFFIXES Git/usr/bin Git/bin GnuWin32/bin
++    DOC ${_doc}
++    )
++endif()
++
++if(Patch_EXECUTABLE AND NOT TARGET Patch::patch)
++  add_executable(Patch::patch IMPORTED)
++  set_property(TARGET Patch::patch PROPERTY IMPORTED_LOCATION ${Patch_EXECUTABLE})
++
++  execute_process(COMMAND ${Patch_EXECUTABLE} --version
++                  OUTPUT_VARIABLE patch_version
++                  ERROR_QUIET
++                  OUTPUT_STRIP_TRAILING_WHITESPACE
++                  )
++  set(_patch_version_regex ".*patch ([0-9]+\\.[0-9]+\\.[0-9]+)")
++  if(patch_version MATCHES "${_patch_version_regex}")
++    set(Patch_VERSION ${CMAKE_MATCH_1})
++  endif()
++endif()
++
++unset(_patch_path)
++unset(_doc)
++
++include(FindPackageHandleStandardArgs)
++find_package_handle_standard_args(Patch
++                                  REQUIRED_VARS Patch_EXECUTABLE
++                                  VERSION_VAR Patch_VERSION)
 --- /dev/null
 +++ b/cmake/PC/bdist_wininst/CMakeLists.txt
 @@ -0,0 +1,93 @@
@@ -4349,6 +4208,117 @@
 +    )
 +endmacro()
 --- /dev/null
++++ b/cmake/PythonApplyPatches.cmake
+@@ -0,0 +1,108 @@
++
++set(CMAKE_MODULE_PATH
++  ${CMAKE_CURRENT_LIST_DIR}
++  ${CMAKE_MODULE_PATH}
++  )
++
++if(NOT DEFINED PATCH_COMMAND)
++  find_package(Git)
++  if(Git_FOUND OR GIT_FOUND)
++    set(PATCH_COMMAND ${GIT_EXECUTABLE} apply --whitespace=fix)
++    # Initialize Git repo to ensure "git apply" works when source tree
++    # is located within an already versioned tree.
++    if(NOT EXISTS "${SRC_DIR}/.git")
++      execute_process(
++        COMMAND ${GIT_EXECUTABLE} init
++        WORKING_DIRECTORY ${SRC_DIR}
++        RESULT_VARIABLE result
++        ERROR_VARIABLE error
++        ERROR_STRIP_TRAILING_WHITESPACE
++        OUTPUT_QUIET
++        )
++      if(NOT result EQUAL 0)
++        message(FATAL_ERROR "${output}\n${error}")
++      endif()
++    endif()
++  else()
++    find_package(Patch)
++    if(Patch_FOUND OR PATCH_FOUND)
++      # Since support for git diffs which copy or rename files was
++      # added in patch 2.7, we can not use older version.
++      if("${Patch_VERSION}" VERSION_EQUAL "2.7.0" OR "${Patch_VERSION}" VERSION_GREATER "2.7.0")
++        set(PATCH_COMMAND ${Patch_EXECUTABLE} --quiet -p1 -i)
++      else()
++        set(_reason "Found Patch executable [${Patch_EXECUTABLE}] version [${Patch_VERSION}] older than 2.7.0 missing support for copy or rename files.")
++      endif()
++    endif()
++  endif()
++endif()
++
++if(NOT DEFINED PATCH_COMMAND)
++  message(FATAL_ERROR "Could NOT find a suitable version of Git or Patch executable to apply patches. ${_reason}")
++endif()
++
++set(patches_dir "${Python_SOURCE_DIR}/patches")
++
++function(_apply_patches _subdir)
++  if(NOT EXISTS ${patches_dir}/${_subdir})
++    message(STATUS "Skipping patches: Directory '${patches_dir}/${_subdir}' does not exist")
++    return()
++  endif()
++  file(GLOB _patches RELATIVE ${patches_dir} "${patches_dir}/${_subdir}/*.patch")
++  if(NOT _patches)
++    return()
++  endif()
++  message(STATUS "")
++  list(SORT _patches)
++  foreach(patch IN LISTS _patches)
++    set(msg "Applying '${patch}'")
++    message(STATUS "${msg}")
++    set(applied ${SRC_DIR}/.patches/${patch}.applied)
++    # Handle case where source tree was patched using the legacy approach.
++    set(legacy_applied ${PROJECT_BINARY_DIR}/CMakeFiles/patches/${patch}.applied)
++    if(EXISTS ${legacy_applied})
++      set(applied ${legacy_applied})
++    endif()
++    if(EXISTS ${applied})
++      message(STATUS "${msg} - skipping (already applied)")
++      continue()
++    endif()
++    execute_process(
++      COMMAND ${PATCH_COMMAND} ${patches_dir}/${patch}
++      WORKING_DIRECTORY ${SRC_DIR}
++      RESULT_VARIABLE result
++      ERROR_VARIABLE error
++      ERROR_STRIP_TRAILING_WHITESPACE
++      OUTPUT_VARIABLE output
++      OUTPUT_STRIP_TRAILING_WHITESPACE
++      )
++    if(result EQUAL 0)
++      message(STATUS "${msg} - done")
++      get_filename_component(_dir ${applied} DIRECTORY)
++      execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${_dir})
++      execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${applied})
++    else()
++      message(STATUS "${msg} - failed")
++      message(FATAL_ERROR "${output}\n${error}")
++    endif()
++  endforeach()
++  message(STATUS "")
++endfunction()
++
++set(_py_version ${PY_VERSION})
++if("${PY_VERSION}" VERSION_LESS "3.0" AND
++    ("${PY_VERSION}" VERSION_EQUAL "2.7.13" OR "${PY_VERSION}" VERSION_GREATER "2.7.13"))
++  set(_py_version "2.7.13")
++  message(STATUS "Using ${_py_version} patches for 2.7.13 <= PY_VERSION < 3.0.0")
++endif()
++
++# Apply patches
++_apply_patches("${PY_VERSION_MAJOR}.${PY_VERSION_MINOR}")
++_apply_patches("${_py_version}")
++_apply_patches("${_py_version}/${CMAKE_SYSTEM_NAME}")
++_apply_patches("${_py_version}/${CMAKE_SYSTEM_NAME}-${CMAKE_C_COMPILER_ID}")
++set(_version ${CMAKE_C_COMPILER_VERSION})
++if(MSVC)
++  set(_version ${MSVC_VERSION})
++endif()
++_apply_patches("${_py_version}/${CMAKE_SYSTEM_NAME}-${CMAKE_C_COMPILER_ID}/${_version}")
+--- /dev/null
 +++ b/cmake/PythonAutoDetectOSX.cmake
 @@ -0,0 +1,64 @@
 +if(APPLE)
@@ -4417,14 +4387,20 @@
 +endif()
 --- /dev/null
 +++ b/cmake/PythonConfig.cmake.in
-@@ -0,0 +1,45 @@
+@@ -0,0 +1,51 @@
 +#  PYTHON_USE_STATIC_LIB    - Set to ON to force the use of the static
 +#                             library.  Default is OFF.
 +
 +@PACKAGE_INIT@
 +
-+set(PYTHON_BUILD_SHARED "@BUILD_SHARED@")
-+set(PYTHON_BUILD_STATIC "@BUILD_STATIC@")
++set(BUILD_LIBPYTHON_SHARED @BUILD_LIBPYTHON_SHARED@)
++if(BUILD_LIBPYTHON_SHARED)
++  set(PYTHON_BUILD_SHARED 1)
++  set(PYTHON_BUILD_STATIC 0)
++else()
++  set(PYTHON_BUILD_SHARED 0)
++  set(PYTHON_BUILD_STATIC 1)
++endif()
 +
 +set_and_check(PYTHON_CONFIG_DIR "@PACKAGE_CONFIG_DIR_CONFIG@")
 +set_and_check(PYTHON_INCLUDE_DIR "@PACKAGE_INCLUDE_DIR_CONFIG@")
@@ -4465,7 +4441,7 @@
 +set(PYTHON_INCLUDE_DIRS ${PYTHON_INCLUDE_DIR})
 --- /dev/null
 +++ b/cmake/UnitTests.cmake
-@@ -0,0 +1,822 @@
+@@ -0,0 +1,821 @@
 +
 +# Python code allowing to generate list of unittests reported below
 +set(cmd "exec(\"")
@@ -4736,7 +4712,6 @@
 +  list(APPEND unittests "test_pep292")
 +else()
 +  list(APPEND unittests "test_string")
-+else()
 +endif()
 +list(APPEND unittests "test_pep352")
 +list(APPEND unittests "test_pickle")
@@ -5300,12 +5275,12 @@
 +#
 +#  1. Backup original pybuilddir.txt to pybuilddir.txt.backup
 +#  2. Read the value PYBUILDDIR written in pybuilddir.txt
-+#  3. Copy the file <PYBUILDDIR>/_sysconfigdata.py to <EXTENSION_INSTALL_DIR>
++#  3. Copy the file <PYBUILDDIR>/<SYSCONFIGDATA_PY> to <EXTENSION_INSTALL_DIR>
 +#  4. Create a new pybuilddir.txt file with <EXTENSION_INSTALL_DIR>
 +#
 +
 +# Sanity checks
-+foreach(var BIN_BUILD_DIR PYTHON_BINARY_DIR EXTENSION_INSTALL_DIR)
++foreach(var BIN_BUILD_DIR PYTHON_BINARY_DIR EXTENSION_INSTALL_DIR SYSCONFIGDATA_PY)
 +  if(NOT DEFINED ${var})
 +    message(FATAL_ERROR "CMake parameter -D${var} is missing !")
 +  endif()
@@ -5327,10 +5302,10 @@
 +# Read PYBUILDDIR value
 +file(READ ${_pybuilddir}.backup PYBUILDDIR)
 +
-+# Copy _sysconfigdata.py
++# Copy SYSCONFIGDATA_PY
 +execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different
-+  ${BIN_BUILD_DIR}/${PYBUILDDIR}/_sysconfigdata.py
-+  ${PYTHON_BINARY_DIR}/${EXTENSION_INSTALL_DIR}/_sysconfigdata.py
++  ${BIN_BUILD_DIR}/${PYBUILDDIR}/${SYSCONFIGDATA_PY}
++  ${PYTHON_BINARY_DIR}/${EXTENSION_INSTALL_DIR}/${SYSCONFIGDATA_PY}
 +  )
 +
 +# Create new file
@@ -5924,7 +5899,7 @@
 +#endif /* !Py_CONFIG_H */
 --- /dev/null
 +++ b/cmake/config-unix/pyconfig.h.in
-@@ -0,0 +1,1584 @@
+@@ -0,0 +1,1593 @@
 +/* pyconfig.h.  Generated from pyconfig.h.in by configure.  */
 +/* pyconfig.h.in.  Generated from configure.in by autoheader.  */
 +
@@ -6065,7 +6040,7 @@
 +/* Define to 1 if you have the `clock_gettime' function. [Python 3] */
 +#cmakedefine HAVE_CLOCK_GETTIME 1
 +
-+/* Define if the C compiler supports computed gotos. [Python 3] */
++/* Define if the C compiler supports computed gotos. */
 +#cmakedefine HAVE_COMPUTED_GOTOS 1
 +
 +/* Define to 1 if you have the `confstr' function. */
@@ -6681,6 +6656,9 @@
 +/* Define if you have readline 4.0 */
 +#cmakedefine HAVE_RL_PRE_INPUT_HOOK 1
 +
++/* Define if you have readline 4.0 */
++#cmakedefine HAVE_RL_RESIZE_TERMINAL 1
++
 +/* Define to 1 if you have the `round' function. */
 +#cmakedefine HAVE_ROUND 1
 +
@@ -6952,6 +6930,9 @@
 +/* Define to 1 if you have the <sys/poll.h> header file. */
 +#cmakedefine HAVE_SYS_POLL_H 1
 +
++/* Define to 1 if you have the <sys/random.h> header file. */
++#cmakedefine HAVE_SYS_RANDOM_H 1
++
 +/* Define to 1 if you have the <sys/resource.h> header file. */
 +#cmakedefine HAVE_SYS_RESOURCE_H 1
 +
@@ -6975,6 +6956,9 @@
 +
 +/* Define to 1 if you have the <sys/sys_domain.h> header file. [Python 3] */
 +#cmakedefine HAVE_SYS_SYS_DOMAIN_H 1
++
++/* Define to 1 if you have the <sys/sysmacros.h> header file. */
++#cmakedefine HAVE_SYS_SYSMACROS_H 1
 +
 +/* Define to 1 if you have the <sys/termio.h> header file. */
 +#cmakedefine HAVE_SYS_TERMIO_H 1
@@ -7645,7 +7629,7 @@
 +#endif
 --- /dev/null
 +++ b/cmake/extensions/CMakeLists.txt
-@@ -0,0 +1,688 @@
+@@ -0,0 +1,705 @@
 +# XXX Because of CMake issue #8170 disable ctypes support when using
 +#     "Visual Studio 2008 Win64" generator.
 +if("${MSVC_VERSION}" VERSION_EQUAL 1500 AND ${CMAKE_SIZEOF_VOID_P} EQUAL 8)
@@ -7713,7 +7697,8 @@
 +add_python_extension(future_builtins ${WIN32_BUILTIN} REQUIRES IS_PY2 SOURCES future_builtins.c)
 +add_python_extension(_heapq ${WIN32_BUILTIN} SOURCES _heapqmodule.c)
 +add_python_extension(_hotshot ${WIN32_BUILTIN} REQUIRES IS_PY2 SOURCES _hotshot.c)
-+add_python_extension(_io BUILTIN SOURCES
++
++set(_io_SOURCES
 +    _io/_iomodule.c
 +    _io/bufferedio.c
 +    _io/bytesio.c
@@ -7721,7 +7706,14 @@
 +    _io/iobase.c
 +    _io/stringio.c
 +    _io/textio.c
-+)
++    )
++if(WIN32 AND EXISTS ${SRC_DIR}/Modules/_io/winconsoleio.c)
++    list(APPEND _io_SOURCES
++        ${SRC_DIR}/Modules/_io/winconsoleio.c
++        )
++endif()
++add_python_extension(_io BUILTIN SOURCES ${_io_SOURCES})
++
 +add_python_extension(itertools ${WIN32_BUILTIN} SOURCES itertoolsmodule.c) # Functions creating iterators for efficient looping
 +add_python_extension(_json ${WIN32_BUILTIN} SOURCES _json.c)
 +add_python_extension(_locale ${WIN32_BUILTIN} SOURCES _localemodule.c) # access to ISO C locale support
@@ -7816,7 +7808,7 @@
 +add_python_extension(${winreg${PY_VERSION_MAJOR}_NAME} REQUIRES WIN32 BUILTIN SOURCES ${SRC_DIR}/PC/${winreg${PY_VERSION_MAJOR}_NAME}.c)
 +
 +# Python3: Windows-only extensions
-+add_python_extension(overlapped
++add_python_extension(_overlapped
 +    REQUIRES WIN32 IS_PY3
 +    SOURCES ${SRC_DIR}/Modules/overlapped.c
 +    LIBRARIES ws2_32
@@ -7925,7 +7917,7 @@
 +                  _ctypes/libffi_msvc/prep_cif.c
 +                  _ctypes/libffi_msvc/ffi.c
 +                  _ctypes/libffi_msvc/${_ctype_arch_impl}
-+          REQUIRES BUILD_SHARED
++          REQUIRES BUILD_LIBPYTHON_SHARED
 +          INCLUDEDIRS ${SRC_DIR}/Modules/_ctypes/libffi_msvc
 +        )
 +    endif()
@@ -8118,16 +8110,25 @@
 +    )
 +else()
 +    set(_pyexpat_definitions XML_STATIC)
++    set(_pyexpat_SOURCES
++        pyexpat.c
++        expat/xmlparse.c
++        expat/xmlrole.c
++        expat/xmltok.c
++        )
 +    if(UNIX)
 +        list(APPEND _pyexpat_definitions HAVE_EXPAT_CONFIG_H)
++        # bpo-30947: Python uses best available entropy sources to
++        # call XML_SetHashSalt(), expat entropy sources are not needed
++        list(APPEND _pyexpat_definitions XML_POOR_ENTROPY)
 +    elseif(WIN32)
 +        list(APPEND _pyexpat_definitions COMPILED_FROM_DSP)
++        if(EXISTS "${SRC_DIR}/Modules/expat/loadlibrary.c")
++            list(APPEND _pyexpat_SOURCES "${SRC_DIR}/Modules/expat/loadlibrary.c")
++        endif()
 +    endif()
 +    add_python_extension(pyexpat
-+        SOURCES pyexpat.c
-+                expat/xmlparse.c
-+                expat/xmlrole.c
-+                expat/xmltok.c
++        SOURCES ${_pyexpat_SOURCES}
 +        DEFINITIONS ${_pyexpat_definitions}
 +        INCLUDEDIRS ${SRC_DIR}/Modules/expat
 +    )
@@ -8968,7 +8969,7 @@
 +endforeach()
 --- /dev/null
 +++ b/cmake/lib/CMakeLists.txt
-@@ -0,0 +1,54 @@
+@@ -0,0 +1,62 @@
 +# Install all the python module source from Lib/
 +
 +set(libdir ${SRC_DIR}/Lib)
@@ -9018,14 +9019,22 @@
 +  PYTHON_EXECUTABLE python
 +  HINTS \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${BIN_INSTALL_DIR}
 +  NO_DEFAULT_PATH)
-+execute_process(COMMAND \${PYTHON_EXECUTABLE} -m lib2to3.pgen2.driver
++set(wrapper)
++if(UNIX)
++  set(_envvar LD_LIBRARY_PATH)
++  if(APPLE)
++    set(_envvar DYLD_LIBRARY_PATH)
++  endif()
++  set(wrapper env \${_envvar}=\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${LIBPYTHON_LIBDIR})
++endif()
++execute_process(COMMAND \${wrapper} \${PYTHON_EXECUTABLE} -m lib2to3.pgen2.driver
 +  \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${PYTHONHOME}/lib2to3/Grammar.txt)
-+execute_process(COMMAND \${PYTHON_EXECUTABLE} -m lib2to3.pgen2.driver
++execute_process(COMMAND \${wrapper} \${PYTHON_EXECUTABLE} -m lib2to3.pgen2.driver
 +  \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${PYTHONHOME}/lib2to3/PatternGrammar.txt)
 +")
 --- /dev/null
 +++ b/cmake/libpython/CMakeLists.txt
-@@ -0,0 +1,577 @@
+@@ -0,0 +1,606 @@
 +add_definitions(-DPy_BUILD_CORE)
 +add_definitions(-DNDEBUG)
 +
@@ -9112,6 +9121,13 @@
 +    ${SRC_DIR}/Objects/intobject.c
 +    ${SRC_DIR}/Objects/stringobject.c
 +)
++if(MSVC)
++    if(EXISTS ${SRC_DIR}/PC/invalid_parameter_handler.c)
++        list(APPEND OBJECT2_SOURCES
++            ${SRC_DIR}/PC/invalid_parameter_handler.c
++        )
++    endif()
++endif()
 +
 +set(OBJECT3_SOURCES
 +    ${SRC_DIR}/Objects/accu.c
@@ -9189,10 +9205,16 @@
 +        ${SRC_DIR}/PC/dl_nt.c
 +        ${SRC_DIR}/Python/dynload_win.c
 +        )
++    set(ms_dll_id "${PY_VERSION_MAJOR}.${PY_VERSION_MINOR}")
++    if(${CMAKE_SIZEOF_VOID_P} EQUAL 4)
++      set(ms_dll_id "${ms_dll_id}-32")
++    endif()
 +    set_property(
 +        SOURCE ${SRC_DIR}/PC/dl_nt.c
-+        PROPERTY COMPILE_DEFINITIONS Py_ENABLE_SHARED
-+    )
++        PROPERTY COMPILE_DEFINITIONS
++            Py_ENABLE_SHARED
++            MS_DLL_ID="${ms_dll_id}"
++        )
 +endif()
 +
 +set(THREAD_SOURCES )
@@ -9349,11 +9371,15 @@
 +endforeach()
 +
 +# Collect builtin extension definitions
++set(builtin_compile_definitions_without_py_limited_api)
 +foreach(name ${builtin_extensions})
 +    get_property(extension_${name}_definitions GLOBAL PROPERTY extension_${name}_definitions)
 +    if(extension_${name}_definitions)
 +        set_property(SOURCE ${extension_${name}_sources}
 +            APPEND PROPERTY COMPILE_DEFINITIONS ${extension_${name}_definitions})
++        if(NOT ${name} STREQUAL "xxlimited")
++            list(APPEND builtin_compile_definitions_without_py_limited_api ${extension_${name}_definitions})
++        endif()
 +    endif()
 +endforeach()
 +
@@ -9394,6 +9420,12 @@
 +endif()
 +if(WIN32 AND IS_PY3)
 +    list(APPEND LIBPYTHON_TARGET_LIBRARIES ws2_32) # Required by signalmodule
++    if(PYTHON_VERSION VERSION_EQUAL "3.5" OR PYTHON_VERSION VERSION_GREATER "3.5")
++        list(APPEND LIBPYTHON_TARGET_LIBRARIES version) # Required by sysmodule
++    endif()
++    if(PYTHON_VERSION VERSION_EQUAL "3.6" OR PYTHON_VERSION VERSION_GREATER "3.6")
++        list(APPEND LIBPYTHON_TARGET_LIBRARIES shlwapi) # Required by PC/getpathp
++    endif()
 +endif()
 +
 +set(LIBPYTHON_FROZEN_SOURCES )
@@ -9405,6 +9437,9 @@
 +  ${LIBPYTHON_OMIT_FROZEN_SOURCES}
 +  )
 +target_link_libraries(_freeze_importlib ${LIBPYTHON_TARGET_LIBRARIES})
++if(builtin_compile_definitions_without_py_limited_api)
++  target_compile_definitions(_freeze_importlib PUBLIC ${builtin_compile_definitions_without_py_limited_api})
++endif()
 +
 +# Freeze modules
 +set(LIBPYTHON_FROZEN_SOURCES
@@ -9451,6 +9486,9 @@
 +    ${SRC_DIR}/Parser/printgrammar.c
 +    ${SRC_DIR}/Parser/pgenmain.c
 +)
++if(builtin_compile_definitions_without_py_limited_api)
++  target_compile_definitions(pgen PUBLIC ${builtin_compile_definitions_without_py_limited_api})
++endif()
 +
 +# Collect libpython sources
 +set(LIBPYTHON_SOURCES
@@ -9500,7 +9538,7 @@
 +    endif()
 +endfunction()
 +
-+if(BUILD_SHARED)
++if(BUILD_LIBPYTHON_SHARED)
 +    add_libpython(libpython-shared SHARED 1 Runtime)
 +    set_target_properties(libpython-shared PROPERTIES
 +        ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${LIBPYTHON_ARCHIVEDIR}
@@ -9585,7 +9623,7 @@
 +
 +endif()
 +
-+if(BUILD_STATIC)
++if(NOT BUILD_LIBPYTHON_SHARED)
 +    add_libpython(libpython-static STATIC ${INSTALL_DEVELOPMENT} Development)
 +    if(HAVE_TARGET_COMPILE_DEFINITIONS)
 +        target_compile_definitions(libpython-static PUBLIC Py_NO_ENABLE_SHARED)
@@ -9605,7 +9643,7 @@
 +endif()
 --- /dev/null
 +++ b/cmake/libpython/generate_libpythonstub_def.cmake
-@@ -0,0 +1,14 @@
+@@ -0,0 +1,16 @@
 +# Sanity checks
 +foreach(varname INPUT_DEF_FILE OUTPUT_DEF_FILE)
 +  if(NOT DEFINED ${varname})
@@ -9614,10 +9652,12 @@
 +endforeach()
 +
 +file(STRINGS ${INPUT_DEF_FILE} def_lines REGEX "^  (.+)=.+$")
-+set(stub_def_lines "EXPORTS")
++set(stub_def_lines "EXPORTS\n")
 +foreach(line IN LISTS def_lines)
-+  string(REGEX REPLACE "^  (.+)=.+$" "${CMAKE_MATCH_1}" updated_line ${line})
-+  set(stub_def_lines "${stub_def_lines}${updated_line}\n")
++  string(REGEX MATCH "^  (.+)=.+$" output ${line})
++  if(NOT "${output}" STREQUAL "")
++    set(stub_def_lines "${stub_def_lines}${CMAKE_MATCH_1}\n")
++  endif()
 +endforeach()
 +file(WRITE ${OUTPUT_DEF_FILE} "${stub_def_lines}")
 --- /dev/null
@@ -9827,6 +9867,134 @@
 +LIBPC=		$(LIBDIR)/pkgconfig
 +
 --- /dev/null
++++ b/cmake/platform.c
+@@ -0,0 +1,125 @@
++// Based on code in Python's `configure` script (see conftest.c)
++
++#include <stdio.h>
++
++#undef bfin
++#undef cris
++#undef fr30
++#undef linux
++#undef hppa
++#undef hpux
++#undef i386
++#undef mips
++#undef powerpc
++#undef sparc
++#undef unix
++
++char *PLATFORM_TRIPLET =
++
++#if defined(__linux__)
++# if defined(__x86_64__) && defined(__LP64__)
++        "x86_64-linux-gnu"
++# elif defined(__x86_64__) && defined(__ILP32__)
++        "x86_64-linux-gnux32"
++# elif defined(__i386__)
++        "i386-linux-gnu"
++# elif defined(__aarch64__) && defined(__AARCH64EL__)
++#  if defined(__ILP32__)
++        "aarch64_ilp32-linux-gnu"
++#  else
++        "aarch64-linux-gnu"
++#  endif
++# elif defined(__aarch64__) && defined(__AARCH64EB__)
++#  if defined(__ILP32__)
++        "aarch64_be_ilp32-linux-gnu"
++#  else
++        "aarch64_be-linux-gnu"
++#  endif
++# elif defined(__alpha__)
++        "alpha-linux-gnu"
++# elif defined(__ARM_EABI__) && defined(__ARM_PCS_VFP)
++#  if defined(__ARMEL__)
++        "arm-linux-gnueabihf"
++#  else
++        "armeb-linux-gnueabihf"
++#  endif
++# elif defined(__ARM_EABI__) && !defined(__ARM_PCS_VFP)
++#  if defined(__ARMEL__)
++        "arm-linux-gnueabi"
++#  else
++        "armeb-linux-gnueabi"
++#  endif
++# elif defined(__hppa__)
++        "hppa-linux-gnu"
++# elif defined(__ia64__)
++        "ia64-linux-gnu"
++# elif defined(__m68k__) && !defined(__mcoldfire__)
++        "m68k-linux-gnu"
++# elif defined(__mips_hard_float) && defined(_MIPSEL)
++#  if _MIPS_SIM == _ABIO32
++        "mipsel-linux-gnu"
++#  elif _MIPS_SIM == _ABIN32
++        "mips64el-linux-gnuabin32"
++#  elif _MIPS_SIM == _ABI64
++        "mips64el-linux-gnuabi64"
++#  else
++#       "unknown platform triplet"
++#  endif
++# elif defined(__mips_hard_float)
++#  if _MIPS_SIM == _ABIO32
++        "mips-linux-gnu"
++#  elif _MIPS_SIM == _ABIN32
++        "mips64-linux-gnuabin32"
++#  elif _MIPS_SIM == _ABI64
++        "mips64-linux-gnuabi64"
++#  else
++#       "unknown platform triplet"
++#  endif
++# elif defined(__or1k__)
++        "or1k-linux-gnu"
++# elif defined(__powerpc__) && defined(__SPE__)
++        "powerpc-linux-gnuspe"
++# elif defined(__powerpc64__)
++#  if defined(__LITTLE_ENDIAN__)
++        "powerpc64le-linux-gnu"
++#  else
++        "powerpc64-linux-gnu"
++#  endif
++# elif defined(__powerpc__)
++        "powerpc-linux-gnu"
++# elif defined(__s390x__)
++        "s390x-linux-gnu"
++# elif defined(__s390__)
++        "s390-linux-gnu"
++# elif defined(__sh__) && defined(__LITTLE_ENDIAN__)
++        "sh4-linux-gnu"
++# elif defined(__sparc__) && defined(__arch64__)
++        "sparc64-linux-gnu"
++# elif defined(__sparc__)
++        "sparc-linux-gnu"
++# else
++#       "unknown platform triplet"
++# endif
++#elif defined(__FreeBSD_kernel__)
++# if defined(__LP64__)
++        "x86_64-kfreebsd-gnu"
++# elif defined(__i386__)
++        "i386-kfreebsd-gnu"
++# else
++#       "unknown platform triplet"
++# endif
++#elif defined(__gnu_hurd__)
++        "i386-gnu"
++#elif defined(__APPLE__)
++        "darwin"
++#else
++#       "unknown platform triplet"
++#endif
++                                  ;
++
++int main()
++{
++    printf("%s", PLATFORM_TRIPLET);
++
++    return 0;
++}
+--- /dev/null
 +++ b/cmake/python.pc.in
 @@ -0,0 +1,12 @@
 +prefix=@CMAKE_INSTALL_PREFIX@
@@ -9843,7 +10011,7 @@
 +Cflags: -I${includedir}/@LIBPYTHON@
 --- /dev/null
 +++ b/cmake/python/CMakeLists.txt
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,108 @@
 +set(subdir_2  Modules)
 +set(subdir_3  Programs)
 +
@@ -9859,7 +10027,7 @@
 +
 +# Link against the shared libpython if it was built, otherwise use the static
 +# version.
-+if(BUILD_SHARED)
++if(BUILD_LIBPYTHON_SHARED)
 +    target_link_libraries(python libpython-shared)
 +else()
 +    target_link_libraries(python libpython-static)
@@ -9896,23 +10064,30 @@
 +
 +if(UNIX AND PY_VERSION VERSION_GREATER "2.7.4")
 +    # Setup landmark allowing to run the interpreter from a build tree. See 'getpath.c' for details.
++    set(_sysconfigdata_py "_sysconfigdata.py")
++    if("${PY_VERSION}" VERSION_EQUAL "3.6.0" OR "${PY_VERSION}" VERSION_GREATER "3.6.0")
++        # XXX Add support for _PYTHON_SYSCONFIGDATA_NAME env. variable
++        set(MULTIARCH "")
++        set(_sysconfigdata_py "_sysconfigdata_${ABIFLAGS}_${PY_PLATFORM}_${MULTIARCH}.py")
++    endif()
 +    add_custom_command(
-+        OUTPUT ${BIN_BUILD_DIR}/pybuilddir.txt ${EXTENSION_BUILD_DIR}/_sysconfigdata.py
++        OUTPUT ${BIN_BUILD_DIR}/pybuilddir.txt ${EXTENSION_BUILD_DIR}/${_sysconfigdata_py}
 +        COMMAND ${PYTHON_WRAPPER_COMMAND}
 +          ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:python> -E -S -m sysconfig --generate-posix-vars
 +        COMMAND ${CMAKE_COMMAND}
 +          -DBIN_BUILD_DIR:PATH=${BIN_BUILD_DIR}
++          -DSYSCONFIGDATA_PY:STRING=${_sysconfigdata_py}
 +          -DPYTHON_BINARY_DIR:PATH=${PROJECT_BINARY_DIR}
 +          -DEXTENSION_INSTALL_DIR:PATH=${EXTENSION_INSTALL_DIR}
 +          -P ${PROJECT_SOURCE_DIR}/cmake/UpdateSysconfig.cmake
-+        COMMENT "Relocate _sysconfigdata.py and update pybuilddir.txt"
++        COMMENT "Relocate ${_sysconfigdata_py} and update pybuilddir.txt"
 +        WORKING_DIRECTORY ${BIN_BUILD_DIR}
 +        DEPENDS python
 +        )
 +    add_custom_target(update_sysconfig ALL
-+        DEPENDS ${BIN_BUILD_DIR}/pybuilddir.txt ${EXTENSION_BUILD_DIR}/_sysconfigdata.py
++        DEPENDS ${BIN_BUILD_DIR}/pybuilddir.txt ${EXTENSION_BUILD_DIR}/${_sysconfigdata_py}
 +        )
-+    install(FILES ${EXTENSION_BUILD_DIR}/_sysconfigdata.py
++    install(FILES ${EXTENSION_BUILD_DIR}/${_sysconfigdata_py}
 +        DESTINATION ${PYTHONHOME}/)
 +endif()
 +

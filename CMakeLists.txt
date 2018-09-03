@@ -626,7 +626,7 @@ ExternalProject_Add(python
 	URL https://www.python.org/ftp/python/2.7.13/Python-2.7.13.tgz
 	URL_HASH SHA256=a4f05a0720ce0fd92626f0278b6b433eee9a6173ddf2bced7957dfb599a5ece1
 	PATCH_COMMAND
-		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/python-cmake-buildsystem-b348a50.diff
+		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/python-cmake-buildsystem-76a3576.diff
 		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
