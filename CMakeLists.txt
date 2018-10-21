@@ -542,15 +542,14 @@ add_dependency_project_package(libmicrohttpd 0.9.55)
 
 ExternalProject_Add(libnfs
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://github.com/sahlberg/libnfs/archive/libnfs-1.11.0.tar.gz
-	URL_HASH SHA256=fc2e45df14d8714ccd07dc2bbe919e45a2e36318bae7f045cbbb883a7854640f
+	URL https://github.com/sahlberg/libnfs/archive/libnfs-3.0.0.tar.gz
+	URL_HASH SHA256=445d92c5fc55e4a5b115e358e60486cf8f87ee50e0103d46a02e7fb4618566a5
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DBUILD_SHARED_LIBS:BOOL=ON
 )
-add_dependency_project_package(libnfs 1.11.0)
+add_dependency_project_package(libnfs 3.0.0)
 
 ExternalProject_Add(libxml2
 	DEPENDS libiconv

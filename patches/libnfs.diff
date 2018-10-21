@@ -1,25 +1,77 @@
---- /dev/null
+--- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -0,0 +1,103 @@
-+cmake_minimum_required(VERSION 3.2)
+@@ -2,96 +2,80 @@
+ 
+ project(libnfs
+         LANGUAGES C
+-        VERSION 2.0.0)
+-
+-set(SOVERSION 11.0.0 CACHE STRING "" FORCE)
+-
+-set(INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib" CACHE PATH "Installation directory for libraries")
+-set(INSTALL_INC_DIR "${CMAKE_INSTALL_PREFIX}/include" CACHE PATH "Installation directory for headers")
+-set(INSTALL_MAN_DIR "${CMAKE_INSTALL_PREFIX}/share/man" CACHE PATH "Installation directory for manual pages")
+-set(INSTALL_PKGCONFIG_DIR "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" CACHE PATH "Installation directory for pkgconfig (.pc) files")
+-set(INSTALL_CMAKE_DIR "${CMAKE_INSTALL_PREFIX}/lib/cmake/libnfs" CACHE PATH "Installation directory for cmake (.cmake) files")
+-
+-option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+-option(ENABLE_TESTS "Build and run test programs" OFF)
+-option(ENABLE_DOCUMENTATION "Build Documentation" OFF)
+-option(ENABLE_UTILS "Build util programs" OFF)
+-option(ENABLE_EXAMPLES "Build example programs" OFF)
+-
+-if(ENABLE_TESTS)
+-  set(ENABLE_UTILS ON CACHE BOOL "Building utils required by tests" FORCE)
+-endif()
+-
+-include(cmake/Macros.cmake)
+-include(cmake/ConfigureChecks.cmake)
+-
+-include_directories(${CMAKE_CURRENT_BINARY_DIR}
+-                    include
+-                    include/nfsc)
+-
+-set(CORE_LIBRARIES nfs)
+-set(core_DEPENDS "" CACHE STRING "" FORCE)
+-
+-if(CMAKE_SYSTEM_NAME STREQUAL Windows)
+-  list(APPEND CORE_LIBRARIES -lws2_32.lib)
+-  add_subdirectory(win32)
+-elseif(CMAKE_SYSTEM_NAME STREQUAL Solaris)
+-  find_library(SOCKET_LIBRARY socket)
+-  find_library(NSL_LIBRARY nsl)
+-  list(APPEND CORE_LIBRARIES ${SOCKET_LIBRARY} ${NSL_LIBRARY})
+-elseif(CMAKE_SYSTEM_NAME STREQUAL aros)
+-  add_definitions(-DAROS)
+-  add_subdirectory(aros)
+-endif()
+-
+-if(ENABLE_DOCUMENTATION)
+-  add_subdirectory(doc)
+-endif()
+-
+-if(ENABLE_EXAMPLES)
+-  add_subdirectory(examples)
+-endif()
+-
+-if(ENABLE_TESTS)
+-  enable_testing()
+-  add_subdirectory(tests)
++        VERSION 3.0.0)
 +
-+project(libnfs LANGUAGES C VERSION 1.11.0)
-+
-+if(MSVC)
-+  set(CMAKE_DEBUG_POSTFIX "d")
-+endif()
-+
-+
-+add_library(libnfs
++add_library(nfs
 +  lib/init.c
-+  lib/libnfs.c
 +  lib/libnfs-sync.c
 +  lib/libnfs-zdr.c
++  lib/libnfs.c
++  lib/nfs_v3.c
++  lib/nfs_v4.c
 +  lib/pdu.c
 +  lib/socket.c
 +  include/nfsc/libnfs.h
 +  include/nfsc/libnfs-raw.h
 +  include/nfsc/libnfs-zdr.h
++  include/win32/win32_compat.h
 +  include/libnfs-private.h
 +  mount/libnfs-raw-mount.h
 +  mount/libnfs-raw-mount.c
@@ -27,6 +79,9 @@
 +  nfs/libnfs-raw-nfs.h
 +  nfs/libnfs-raw-nfs.c
 +  nfs/nfs.c
++  nfs/nfsacl.c
++  nfs4/libnfs-raw-nfs4.c
++  nfs4/nfs4.c
 +  nlm/libnfs-raw-nlm.c
 +  nlm/libnfs-raw-nlm.h
 +  nlm/nlm.c
@@ -39,28 +94,23 @@
 +  rquota/libnfs-raw-rquota.h
 +  rquota/libnfs-raw-rquota.c
 +  rquota/rquota.c
-+  win32/win32_compat.h
 +  win32/win32_compat.c
 +  win32/win32_errnowrapper.h
 +)
++
++
 +target_include_directories(
-+  libnfs PRIVATE
++  nfs PRIVATE
 +  $<BUILD_INTERFACE:include/;include/nfsc/;win32/;rquota/;nsm/;nlm/;nfs/;mount/;lib/;portmap/>
 +  INTERFACE
 +  $<INSTALL_INTERFACE:include/nfsc>
 +)
 +
-+target_compile_definitions(libnfs PRIVATE _U_=)
-+target_link_libraries(libnfs PRIVATE ws2_32.lib)
++target_compile_definitions(nfs PRIVATE _U_=  _CRT_NONSTDC_NO_DEPRECATE _CRT_SECURE_NO_WARNINGS)
++target_link_libraries(nfs PRIVATE ws2_32.lib)
++set_target_properties(nfs PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME nfs)
 +
-+include(CMakePackageConfigHelpers)
-+write_basic_package_version_file(
-+  ${CMAKE_CURRENT_BINARY_DIR}/libnfs-config-version.cmake
-+  VERSION ${libnfs_VERSION}
-+  COMPATIBILITY AnyNewerVersion
-+)
-+
-+install(TARGETS libnfs EXPORT libnfs
++install(TARGETS nfs EXPORT nfs
 +  RUNTIME DESTINATION bin
 +  ARCHIVE DESTINATION lib
 +  LIBRARY DESTINATION lib)
@@ -81,43 +131,55 @@
 +  DESTINATION include/nfsc
 +)
 +
-+
-+install(EXPORT libnfs
-+  FILE
-+    libnfs.cmake
-+  NAMESPACE
-+    libnfs::
-+  DESTINATION
-+    lib/cmake/libnfs
-+)
-+install(
-+  FILES
-+    cmake/libnfs-config.cmake
-+    ${CMAKE_CURRENT_BINARY_DIR}/libnfs-config-version.cmake
-+  DESTINATION
-+    lib/cmake/libnfs
-+)
-+
-+if(MSVC AND BUILD_SHARED_LIBS)
-+  install(FILES
-+    $<TARGET_PDB_FILE:libnfs>
-+    DESTINATION lib
-+  )
-+endif()
---- /dev/null
-+++ b/cmake/libnfs-config.cmake
-@@ -0,0 +1 @@
-+include(${CMAKE_CURRENT_LIST_DIR}/libnfs.cmake)
---- b/include/nfsc/libnfs.h
-+++ b/include/nfsc/libnfs.h
-@@ -1520,8 +1520,8 @@
-  *
-  * returned data must be freed by nfs_free_srvr_list(srv);
-  */
--struct nfs_server_list *nfs_find_local_servers(void);
--void free_nfs_srvr_list(struct nfs_server_list *srv);
-+EXTERN struct nfs_server_list *nfs_find_local_servers(void);
-+EXTERN void free_nfs_srvr_list(struct nfs_server_list *srv);
++if(MSVC)
++  install(FILES "${CMAKE_BINARY_DIR}/RelWithDebInfo/nfs.pdb" DESTINATION lib CONFIGURATIONS RelWithDebInfo)
+ endif()
+-
+-if(ENABLE_UTILS)
+-  add_subdirectory(utils)
+-endif()
+-
+-add_subdirectory(mount)
+-add_subdirectory(nfs)
+-add_subdirectory(nfs4)
+-add_subdirectory(nlm)
+-add_subdirectory(nsm)
+-add_subdirectory(portmap)
+-add_subdirectory(rquota)
+-add_subdirectory(lib)
+-
+-include(CMakePackageConfigHelpers)
+-write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/libnfs-config-version.cmake
+-                                 VERSION ${PROJECT_VERSION}
+-                                 COMPATIBILITY AnyNewerVersion)
+-
+-configure_file(cmake/libnfs.pc.cmake
+-               ${CMAKE_CURRENT_BINARY_DIR}/libnfs.pc @ONLY)
+-
+-install(DIRECTORY include/nfsc
+-        DESTINATION ${INSTALL_INC_DIR})
+-
+-install(FILES mount/libnfs-raw-mount.h
+-              nfs/libnfs-raw-nfs.h
+-              nlm/libnfs-raw-nlm.h
+-              nsm/libnfs-raw-nsm.h
+-              portmap/libnfs-raw-portmap.h
+-              rquota/libnfs-raw-rquota.h
+-        DESTINATION ${INSTALL_INC_DIR}/nfsc)
+-
+-install(FILES cmake/FindNFS.cmake
+-              ${CMAKE_CURRENT_BINARY_DIR}/libnfs-config-version.cmake
+-        DESTINATION ${INSTALL_CMAKE_DIR})
+-
+-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libnfs.pc
+-        DESTINATION ${INSTALL_PKGCONFIG_DIR})
+--- a/include/win32/win32_compat.h
++++ b/include/win32/win32_compat.h
+@@ -133,7 +133,6 @@
  
- #ifdef __cplusplus
- }
+ /* Wrapper macros to call misc. functions win32 is missing */
+ #define poll(x, y, z)        win32_poll(x, y, z)
+-#define snprintf             sprintf_s
+ #define inet_pton(x,y,z)     win32_inet_pton(x,y,z)
+ #define open(x, y, z)        _open(x, y, z)
+ #ifndef lseek
