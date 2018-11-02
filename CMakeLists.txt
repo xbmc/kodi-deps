@@ -399,8 +399,8 @@ add_dependency_project_package(libass 0.13.6)
 ExternalProject_Add(curl
 	DEPENDS openssl zlib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://curl.haxx.se/download/curl-7.59.0.tar.gz
-	URL_HASH SHA256=099d9c32dc7b8958ca592597c9fabccdf4c08cfb7c114ff1afbbc4c6f13c9e9e
+	URL https://curl.haxx.se/download/curl-7.61.1.tar.gz
+	URL_HASH SHA256=eaa812e9a871ea10dbe8e1d3f8f12a64a8e3e62aeab18cb23742e2f1727458ae
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -408,13 +408,21 @@ ExternalProject_Add(curl
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/openssl%3B%3B${PREFIX}/zlib
 		-DBUILD_CURL_EXE:BOOL=OFF
 		-DBUILD_CURL_TESTS:BOOL=OFF
+		-DBUILD_SHARED_LIBS:BOOL=OFF
 		-DBUILD_TESTING:BOOL=OFF
 		-DCMAKE_USE_LIBSSH2:BOOL=OFF
 		-DCMAKE_USE_OPENSSL:BOOL=ON
 		-DCURL_CA_FALLBACK:BOOL=ON
+		-DCURL_DISABLE_IMAP:BOOL=ON
+		-DCURL_DISABLE_LDAP:BOOL=ON
+		-DCURL_DISABLE_LDAPS:BOOL=ON
+		-DCURL_DISABLE_POP3:BOOL=ON
+		-DCURL_DISABLE_SMTP:BOOL=ON
+		-DCURL_DISABLE_TELNET:BOOL=ON
+		-DCURL_DISABLE_TELNET:BOOL=ON
 		-DENABLE_MANUAL:BOOL=OFF
 )
-add_dependency_project_package(curl 7.52.1)
+add_dependency_project_package(curl 7.61.1)
 
 add_custom_target(DependenciesDllRequired
 	DEPENDS

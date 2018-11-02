@@ -1,17 +1,6 @@
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -165,6 +165,10 @@
- option(CURL_DISABLE_GOPHER "to disable Gopher" OFF)
- mark_as_advanced(CURL_DISABLE_GOPHER)
- 
-+if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-+  set(CURL_DISABLE_TELNET ON)
-+endif()
-+
- if(HTTP_ONLY)
-   set(CURL_DISABLE_FTP ON)
-   set(CURL_DISABLE_LDAP ON)
-@@ -391,7 +395,7 @@
+@@ -383,7 +383,7 @@
  endif()
  
  if(NOT CURL_DISABLE_LDAP)
@@ -20,7 +9,7 @@
      option(USE_WIN32_LDAP "Use Windows LDAP implementation" ON)
      if(USE_WIN32_LDAP)
        check_library_exists_concat("wldap32" cldap_open HAVE_WLDAP32)
-@@ -510,7 +514,7 @@
+@@ -501,7 +501,7 @@
  set(HAVE_ZLIB_H OFF)
  set(HAVE_ZLIB OFF)
  if(CURL_ZLIB)
@@ -29,7 +18,7 @@
    if(ZLIB_FOUND)
      set(HAVE_ZLIB_H ON)
      set(HAVE_ZLIB ON)
-@@ -881,7 +885,9 @@
+@@ -882,7 +882,9 @@
  check_function_exists(mach_absolute_time HAVE_MACH_ABSOLUTE_TIME)
  
  # symbol exists in win32, but function does not.
@@ -40,25 +29,48 @@
    if(ENABLE_INET_PTON)
      check_function_exists(inet_pton HAVE_INET_PTON)
      # _WIN32_WINNT_VISTA (0x0600)
+--- a/include/curl/curl.h
++++ b/include/curl/curl.h
+@@ -113,7 +113,7 @@
+ #  if defined(BUILDING_LIBCURL)
+ #    define CURL_EXTERN  __declspec(dllexport)
+ #  else
+-#    define CURL_EXTERN  __declspec(dllimport)
++#    define CURL_EXTERN
+ #  endif
+ #elif defined(BUILDING_LIBCURL) && defined(CURL_HIDDEN_SYMBOLS)
+ #  define CURL_EXTERN CURL_EXTERN_SYMBOL
 --- a/lib/CMakeLists.txt
 +++ b/lib/CMakeLists.txt
-@@ -97,7 +97,7 @@
+@@ -100,7 +100,7 @@
  if(WIN32)
-   if(NOT CURL_STATICLIB)
+   if(BUILD_SHARED_LIBS)
      # Add "_imp" as a suffix before the extension to avoid conflicting with the statically linked "libcurl.lib"
 -    set_target_properties(${LIB_NAME} PROPERTIES IMPORT_SUFFIX "_imp.lib")
 +    # set_target_properties(${LIB_NAME} PROPERTIES IMPORT_SUFFIX "_imp.lib")
+   endif()
+ endif()
  
-     set_target_properties (${LIB_NAME} PROPERTIES
-        DEBUG_POSTFIX "-d"
-@@ -118,6 +118,10 @@
+@@ -114,6 +114,11 @@
    RUNTIME DESTINATION bin
  )
  
 +if(MSVC)
-+  install(FILES "${CMAKE_BINARY_DIR}/lib/RelWithDebInfo/libcurl.pdb" DESTINATION lib CONFIGURATIONS RelWithDebInfo)
++  set_target_properties(${LIB_NAME} PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME ${LIB_NAME})
++  install(FILES "${CMAKE_BINARY_DIR}/RelWithDebInfo/${LIB_NAME}.pdb" DESTINATION lib CONFIGURATIONS RelWithDebInfo)
 +endif()
 +
  export(TARGETS ${LIB_NAME}
         APPEND FILE ${PROJECT_BINARY_DIR}/libcurl-target.cmake
         NAMESPACE CURL::
+--- a/lib/vtls/openssl.c
++++ b/lib/vtls/openssl.c
+@@ -69,6 +69,8 @@
+ #include <openssl/ocsp.h>
+ #endif
+ 
++#define OPENSSL_NO_ENGINE
++
+ #if (OPENSSL_VERSION_NUMBER >= 0x10000000L) && /* 1.0.0 or later */     \
+   !defined(OPENSSL_NO_ENGINE)
+ #define USE_OPENSSL_ENGINE
