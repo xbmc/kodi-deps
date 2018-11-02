@@ -612,20 +612,30 @@ ExternalProject_Add(libwebp
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
 
-ExternalProject_Add(mysql-connector-c
+ExternalProject_Add(mariadb-connector-c
+	DEPENDS openssl
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://dev.mysql.com/get/Downloads/Connector-C/mysql-connector-c-6.1.9-src.tar.gz
-	URL_HASH SHA256=4e808704443365ad5b649673d03eca8fbebc0a4da9f1f96616c6bd1b1901ab2b
+	URL https://downloads.mariadb.com/Connectors/c/connector-c-3.0.6/mariadb-connector-c-3.0.6-src.tar.gz
+	URL_HASH SHA256=2b2d18dc969dc385f7f740e4db112300e11bc626c9ba9aa05c284704095b9e48
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/openssl
 		-DBUILD_SHARED_LIBS:BOOL=ON
-		-DINSTALL_DOC:BOOL=OFF
-		-DWITH_SSL:STRING=yes
+		-DPLUGIN_AUTH_GSSAPI_CLIENT:STRING=OFF
+		-DPLUGIN_DIALOG:STRING=STATIC
+		-DPLUGIN_MYSQL_CLEAR_PASSWORD:STRING=STATIC
+		-DPLUGIN_PVIO_NPIPE:STRING=STATIC
+		-DPLUGIN_PVIO_SHMEM:STRING=STATIC
+		-DPLUGIN_SHA256_PASSWORD:STRING=STATIC
+		-DSKIP_TESTS:BOOL=ON
+		-DWITH_CURL:BOOL=OFF
+		-DWITH_MYSQLCOMPAT:BOOL=ON
+		-DWITH_SSL:STRING=OPENSSL
+		-DWITH_UNITTEST:BOOL=OFF
 )
-add_dependency_project_package(mysql-connector-c 6.1.9)
+add_dependency_project_package(mariadb-connector-c 3.0.6)
 
 ExternalProject_Add(python
 	DEPENDS bzip2 openssl sqlite zlib
