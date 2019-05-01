@@ -1,6 +1,8 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index edb1cec21..3f755c9f0 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -383,7 +383,7 @@
+@@ -391,7 +391,7 @@ if(USE_NGHTTP2)
  endif()
  
  if(NOT CURL_DISABLE_LDAP)
@@ -9,16 +11,16 @@
      option(USE_WIN32_LDAP "Use Windows LDAP implementation" ON)
      if(USE_WIN32_LDAP)
        check_library_exists_concat("wldap32" cldap_open HAVE_WLDAP32)
-@@ -501,7 +501,7 @@
+@@ -509,7 +509,7 @@ set(HAVE_LIBZ OFF)
  set(HAVE_ZLIB_H OFF)
- set(HAVE_ZLIB OFF)
+ set(USE_ZLIB OFF)
  if(CURL_ZLIB)
 -  find_package(ZLIB QUIET)
 +  find_package(ZLIB REQUIRED)
    if(ZLIB_FOUND)
      set(HAVE_ZLIB_H ON)
-     set(HAVE_ZLIB ON)
-@@ -882,7 +882,9 @@
+     set(HAVE_LIBZ ON)
+@@ -894,7 +894,9 @@ check_symbol_exists(setsockopt     "${CURL_INCLUDES}" HAVE_SETSOCKOPT)
  check_function_exists(mach_absolute_time HAVE_MACH_ABSOLUTE_TIME)
  
  # symbol exists in win32, but function does not.
@@ -29,9 +31,11 @@
    if(ENABLE_INET_PTON)
      check_function_exists(inet_pton HAVE_INET_PTON)
      # _WIN32_WINNT_VISTA (0x0600)
+diff --git a/include/curl/curl.h b/include/curl/curl.h
+index 86a24184a..e4f7628b3 100644
 --- a/include/curl/curl.h
 +++ b/include/curl/curl.h
-@@ -113,7 +113,7 @@
+@@ -120,7 +120,7 @@ typedef void CURLSH;
  #  if defined(BUILDING_LIBCURL)
  #    define CURL_EXTERN  __declspec(dllexport)
  #  else
@@ -40,9 +44,11 @@
  #  endif
  #elif defined(BUILDING_LIBCURL) && defined(CURL_HIDDEN_SYMBOLS)
  #  define CURL_EXTERN CURL_EXTERN_SYMBOL
+diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
+index eca9a8af9..7d8e03e0c 100644
 --- a/lib/CMakeLists.txt
 +++ b/lib/CMakeLists.txt
-@@ -100,7 +100,7 @@
+@@ -100,7 +100,7 @@ set_target_properties(${LIB_NAME} PROPERTIES IMPORT_PREFIX "")
  if(WIN32)
    if(BUILD_SHARED_LIBS)
      # Add "_imp" as a suffix before the extension to avoid conflicting with the statically linked "libcurl.lib"
@@ -51,8 +57,8 @@
    endif()
  endif()
  
-@@ -114,6 +114,11 @@
-   RUNTIME DESTINATION bin
+@@ -115,6 +115,11 @@ install(TARGETS ${LIB_NAME}
+   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
  )
  
 +if(MSVC)
@@ -63,14 +69,16 @@
  export(TARGETS ${LIB_NAME}
         APPEND FILE ${PROJECT_BINARY_DIR}/libcurl-target.cmake
         NAMESPACE CURL::
+diff --git a/lib/vtls/openssl.c b/lib/vtls/openssl.c
+index eff5c2106..9ea5c5083 100644
 --- a/lib/vtls/openssl.c
 +++ b/lib/vtls/openssl.c
-@@ -69,6 +69,8 @@
+@@ -73,6 +73,8 @@
  #include <openssl/ocsp.h>
  #endif
  
 +#define OPENSSL_NO_ENGINE
 +
- #if (OPENSSL_VERSION_NUMBER >= 0x10000000L) && /* 1.0.0 or later */     \
+ #if (OPENSSL_VERSION_NUMBER >= 0x0090700fL) && /* 0.9.7 or later */     \
    !defined(OPENSSL_NO_ENGINE)
  #define USE_OPENSSL_ENGINE

@@ -399,8 +399,8 @@ add_dependency_project_package(libass 0.13.6)
 ExternalProject_Add(curl
 	DEPENDS openssl zlib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://curl.haxx.se/download/curl-7.61.1.tar.gz
-	URL_HASH SHA256=eaa812e9a871ea10dbe8e1d3f8f12a64a8e3e62aeab18cb23742e2f1727458ae
+	URL https://curl.haxx.se/download/curl-7.65.0.tar.gz
+	URL_HASH SHA256=2a65f4f858a1fa949c79f926ddc2204c2be353ccbad014e95cd322d4a87d82ad
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -422,7 +422,7 @@ ExternalProject_Add(curl
 		-DCURL_DISABLE_TELNET:BOOL=ON
 		-DENABLE_MANUAL:BOOL=OFF
 )
-add_dependency_project_package(curl 7.61.1)
+add_dependency_project_package(curl 7.65.0)
 
 add_custom_target(DependenciesDllRequired
 	DEPENDS
