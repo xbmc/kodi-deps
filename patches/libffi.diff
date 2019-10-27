@@ -1,0 +1,387 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+new file mode 100644
+index 0000000..9d0f169
+--- /dev/null
++++ b/CMakeLists.txt
+@@ -0,0 +1,209 @@
++cmake_minimum_required(VERSION 3.9)
++project(libffi VERSION 3.3 LANGUAGES C ASM)
++
++set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
++
++
++# config variables for ffi.h.in
++set(VERSION 3.3)
++
++
++set(HAVE_LONG_DOUBLE 0)
++set(HAVE_LONG_DOUBLE_VARIANT 0)
++set(FFI_EXEC_TRAMPOLINE_TABLE 0)
++
++	get_filename_component(_sdkdir
++		"[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots;KitsRoot10]"
++    ABSOLUTE)
++
++file(GLOB SDK_VERSIONS LIST_DIRECTORIES true "${_sdkdir}/Include/10.*.0")
++list(SORT SDK_VERSIONS)
++list(POP_BACK SDK_VERSIONS SDK_VERSION)
++
++add_library(libffi
++  src/closures.c
++  src/java_raw_api.c
++  src/prep_cif.c
++  src/raw_api.c
++  src/types.c
++  include/ffi_cfi.h
++  include/ffi_common.h
++  include/fficonfig.h
++  ${CMAKE_CURRENT_BINARY_DIR}/include/ffi.h
++)
++target_include_directories(libffi
++  PRIVATE
++  $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
++  $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>
++  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
++  INTERFACE
++  $<INSTALL_INTERFACE:include>
++)
++
++target_compile_definitions(libffi
++  PRIVATE
++  HAVE_CONFIG_H
++  FFI_BUILDING
++)
++
++if(${CMAKE_GENERATOR_PLATFORM} STREQUAL "win32")
++  set(TARGET "X86_WIN32")
++  enable_language(ASM_MASM)
++elseif(${CMAKE_GENERATOR_PLATFORM} STREQUAL "x64")
++  set(TARGET "X86_WIN64")
++  enable_language(ASM_MASM)
++elseif(${CMAKE_GENERATOR_PLATFORM} STREQUAL "arm")
++  set(TARGET "ARM")
++  enable_language(ASM_ARMASM)
++elseif(${CMAKE_GENERATOR_PLATFORM} STREQUAL "arm64")
++  set(TARGET "AARCH64")
++  enable_language(ASM_ARMASM)
++endif()
++
++# mimic layout of original buildsystem
++configure_file(include/ffi.h.in ${CMAKE_BINARY_DIR}/include/ffi.h)
++
++
++if(${CMAKE_GENERATOR_PLATFORM} STREQUAL "win32")
++execute_process(
++  COMMAND ${CMAKE_C_COMPILER} /nologo /EP /I. /I${CMAKE_CURRENT_SOURCE_DIR}/include /I${CMAKE_CURRENT_BINARY_DIR}/include /I${CMAKE_CURRENT_SOURCE_DIR}/src/x86 ${CMAKE_CURRENT_SOURCE_DIR}/src/x86/sysv_intel.S
++  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
++  OUTPUT_FILE sysv_intel.asm
++)
++  target_sources(libffi
++    PRIVATE
++    src/x86/ffi.c
++    src/x86/ffitarget.h
++    src/x86/internal.h
++    ${CMAKE_CURRENT_BINARY_DIR}/sysv_intel.asm
++  )
++  target_include_directories(libffi
++    PRIVATE
++    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/x86>
++  )
++  install(FILES
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/x86/ffitarget.h
++    DESTINATION include
++  )
++elseif(${CMAKE_GENERATOR_PLATFORM} STREQUAL "x64")
++execute_process(
++  COMMAND ${CMAKE_C_COMPILER} /nologo /EP /I. /I${CMAKE_CURRENT_SOURCE_DIR}/include /I${CMAKE_CURRENT_BINARY_DIR}/include /I${CMAKE_CURRENT_SOURCE_DIR}/src/x86 ${CMAKE_CURRENT_SOURCE_DIR}/src/x86/win64_intel.S
++  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
++  OUTPUT_FILE win64_intel.asm
++)
++  target_sources(libffi
++    PRIVATE
++    src/x86/ffiw64.c
++    src/x86/ffitarget.h
++    src/x86/internal.h
++    ${CMAKE_CURRENT_BINARY_DIR}/win64_intel.asm
++  )
++  target_include_directories(libffi
++    PRIVATE
++    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/x86>
++  )
++  install(FILES
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/x86/ffitarget.h
++    DESTINATION include
++  )
++elseif(${CMAKE_GENERATOR_PLATFORM} STREQUAL "arm")
++  add_custom_command(OUTPUT sysv_msvc_arm32.obj
++    COMMAND ${CMAKE_C_COMPILER} /nologo /P /I. /I${SDK_VERSION}/shared /I${CMAKE_CURRENT_SOURCE_DIR}/include /I${CMAKE_CURRENT_BINARY_DIR}/include /I${CMAKE_CURRENT_SOURCE_DIR}/src/arm /Fi:${CMAKE_CURRENT_BINARY_DIR}/sysv_msvc_arm32.asm ${CMAKE_CURRENT_SOURCE_DIR}/src/arm/sysv_msvc_arm32.S
++    COMMAND ${CMAKE_ASM_ARMASM_COMPILER} /I${SDK_VERSION}/shared /I${CMAKE_CURRENT_SOURCE_DIR}/include /I${CMAKE_CURRENT_BINARY_DIR}/include /I${CMAKE_CURRENT_SOURCE_DIR}/src/arm -ignore 4509 -o ${CMAKE_CURRENT_BINARY_DIR}/sysv_msvc_arm32.obj ${CMAKE_CURRENT_BINARY_DIR}/sysv_msvc_arm32.asm
++    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
++  )
++  target_sources(libffi
++    PRIVATE
++    src/arm/ffi.c
++    src/arm/ffitarget.h
++    src/arm/internal.h
++    ${CMAKE_CURRENT_BINARY_DIR}/sysv_msvc_arm32.obj
++  )
++  target_include_directories(libffi
++    PRIVATE
++    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/arm>
++  )
++  install(FILES
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/arm/ffitarget.h
++    DESTINATION include
++  )
++elseif(${CMAKE_GENERATOR_PLATFORM} STREQUAL "arm64")
++  add_custom_command(OUTPUT win64_armasm.obj
++    COMMAND ${CMAKE_C_COMPILER} /nologo /P /I. /I${SDK_VERSION}/shared /I${CMAKE_CURRENT_SOURCE_DIR}/include /I${CMAKE_CURRENT_BINARY_DIR}/include /I${CMAKE_CURRENT_SOURCE_DIR}/src/arm /Fi:${CMAKE_CURRENT_BINARY_DIR}/win64_armasm.asm ${CMAKE_CURRENT_SOURCE_DIR}/src/aarch64/win64_armasm.S
++    COMMAND ${CMAKE_ASM_ARMASM_COMPILER} /I${SDK_VERSION}/shared /I${CMAKE_CURRENT_SOURCE_DIR}/include /I${CMAKE_CURRENT_BINARY_DIR}/include /I${CMAKE_CURRENT_SOURCE_DIR}/src/arm -ignore 4509 -o ${CMAKE_CURRENT_BINARY_DIR}/win64_armasm.obj ${CMAKE_CURRENT_BINARY_DIR}/win64_armasm.asm
++    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
++  )
++
++  target_sources(libffi
++    PRIVATE
++    src/aarch64/ffi.c
++    src/aarch64/ffitarget.h
++    src/aarch64/internal.h
++    ${CMAKE_CURRENT_BINARY_DIR}/win64_armasm.obj
++  )
++  target_include_directories(libffi
++    PRIVATE
++    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/aarch64>
++  )
++  install(FILES
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/aarch64/ffitarget.h
++    DESTINATION include
++  )
++endif()
++
++# mimic layout of original buildsystem
++configure_file(include/ffi.h.in ${CMAKE_BINARY_DIR}/include/ffi.h)
++
++if(MSVC)
++  set(CMAKE_DEBUG_POSTFIX "d")
++  set_target_properties(libffi PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME libffi COMPILE_PDB_NAME_DEBUG libffid)
++  install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/libffi.pdb DESTINATION lib CONFIGURATIONS RelWithDebInfo)
++  install(FILES ${PROJECT_BINARY_DIR}/Debug/libffid.pdb DESTINATION lib CONFIGURATIONS Debug)
++endif()
++
++if(CMAKE_BUILD_TYPE STREQUAL "Debug")
++    target_sources(libffi PRIVATE src/debug.c)
++    add_definitions(-DFFI_DEBUG)
++endif()
++
++
++include(CMakePackageConfigHelpers)
++write_basic_package_version_file(
++  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
++  VERSION ${PROJECT_VERSION}
++  COMPATIBILITY AnyNewerVersion
++)
++
++install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}
++  RUNTIME DESTINATION bin
++  ARCHIVE DESTINATION lib
++  LIBRARY DESTINATION lib
++)
++
++install(DIRECTORY
++  ${CMAKE_CURRENT_SOURCE_DIR}/include/
++  DESTINATION include
++  PATTERN *.in EXCLUDE
++  PATTERN *.am EXCLUDE
++)
++
++install(FILES
++  ${CMAKE_CURRENT_BINARY_DIR}/include/ffi.h
++  DESTINATION include
++)
++
++install(EXPORT ${PROJECT_NAME}
++  FILE
++    ${PROJECT_NAME}.cmake
++  NAMESPACE
++    ${PROJECT_NAME}::
++  DESTINATION
++    lib/cmake/${PROJECT_NAME}
++)
++install(
++  FILES
++    cmake/${PROJECT_NAME}-config.cmake
++    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
++  DESTINATION
++    lib/cmake/${PROJECT_NAME}
++)
+\ No newline at end of file
+diff --git a/cmake/libffi-config.cmake b/cmake/libffi-config.cmake
+new file mode 100644
+index 0000000..85d7ba8
+--- /dev/null
++++ b/cmake/libffi-config.cmake
+@@ -0,0 +1 @@
++include(${CMAKE_CURRENT_LIST_DIR}/libffi.cmake)
+\ No newline at end of file
+diff --git a/cmake/modules/CMakeASM_ARMASMInformation.cmake b/cmake/modules/CMakeASM_ARMASMInformation.cmake
+new file mode 100644
+index 0000000..5e58503
+--- /dev/null
++++ b/cmake/modules/CMakeASM_ARMASMInformation.cmake
+@@ -0,0 +1,14 @@
++# Distributed under the OSI-approved BSD 3-Clause License.  See accompanying
++# file Copyright.txt or https://cmake.org/licensing for details.
++
++
++# support for the MS assembler, armasm and armasm64
++
++set(ASM_DIALECT "_ARMASM")
++
++set(CMAKE_ASM${ASM_DIALECT}_SOURCE_FILE_EXTENSIONS asm)
++
++set(CMAKE_ASM${ASM_DIALECT}_COMPILE_OBJECT "<CMAKE_ASM${ASM_DIALECT}_COMPILER> <DEFINES> <INCLUDES> <FLAGS> -o <OBJECT> <SOURCE>")
++
++include(CMakeASMInformation)
++set(ASM_DIALECT)
+\ No newline at end of file
+diff --git a/cmake/modules/CMakeDetermineASM_ARMASMCompiler.cmake b/cmake/modules/CMakeDetermineASM_ARMASMCompiler.cmake
+new file mode 100644
+index 0000000..9ba81be
+--- /dev/null
++++ b/cmake/modules/CMakeDetermineASM_ARMASMCompiler.cmake
+@@ -0,0 +1,18 @@
++# Distributed under the OSI-approved BSD 3-Clause License.  See accompanying
++# file Copyright.txt or https://cmake.org/licensing for details.
++
++
++# Find the MS assembler (armasm or armasm64)
++
++set(ASM_DIALECT "_ARMASM")
++
++# if we are using the 64bit cl compiler, assume we also want the 64bit assembler
++if(";${CMAKE_VS_PLATFORM_NAME};${MSVC_C_ARCHITECTURE_ID};${MSVC_CXX_ARCHITECTURE_ID};"
++  MATCHES ";(Win64|Itanium|x64|IA64|arm64|aarch64);")
++  set(CMAKE_ASM${ASM_DIALECT}_COMPILER_INIT armasm64)
++else()
++  set(CMAKE_ASM${ASM_DIALECT}_COMPILER_INIT armasm)
++endif()
++
++include(CMakeDetermineASMCompiler)
++set(ASM_DIALECT)
+\ No newline at end of file
+diff --git a/cmake/modules/CMakeTestASM_ARMASMCompiler.cmake b/cmake/modules/CMakeTestASM_ARMASMCompiler.cmake
+new file mode 100644
+index 0000000..1f0aadf
+--- /dev/null
++++ b/cmake/modules/CMakeTestASM_ARMASMCompiler.cmake
+@@ -0,0 +1,13 @@
++# Distributed under the OSI-approved BSD 3-Clause License.  See accompanying
++# file Copyright.txt or https://cmake.org/licensing for details.
++
++
++# This file is used by EnableLanguage in cmGlobalGenerator to
++# determine that the selected ASM_MASM "compiler" (should be masm or masm64)
++# works. For assembler this can only check whether the compiler has been found,
++# because otherwise there would have to be a separate assembler source file
++# for each assembler on every architecture.
++
++set(ASM_DIALECT "_ARMASM")
++include(CMakeTestASMCompiler)
++set(ASM_DIALECT)
+\ No newline at end of file
+diff --git a/include/fficonfig.h b/include/fficonfig.h
+new file mode 100644
+index 0000000..8461c3b
+--- /dev/null
++++ b/include/fficonfig.h
+@@ -0,0 +1,65 @@
++#ifdef __linux__
++#define EH_FRAME_FLAGS "a"
++#endif
++#define HAVE_ALLOCA 1
++#ifndef _WIN64
++#define HAVE_AS_ASCII_PSEUDO_OP 1
++#endif
++#ifndef _WIN64
++#define HAVE_AS_STRING_PSEUDO_OP 1
++#endif
++#ifndef _WIN64
++#define HAVE_AS_X86_PCREL 1
++#endif
++#ifdef __linux__
++#define HAVE_HIDDEN_VISIBILITY_ATTRIBUTE 1
++#endif
++#define HAVE_INTTYPES_H 1
++#define HAVE_MEMORY_H 1
++#define HAVE_STDINT_H 1
++#define HAVE_STDLIB_H 1
++#define HAVE_STRING_H 1
++#define HAVE_SYS_STAT_H 1
++#define HAVE_SYS_TYPES_H 1
++#define LT_OBJDIR ".libs/"
++#define PACKAGE "libffi"
++#define PACKAGE_BUGREPORT "http://github.com/atgreen/libffi/issues"
++#define PACKAGE_NAME "libffi"
++#define PACKAGE_STRING "libffi 3.3"
++#define PACKAGE_TARNAME "libffi"
++#define PACKAGE_URL ""
++#define PACKAGE_VERSION "3.3"
++#define SIZEOF_DOUBLE 8
++#define SIZEOF_LONG_DOUBLE 8
++#ifndef _WIN64
++#define SIZEOF_SIZE_T 4
++#else
++#define SIZEOF_SIZE_T 8
++#endif
++#define STDC_HEADERS 1
++#ifndef __linux__
++#ifndef _WIN64
++#define SYMBOL_UNDERSCORE 1
++#endif
++#endif
++#define VERSION "3.3"
++#if defined AC_APPLE_UNIVERSAL_BUILD
++# if defined __BIG_ENDIAN__
++#  define WORDS_BIGENDIAN 1
++# endif
++#endif
++
++#ifdef HAVE_HIDDEN_VISIBILITY_ATTRIBUTE
++#ifdef LIBFFI_ASM
++#define FFI_HIDDEN(name) .hidden name
++#else
++#define FFI_HIDDEN __attribute__ ((visibility ("hidden")))
++#endif
++#else
++#ifdef LIBFFI_ASM
++#define FFI_HIDDEN(name)
++#else
++#define FFI_HIDDEN
++#endif
++#endif
++
+diff --git a/src/aarch64/win64_armasm.S b/src/aarch64/win64_armasm.S
+index a79f8a8..7053467 100644
+--- a/src/aarch64/win64_armasm.S
++++ b/src/aarch64/win64_armasm.S
+@@ -24,7 +24,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
+ 
+ 	OPT	2 /*disable listing */
+ /* For some macros to add unwind information */
+-#include "ksarm64.h"
++#include <ksarm64.h>
+ 	OPT	1 /*re-enable listing */
+ 
+ #define BE(X)	0
+diff --git a/src/arm/sysv_msvc_arm32.S b/src/arm/sysv_msvc_arm32.S
+index 5c99d02..496908b 100644
+--- a/src/arm/sysv_msvc_arm32.S
++++ b/src/arm/sysv_msvc_arm32.S
+@@ -31,7 +31,7 @@
+ #include <ffi.h>
+ #include <ffi_cfi.h>
+ #include "internal.h"
+-#include "ksarm.h"
++#include <ksarm.h>
+ 
+ 
+         ; 8 byte aligned AREA to support 8 byte aligned jump tables
