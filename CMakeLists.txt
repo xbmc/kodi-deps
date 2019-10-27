@@ -168,6 +168,17 @@ ExternalProject_Add(zlib
 )
 add_dependency_project_package(zlib 1.2.11)
 
+ExternalProject_Add(xz
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://netix.dl.sourceforge.net/project/lzmautils/xz-5.2.4.tar.gz
+	URL_HASH SHA256=b512f3b726d3b37b6dc4c8570e137b9311e7552e8ccbab4d39d47ce5f4177145
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+add_dependency_project_package(xz 5.2.4)
+
 
 # Required dependencies
 
