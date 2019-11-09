@@ -11,6 +11,7 @@ include(CheckSymbolExists)
 check_symbol_exists(_X86_ "Windows.h" _X86_)
 check_symbol_exists(_AMD64_ "Windows.h" _AMD64_)
 check_symbol_exists(_ARM_ "Windows.h" _ARM_)
+check_symbol_exists(_ARM64_ "Windows.h" _ARM64_)
 
 if(_X86_)
    set(ARCH win32)
@@ -18,6 +19,8 @@ elseif(_AMD64_)
    set(ARCH x64)
 elseif(_ARM_)
    set(ARCH arm)
+elseif(_ARM64_)
+   set(ARCH arm64)
 else()
    set(ARCH unknown)
 endif()
@@ -25,6 +28,7 @@ endif()
 unset(_X86_)
 unset(_AMD64_)
 unset(_ARM_)
+unset(_ARM64_)
 
 if(CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
 	set(ADDITIONAL_ARGS "-DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME}" "-DCMAKE_SYSTEM_VERSION=${CMAKE_SYSTEM_VERSION}")
@@ -649,27 +653,30 @@ ExternalProject_Add(mariadb-connector-c
 )
 add_dependency_project_package(mariadb-connector-c 3.0.6)
 
-ExternalProject_Add(python
-	DEPENDS bzip2 openssl sqlite zlib
+ExternalProject_Add(libffi
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://www.python.org/ftp/python/2.7.13/Python-2.7.13.tgz
-	URL_HASH SHA256=a4f05a0720ce0fd92626f0278b6b433eee9a6173ddf2bced7957dfb599a5ece1
+	URL https://github.com/libffi/libffi/archive/v3.3-rc1.tar.gz
+	URL_HASH SHA256=87cbd612fa20f8eb7b91a3e996c5032b813644deee6c2d96724b50752296737e
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+add_dependency_project_package(libffi 3.3.0)
+
+ExternalProject_Add(python
+	DEPENDS bzip2 openssl sqlite zlib expat libffi xz
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://www.python.org/ftp/python/3.7.5/Python-3.7.5.tgz
+	URL_HASH MD5=1cd071f78ff6d9c7524c95303a3057aa
 	PATCH_COMMAND
-		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/python-cmake-buildsystem-b348a50.diff
 		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/bzip2%3B%3B${PREFIX}/openssl%3B%3B${PREFIX}/sqlite%3B%3B${PREFIX}/zlib
-		-DCMAKE_CONFIGURATION_TYPES:STRING=RelWithDebInfo
-		-DBUILD_LIBPYTHON_SHARED:BOOL=ON
-		-DBUILD_TESTING:BOOL=OFF
-		-DBUILD_WININST:BOOL=OFF
-		-DDOWNLOAD_SOURCES:BOOL=OFF
-		-DINSTALL_MANUAL:BOOL=OFF
-		-DINSTALL_TEST:BOOL=OFF
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/bzip2%3B%3B${PREFIX}/openssl%3B%3B${PREFIX}/sqlite%3B%3B${PREFIX}/zlib%3B%3B${PREFIX}/libffi%3B%3B${PREFIX}/xz%3B%3B${PREFIX}/expat
 )
-add_dependency_project_package(python 2.7.13)
+add_dependency_project_package(python 3.7.5)
 
 ExternalProject_Add(libjpeg-turbo
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -739,14 +746,3 @@ ExternalProject_Add(libbluray
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype%3B%3B${PREFIX}/libiconv%3B%3B${PREFIX}/libxml2
 )
 add_dependency_project_package(libbluray 1.0.1)
-
-ExternalProject_Add(libffi
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://github.com/libffi/libffi/archive/v3.3-rc1.tar.gz
-	URL_HASH SHA256=87cbd612fa20f8eb7b91a3e996c5032b813644deee6c2d96724b50752296737e
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
-	CMAKE_ARGS
-		${ADDITIONAL_ARGS}
-		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-)
-add_dependency_project_package(libffi 3.3.0)

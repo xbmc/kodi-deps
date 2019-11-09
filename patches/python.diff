@@ -1,144 +1,1793 @@
---- a/CMakeLists.txt
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+new file mode 100644
+index 0000000000..9ef3f5dd3a
+--- /dev/null
 +++ b/CMakeLists.txt
-@@ -188,6 +188,7 @@
- set(_download_2.7.10_md5 "d7547558fd673bd9d38e2108c6b42521")
- set(_download_2.7.11_md5 "6b6076ec9e93f05dd63e47eb9c15728b")
- set(_download_2.7.12_md5 "88d61f82e3616a4be952828b3694109d")
-+set(_download_2.7.13_md5 "17add4bf0ad0ec2f08e0cae6d205c700")
- set(_download_3.5.1_md5 "be78e48cdfc1a7ad90efff146dce6cfe")
- set(_download_3.5.2_md5 "3fe8434643a78630c61c6464fe2e7e72")
- set(_extracted_dir "Python-${PY_VERSION}")
-@@ -327,7 +328,7 @@
- endif()
- set(INCLUDE_INSTALL_DIR include/${LIBPYTHON})
- if(MSVC)
--    set(INCLUDE_INSTALL_DIR include)
-+    set(INCLUDE_INSTALL_DIR include/python)
- endif()
- # Build tree directory
- set(BIN_BUILD_DIR ${PROJECT_BINARY_DIR}/bin)
---- a/cmake/libpython/CMakeLists.txt
-+++ b/cmake/libpython/CMakeLists.txt
-@@ -477,6 +477,10 @@
-     set_target_properties(libpython-shared PROPERTIES
-         ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/${LIBPYTHON_ARCHIVEDIR}
-     )
-+    if(MSVC)
-+        set_target_properties(libpython-shared PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME python27)
-+        install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/python27.pdb DESTINATION lib CONFIGURATIONS RelWithDebInfo)
-+    endif()
-     if(APPLE)
-         # HACK For python <= 2.7.3, this fix link error related to undefined _environ symbol and
-         #      is equivalent to solution implemented in commit http://hg.python.org/cpython/rev/864b983
---- a/Modules/posixmodule.c
-+++ b/Modules/posixmodule.c
-@@ -558,7 +558,7 @@
-     char osfile;
- } my_ioinfo;
+@@ -0,0 +1,732 @@
++cmake_minimum_required(VERSION 3.10.0)
++
++project(python VERSION 3.7.5 LANGUAGES C CXX ASM)
++enable_language(ASM_MASM)
++
++find_package(zlib NO_MODULE)
++find_package(expat 2.2.9 NO_MODULE)
++find_package(openssl 1.1.1 NO_MODULE)
++find_package(bzip2 NO_MODULE)
++find_package(libffi NO_MODULE)
++find_package(xz NO_MODULE)
++find_package(sqlite3 NO_MODULE)
++
++add_library(python SHARED
++    Include/abstract.h
++    Include/accu.h
++    Include/asdl.h
++    Include/ast.h
++    Include/bitset.h
++    Include/boolobject.h
++    Include/bytearrayobject.h
++    Include/bytes_methods.h
++    Include/bytesobject.h
++    Include/cellobject.h
++    Include/ceval.h
++    Include/classobject.h
++    Include/code.h
++    Include/codecs.h
++    Include/compile.h
++    Include/complexobject.h
++    Include/context.h
++    Include/datetime.h
++    Include/descrobject.h
++    Include/dictobject.h
++    Include/dtoa.h
++    Include/dynamic_annotations.h
++    Include/enumobject.h
++    Include/errcode.h
++    Include/eval.h
++    Include/fileobject.h
++    Include/fileutils.h
++    Include/floatobject.h
++    Include/frameobject.h
++    Include/funcobject.h
++    Include/genobject.h
++    Include/graminit.h
++    Include/grammar.h
++    Include/import.h
++    Include/internal/ceval.h
++    Include/internal/condvar.h
++    Include/internal/context.h
++    Include/internal/gil.h
++    Include/internal/hamt.h
++    Include/internal/mem.h
++    Include/internal/pygetopt.h
++    Include/internal/pystate.h
++    Include/internal/warnings.h
++    Include/intrcheck.h
++    Include/iterobject.h
++    Include/listobject.h
++    Include/longintrepr.h
++    Include/longobject.h
++    Include/marshal.h
++    Include/memoryobject.h
++    Include/metagrammar.h
++    Include/methodobject.h
++    Include/modsupport.h
++    Include/moduleobject.h
++    Include/namespaceobject.h
++    Include/node.h
++    Include/object.h
++    Include/objimpl.h
++    Include/odictobject.h
++    Include/opcode.h
++    Include/osdefs.h
++    Include/osmodule.h
++    Include/parsetok.h
++    Include/patchlevel.h
++    Include/pgen.h
++    Include/pgenheaders.h
++    Include/py_curses.h
++    Include/pyarena.h
++    Include/pycapsule.h
++    Include/pyctype.h
++    Include/pydebug.h
++    Include/pyerrors.h
++    Include/pyexpat.h
++    Include/pyfpe.h
++    Include/pyhash.h
++    Include/pylifecycle.h
++    Include/pymacro.h
++    Include/pymath.h
++    Include/pymem.h
++    Include/pyport.h
++    Include/pystate.h
++    Include/pystrcmp.h
++    Include/pystrhex.h
++    Include/pystrtod.h
++    Include/Python-ast.h
++    Include/Python.h
++    Include/pythonrun.h
++    Include/pythread.h
++    Include/pytime.h
++    Include/rangeobject.h
++    Include/setobject.h
++    Include/sliceobject.h
++    Include/structmember.h
++    Include/structseq.h
++    Include/symtable.h
++    Include/sysmodule.h
++    Include/token.h
++    Include/traceback.h
++    Include/tupleobject.h
++    Include/ucnhash.h
++    Include/unicodeobject.h
++    Include/weakrefobject.h
++    Modules/_abc.c
++    Modules/_bisectmodule.c
++    Modules/_blake2/blake2b_impl.c
++    Modules/_blake2/blake2module.c
++    Modules/_blake2/blake2s_impl.c
++    Modules/_codecsmodule.c
++    Modules/_collectionsmodule.c
++    Modules/_contextvarsmodule.c
++    Modules/_csv.c
++    Modules/_datetimemodule.c
++    Modules/_functoolsmodule.c
++    Modules/_heapqmodule.c
++    Modules/_io/_iomodule.c
++    Modules/_io/_iomodule.h
++    Modules/_io/bufferedio.c
++    Modules/_io/bytesio.c
++    Modules/_io/fileio.c
++    Modules/_io/iobase.c
++    Modules/_io/stringio.c
++    Modules/_io/textio.c
++    Modules/_io/winconsoleio.c
++    Modules/_json.c
++    Modules/_localemodule.c
++    Modules/_lsprof.c
++    Modules/_math.c
++    Modules/_math.h
++    Modules/_opcode.c
++    Modules/_operator.c
++    Modules/_pickle.c
++    Modules/_randommodule.c
++    Modules/_sha3/sha3module.c
++    Modules/_sre.c
++    Modules/_stat.c
++    Modules/_struct.c
++    Modules/_threadmodule.c
++    Modules/_tracemalloc.c
++    Modules/_weakref.c
++    Modules/_winapi.c
++    Modules/arraymodule.c
++    Modules/atexitmodule.c
++    Modules/audioop.c
++    Modules/binascii.c
++    Modules/cjkcodecs/_codecs_cn.c
++    Modules/cjkcodecs/_codecs_hk.c
++    Modules/cjkcodecs/_codecs_iso2022.c
++    Modules/cjkcodecs/_codecs_jp.c
++    Modules/cjkcodecs/_codecs_kr.c
++    Modules/cjkcodecs/_codecs_tw.c
++    Modules/cjkcodecs/alg_jisx0201.h
++    Modules/cjkcodecs/cjkcodecs.h
++    Modules/cjkcodecs/emu_jisx0213_2000.h
++    Modules/cjkcodecs/mappings_cn.h
++    Modules/cjkcodecs/mappings_hk.h
++    Modules/cjkcodecs/mappings_jisx0213_pair.h
++    Modules/cjkcodecs/mappings_jp.h
++    Modules/cjkcodecs/mappings_kr.h
++    Modules/cjkcodecs/mappings_tw.h
++    Modules/cjkcodecs/multibytecodec.c
++    Modules/cjkcodecs/multibytecodec.h
++    Modules/cmathmodule.c
++    Modules/errnomodule.c
++    Modules/faulthandler.c
++    Modules/gcmodule.c
++    Modules/getbuildinfo.c
++    Modules/hashtable.c
++    Modules/hashtable.h
++    Modules/itertoolsmodule.c
++    Modules/main.c
++    Modules/mathmodule.c
++    Modules/md5module.c
++    Modules/mmapmodule.c
++    Modules/parsermodule.c
++    Modules/posixmodule.c
++    Modules/rotatingtree.c
++    Modules/rotatingtree.h
++    Modules/sha1module.c
++    Modules/sha256module.c
++    Modules/sha512module.c
++    Modules/signalmodule.c
++    Modules/sre_constants.h
++    Modules/sre_lib.h
++    Modules/sre.h
++    Modules/symtablemodule.c
++    Modules/timemodule.c
++    Modules/xxsubtype.c
++    Modules/zipimport.c
++    Modules/zlibmodule.c
++    Objects/abstract.c
++    Objects/accu.c
++    Objects/boolobject.c
++    Objects/bytearrayobject.c
++    Objects/bytes_methods.c
++    Objects/bytesobject.c
++    Objects/call.c
++    Objects/capsule.c
++    Objects/cellobject.c
++    Objects/classobject.c
++    Objects/codeobject.c
++    Objects/complexobject.c
++    Objects/descrobject.c
++    Objects/dictobject.c
++    Objects/enumobject.c
++    Objects/exceptions.c
++    Objects/fileobject.c
++    Objects/floatobject.c
++    Objects/frameobject.c
++    Objects/funcobject.c
++    Objects/genobject.c
++    Objects/iterobject.c
++    Objects/listobject.c
++    Objects/longobject.c
++    Objects/memoryobject.c
++    Objects/methodobject.c
++    Objects/moduleobject.c
++    Objects/namespaceobject.c
++    Objects/object.c
++    Objects/obmalloc.c
++    Objects/odictobject.c
++    Objects/rangeobject.c
++    Objects/setobject.c
++    Objects/sliceobject.c
++    Objects/stringlib/count.h
++    Objects/stringlib/fastsearch.h
++    Objects/stringlib/find.h
++    Objects/stringlib/partition.h
++    Objects/stringlib/replace.h
++    Objects/stringlib/split.h
++    Objects/structseq.c
++    Objects/tupleobject.c
++    Objects/typeobject.c
++    Objects/unicodectype.c
++    Objects/unicodeobject.c
++    Objects/unicodetype_db.h
++    Objects/weakrefobject.c
++    Parser/acceler.c
++    Parser/bitset.c
++    Parser/firstsets.c
++    Parser/grammar.c
++    Parser/grammar1.c
++    Parser/listnode.c
++    Parser/metagrammar.c
++    Parser/myreadline.c
++    Parser/node.c
++    Parser/parser.c
++    Parser/parser.h
++    Parser/parsetok.c
++    Parser/tokenizer.c
++    Parser/tokenizer.h
++    PC/config.c
++    PC/dl_nt.c
++    PC/errmap.h
++    PC/getpathp.c
++    PC/invalid_parameter_handler.c
++    PC/msvcrtmodule.c
++    PC/pyconfig.h
++    PC/winreg.c
++    Python/_warnings.c
++    Python/asdl.c
++    Python/ast_opt.c
++    Python/ast_unparse.c
++    Python/ast.c
++    Python/bltinmodule.c
++    Python/bootstrap_hash.c
++    Python/ceval_gil.h
++    Python/ceval.c
++    Python/codecs.c
++    Python/compile.c
++    Python/condvar.h
++    Python/context.c
++    Python/dtoa.c
++    Python/dynamic_annotations.c
++    Python/dynload_win.c
++    Python/errors.c
++    Python/fileutils.c
++    Python/formatter_unicode.c
++    Python/frozen.c
++    Python/future.c
++    Python/getargs.c
++    Python/getcompiler.c
++    Python/getcopyright.c
++    Python/getopt.c
++    Python/getplatform.c
++    Python/getversion.c
++    Python/graminit.c
++    Python/hamt.c
++    Python/import.c
++    Python/importdl.c
++    Python/importdl.h
++    Python/marshal.c
++    Python/modsupport.c
++    Python/mysnprintf.c
++    Python/mystrtoul.c
++    Python/pathconfig.c
++    Python/peephole.c
++    Python/pyarena.c
++    Python/pyctype.c
++    Python/pyfpe.c
++    Python/pyhash.c
++    Python/pylifecycle.c
++    Python/pymath.c
++    Python/pystate.c
++    Python/pystrcmp.c
++    Python/pystrhex.c
++    Python/pystrtod.c
++    Python/Python-ast.c
++    Python/pythonrun.c
++    Python/pytime.c
++    Python/structmember.c
++    Python/symtable.c
++    Python/sysmodule.c
++    Python/thread_nt.h
++    Python/thread.c
++    Python/traceback.c
++    Python/wordcode_helpers.h
++)
++
++target_compile_definitions(python PRIVATE
++    _USRDLL
++    Py_BUILD_CORE
++    Py_BUILD_CORE_BUILTIN
++    Py_ENABLE_SHARED
++    _Py_HAVE_ZLIB
++)
++
++target_include_directories(python PRIVATE
++    Include/
++    Include/internal
++    PC/
++    INTERFACE
++    $<INSTALL_INTERFACE:Include>
++)
++
++set(LIB_NAME ${PROJECT_NAME}${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
++set_target_properties(python PROPERTIES
++  OUTPUT_NAME ${LIB_NAME}
++  OUTPUT_NAME_DEBUG ${LIB_NAME}d
++  COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
++  COMPILE_PDB_NAME ${LIB_NAME}
++  COMPILE_PDB_NAME_DEBUG ${LIB_NAME}d
++)
++
++target_link_libraries(python
++  PRIVATE
++    zlib::zlibstatic
++  PUBLIC
++    ws2_32.lib
++    version.lib
++    shlwapi.lib
++    Advapi32.dll
++)
++
++########################################################################
++## Modules
++########################################################################
++set(PYTHON_MODULES)
++
++macro(add_py_module)
++  set(options)
++  set(oneValueArgs NAME )
++  set(multiValueArgs SOURCES DEFINITIONS INCLUDES LIBRARIES)
++  cmake_parse_arguments(PY_MODULE "${options}" "${oneValueArgs}"
++                        "${multiValueArgs}" ${ARGN}
++  )
++
++  list(APPEND PYTHON_MODULES ${PY_MODULE_NAME})
++
++  add_library(${PY_MODULE_NAME} SHARED
++    ${PY_MODULE_SOURCES}
++  )
++
++  target_compile_definitions(${PY_MODULE_NAME} PRIVATE
++      # _USRDLL
++      # Py_BUILD_CORE
++      # Py_BUILD_CORE_BUILTIN
++      Py_BUILD_CORE_MODULE
++      Py_ENABLE_SHARED
++      ${PY_MODULE_DEFINITIONS}
++  )
++
++  target_include_directories(${PY_MODULE_NAME} PRIVATE
++      Include/
++      Include/internal
++      PC/
++      ${PY_MODULE_INCLUDES}
++  )
++
++  set_target_properties(${PY_MODULE_NAME} PROPERTIES
++    OUTPUT_NAME_DEBUG ${PY_MODULE_NAME}d
++    SUFFIX ".pyd"
++    COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
++    COMPILE_PDB_NAME ${PY_MODULE_NAME}
++    COMPILE_PDB_NAME_DEBUG ${PY_MODULE_NAME}d
++  )
++  target_link_libraries(${PY_MODULE_NAME}
++    PRIVATE
++      ${PY_MODULE_LIBRARIES}
++      python
++      ws2_32.lib
++      version.lib
++      shlwapi.lib
++      Advapi32.dll
++  )
++endmacro()
++
++add_py_module(NAME _asyncio
++  SOURCES
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_asynciomodule.c
++)
++
++
++## _bz2
++add_py_module(NAME _bz2
++  SOURCES
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_bz2module.c
++  LIBRARIES
++    bzip2::bzip2
++)
++
++## _ctypes
++add_py_module(NAME _ctypes
++  SOURCES
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_ctypes/_ctypes.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_ctypes/callbacks.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_ctypes/callproc.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_ctypes/cfield.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_ctypes/ctypes_dlfcn.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_ctypes/ctypes.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_ctypes/malloc_closure.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_ctypes/stgdict.c
++  DEFINITIONS
++    FFI_BUILDING
++  LIBRARIES
++    libffi::libffi
++    OleAut32.lib
++    Ole32.lib
++)
++
++## _decinaml
++add_py_module(NAME _decimal
++  SOURCES
++    Modules/_decimal/libmpdec/basearith.h
++    Modules/_decimal/libmpdec/bits.h
++    Modules/_decimal/libmpdec/constants.h
++    Modules/_decimal/libmpdec/convolute.h
++    Modules/_decimal/libmpdec/crt.h
++    Modules/_decimal/libmpdec/difradix2.h
++    Modules/_decimal/docstrings.h
++    Modules/_decimal/libmpdec/fnt.h
++    Modules/_decimal/libmpdec/fourstep.h
++    Modules/_decimal/libmpdec/mpdecimal.h
++    Modules/_decimal/libmpdec/numbertheory.h
++    Modules/_decimal/libmpdec/sixstep.h
++    Modules/_decimal/libmpdec/transpose.h
++    Modules/_decimal/libmpdec/typearith.h
++    Modules/_decimal/libmpdec/umodarith.h
++    Modules/_decimal/libmpdec/vccompat.h
++    Modules/_decimal/libmpdec/vcstdint.h
++    Modules/_decimal/_decimal.c
++    Modules/_decimal/libmpdec/basearith.c
++    Modules/_decimal/libmpdec/constants.c
++    Modules/_decimal/libmpdec/context.c
++    Modules/_decimal/libmpdec/convolute.c
++    Modules/_decimal/libmpdec/crt.c
++    Modules/_decimal/libmpdec/difradix2.c
++    Modules/_decimal/libmpdec/fnt.c
++    Modules/_decimal/libmpdec/fourstep.c
++    Modules/_decimal/libmpdec/io.c
++    Modules/_decimal/libmpdec/memory.c
++    Modules/_decimal/libmpdec/mpdecimal.c
++    Modules/_decimal/libmpdec/numbertheory.c
++    Modules/_decimal/libmpdec/sixstep.c
++    Modules/_decimal/libmpdec/transpose.c
++  DEFINITIONS
++    MASM
++    _CRT_SECURE_NO_WARNINGS
++  INCLUDES
++    Modules/_decimal/libmpdec
++)
++
++if(${CMAKE_GENERATOR_PLATFORM} STREQUAL "win32")
++  target_compile_definitions(_decimal PRIVATE
++    CONFIG_32
++    PPRO
++  )
++elseif(${CMAKE_GENERATOR_PLATFORM} STREQUAL "x64")
++  target_compile_definitions(_decimal PRIVATE
++    CONFIG_64
++  )
++  target_sources(_decimal PRIVATE
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_decimal/libmpdec/vcdiv64.asm
++  )
++elseif(${CMAKE_GENERATOR_PLATFORM} STREQUAL "arm")
++  target_compile_definitions(_decimal PRIVATE
++    CONFIG_32
++    ANSI
++  )
++elseif(${CMAKE_GENERATOR_PLATFORM} STREQUAL "arm64")
++  target_compile_definitions(_decimal PRIVATE
++    CONFIG_64
++    ANSI
++  )
++endif()
++
++## _elementtree
++add_py_module(NAME _elementtree
++  SOURCES
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_elementtree.c
++  DEFINITIONS
++    USE_PYEXPAT_CAPI
++    XML_STATIC
++  LIBRARIES
++    expat::libexpat
++)
++
++## _hashlib
++add_py_module(NAME _hashlib
++  SOURCES
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_hashopenssl.c
++  LIBRARIES
++    openssl::crypto
++)
++
++## _lzma
++add_py_module(NAME _lzma
++  SOURCES
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_lzmamodule.c
++  LIBRARIES
++    xz::lzma
++)
++
++## _multiprocessing
++add_py_module(NAME _multiprocessing
++  SOURCES
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_multiprocessing/multiprocessing.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_multiprocessing/multiprocessing.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_multiprocessing/semaphore.c
++)
++
++## _overlapped
++add_py_module(NAME _overlapped
++  SOURCES
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/overlapped.c
++)
++
++## _queue
++add_py_module(NAME _queue
++  SOURCES
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_queuemodule.c
++)
++
++## _socket
++add_py_module(NAME _socket
++  SOURCES
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/socketmodule.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/socketmodule.h
++  LIBRARIES
++    iphlpapi.lib
++)
++
++## _sqlite3
++add_py_module(NAME _sqlite3
++  SOURCES
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/cache.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/cache.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/connection.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/connection.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/cursor.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/cursor.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/microprotocols.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/microprotocols.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/module.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/module.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/prepare_protocol.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/prepare_protocol.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/row.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/row.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/statement.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/statement.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/util.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_sqlite/util.h
++  DEFINITIONS
++    MODULE_NAME="sqlite3"
++  LIBRARIES
++    sqlite3::sqlite3
++)
++
++## _ssl
++add_py_module(NAME _ssl
++  SOURCES
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/_ssl.c
++  LIBRARIES
++    openssl::ssl
++    openssl::crypto
++    crypt32.lib
++)
++
++## select
++add_py_module(NAME select
++  SOURCES
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/selectmodule.c
++)
++
++## pyexpat
++add_py_module(NAME pyexpat
++  SOURCES
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/pyexpat.c
++  LIBRARIES
++    expat::libexpat
++)
++
++## unicodedata
++add_py_module(NAME unicodedata
++  SOURCES
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/unicodedata.c
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/unicodedata_db.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/Modules/unicodename_db.h
++)
++
++include(CMakePackageConfigHelpers)
++write_basic_package_version_file(
++  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
++  VERSION ${PROJECT_VERSION}
++  COMPATIBILITY AnyNewerVersion
++)
++
++install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}
++  RUNTIME DESTINATION bin
++  ARCHIVE DESTINATION lib
++  LIBRARY DESTINATION lib
++  INCLUDES DESTINATION include/${LIB_NAME}
++)
++
++install(DIRECTORY
++  ${CMAKE_CURRENT_SOURCE_DIR}/Include/
++  DESTINATION include/${LIB_NAME}
++)
++
++install(FILES
++  ${CMAKE_CURRENT_SOURCE_DIR}/PC/pyconfig.h
++  DESTINATION include/${LIB_NAME}
++)
++
++foreach(PYTHON_MODULE IN LISTS PYTHON_MODULES)
++  install(TARGETS ${PYTHON_MODULE}
++    RUNTIME DESTINATION lib/python/DLLs
++    ARCHIVE DESTINATION lib
++    LIBRARY DESTINATION lib/python/DLLs
++  )
++
++install(FILES
++  ${PROJECT_BINARY_DIR}/RelWithDebInfo/${PYTHON_MODULE}.pdb
++  DESTINATION lib
++  CONFIGURATIONS RelWithDebInfo
++)
++install(FILES
++  ${PROJECT_BINARY_DIR}/Debug/${PYTHON_MODULE}d.pdb
++  DESTINATION lib
++  CONFIGURATIONS Debug
++)
++endforeach(PYTHON_MODULE IN LISTS PYTHON_MODULES)
++
++# install(DIRECTORY
++#   ${CMAKE_CURRENT_BINARY_DIR}
++#   DESTINATION lib/python/DLLs
++#   FILES_MATCHING PATTERN *.pyd
++#   PATTERN .vs EXCLUDE
++#   PATTERN amd64 EXCLUDE
++#   PATTERN Debug EXCLUDE
++#   PATTERN obj EXCLUDE
++# )
++
++install(DIRECTORY
++    ${CMAKE_CURRENT_SOURCE_DIR}/Lib
++    DESTINATION lib/python
++    PATTERN plat-* EXCLUDE
++    PATTERN msilib EXCLUDE
++    PATTERN lib-tk EXCLUDE
++    PATTERN curses EXCLUDE
++    PATTERN bsddb EXCLUDE
++    PATTERN *test EXCLUDE
++    PATTERN idlelib EXCLUDE
++)
++
++install(FILES
++  ${PROJECT_BINARY_DIR}/RelWithDebInfo/${LIB_NAME}.pdb
++  DESTINATION lib
++  CONFIGURATIONS RelWithDebInfo
++)
++install(FILES
++  ${PROJECT_BINARY_DIR}/Debug/${LIB_NAME}d.pdb
++  DESTINATION lib
++  CONFIGURATIONS Debug
++)
++
++
++install(EXPORT ${PROJECT_NAME}
++  FILE
++  ${PROJECT_NAME}.cmake
++  NAMESPACE
++    ${PROJECT_NAME}::
++  DESTINATION
++    lib/cmake/${PROJECT_NAME}
++)
++
++install(FILES
++  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}-config.cmake
++  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
++  DESTINATION
++    lib/cmake/${PROJECT_NAME}
++)
++
++export(TARGETS ${PROJECT_NAME}
++  FILE
++  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
++  NAMESPACE ${PROJECT_NAME}::
++)
+\ No newline at end of file
+diff --git a/Include/pyatomic.h b/Include/pyatomic.h
+index 9a497a6836..1dc1da2931 100644
+--- a/Include/pyatomic.h
++++ b/Include/pyatomic.h
+@@ -13,9 +13,12 @@
  
--extern __declspec(dllimport) char * __pioinfo[];
-+// extern __declspec(dllimport) char * __pioinfo[];
- #define IOINFO_L2E 5
- #define IOINFO_ARRAY_ELTS   (1 << IOINFO_L2E)
- #define IOINFO_ARRAYS 64
-@@ -570,6 +570,7 @@
- int
- _PyVerify_fd(int fd)
- {
-+#if _MSC_VER < 1900
-     const int i1 = fd >> IOINFO_L2E;
-     const int i2 = fd & ((1 << IOINFO_L2E) - 1);
-
-@@ -602,6 +603,7 @@
-   fail:
-     errno = EBADF;
-     return 0;
-+#endif
- }
- 
- /* the special case of checking dup2.  The target fd must be in a sensible range */
---- a/Modules/timemodule.c
-+++ b/Modules/timemodule.c
-@@ -650,6 +650,7 @@
- Convert a time tuple in local time to seconds since the Epoch.");
- #endif /* HAVE_MKTIME */
- 
-+#define HAVE_WORKING_TZSET 1
- #ifdef HAVE_WORKING_TZSET
- static void inittimezone(PyObject *module);
- 
-@@ -707,7 +708,7 @@
-      */
- #if defined(HAVE_TZNAME) && !defined(__GLIBC__) && !defined(__CYGWIN__)
-     tzset();
--#ifdef PYOS_OS2
-+#if defined(PYOS_OS2) || defined(MS_WINDOWS)
-     PyModule_AddIntConstant(m, "timezone", _timezone);
- #else /* !PYOS_OS2 */
-     PyModule_AddIntConstant(m, "timezone", timezone);
-@@ -715,15 +716,15 @@
- #ifdef HAVE_ALTZONE
-     PyModule_AddIntConstant(m, "altzone", altzone);
- #else
--#ifdef PYOS_OS2
-+#if defined(PYOS_OS2) || defined(MS_WINDOWS)
-     PyModule_AddIntConstant(m, "altzone", _timezone-3600);
- #else /* !PYOS_OS2 */
-     PyModule_AddIntConstant(m, "altzone", timezone-3600);
- #endif /* PYOS_OS2 */
+ #if defined(_MSC_VER)
+ #include <intrin.h>
++#if defined(_M_IX86) || defined(_M_X64)
+ #include <immintrin.h>
  #endif
--    PyModule_AddIntConstant(m, "daylight", daylight);
-+    PyModule_AddIntConstant(m, "daylight", _daylight);
-     PyModule_AddObject(m, "tzname",
--                       Py_BuildValue("(zz)", tzname[0], tzname[1]));
-+                       Py_BuildValue("(zz)", _tzname[0], _tzname[1]));
- #else /* !HAVE_TZNAME || __GLIBC__ || __CYGWIN__*/
- #ifdef HAVE_STRUCT_TM_TM_ZONE
-     {
---- a/PC/dl_nt.c
-+++ b/PC/dl_nt.c
-@@ -76,6 +76,13 @@
-             OutputDebugString("Python failed to de-activate the activation context\n");
+ 
++#endif
++
+ /* This is modeled after the atomics interface from C1x, according to
+  * the draft at
+  * http://www.open-std.org/JTC1/SC22/wg14/www/docs/n1425.pdf.
+diff --git a/Include/pyport.h b/Include/pyport.h
+index 27e51b42c6..d9358875f7 100644
+--- a/Include/pyport.h
++++ b/Include/pyport.h
+@@ -406,7 +406,7 @@ extern "C" {
+ #endif
+ 
+ /* get and set x87 control word for VisualStudio/x86 */
+-#if defined(_MSC_VER) && !defined(_WIN64) /* x87 not supported in 64-bit */
++#if defined(_MSC_VER) && defined(_M_IX86) /* x87 not supported in 64-bit */
+ #define HAVE_PY_SET_53BIT_PRECISION 1
+ #define _Py_SET_53BIT_PRECISION_HEADER \
+     unsigned int old_387controlword, new_387controlword, out_387controlword
+diff --git a/Modules/_ctypes/_ctypes.c b/Modules/_ctypes/_ctypes.c
+index f186e5082a..010d74e85c 100644
+--- a/Modules/_ctypes/_ctypes.c
++++ b/Modules/_ctypes/_ctypes.c
+@@ -236,7 +236,7 @@ PyObject *
+ PyDict_GetItemProxy(PyObject *dict, PyObject *key)
+ {
+     PyObject *result;
+-    PyObject *item = PyDict_GetItem(dict, key);
++    PyObject *item = PyDict_GetItemWithError(dict, key);
+ 
+     if (item == NULL)
+         return NULL;
+@@ -403,24 +403,35 @@ static PyCArgObject *
+ StructUnionType_paramfunc(CDataObject *self)
+ {
+     PyCArgObject *parg;
++    CDataObject *copied_self;
+     StgDictObject *stgdict;
+ 
++    if (self->b_size > sizeof(void*)) {
++        void *new_ptr = PyMem_Malloc(self->b_size);
++        if (new_ptr == NULL)
++            return NULL;
++        memcpy(new_ptr, self->b_ptr, self->b_size);
++        copied_self = (CDataObject *)PyCData_AtAddress(
++            (PyObject *)Py_TYPE(self), new_ptr);
++        copied_self->b_needsfree = 1;
++    } else {
++        copied_self = self;
++        Py_INCREF(copied_self);
++    }
++
+     parg = PyCArgObject_new();
+-    if (parg == NULL)
++    if (parg == NULL) {
++        Py_DECREF(copied_self);
+         return NULL;
++    }
+ 
+     parg->tag = 'V';
+-    stgdict = PyObject_stgdict((PyObject *)self);
++    stgdict = PyObject_stgdict((PyObject *)copied_self);
+     assert(stgdict); /* Cannot be NULL for structure/union instances */
+     parg->pffi_type = &stgdict->ffi_type_pointer;
+-    /* For structure parameters (by value), parg->value doesn't contain the structure
+-       data itself, instead parg->value.p *points* to the structure's data
+-       See also _ctypes.c, function _call_function_pointer().
+-    */
+-    parg->value.p = self->b_ptr;
+-    parg->size = self->b_size;
+-    Py_INCREF(self);
+-    parg->obj = (PyObject *)self;
++    parg->value.p = copied_self->b_ptr;
++    parg->size = copied_self->b_size;
++    parg->obj = (PyObject *)copied_self;
+     return parg;
  }
  
-+void myInvalidParameterHandler(const wchar_t* expression,
-+  const wchar_t* function,
-+  const wchar_t* file,
-+  unsigned int line,
-+  uintptr_t pReserved)
-+{
-+}
- BOOL    WINAPI  DllMain (HANDLE hInst,
-                                                 ULONG ul_reason_for_call,
-                                                 LPVOID lpReserved)
-@@ -87,6 +94,7 @@
-             // 1000 is a magic number I picked out of the air.  Could do with a #define, I spose...
-             LoadString(hInst, 1000, dllVersionBuffer, sizeof(dllVersionBuffer));
+@@ -430,6 +441,8 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
+     PyTypeObject *result;
+     PyObject *fields;
+     StgDictObject *dict;
++    _Py_IDENTIFIER(_abstract_);
++    _Py_IDENTIFIER(_fields_);
  
-+            _set_invalid_parameter_handler(myInvalidParameterHandler);
-             // and capture our activation context for use when loading extensions.
-             _LoadActCtxPointers();
-             if (pfnGetCurrentActCtx && pfnAddRefActCtx)
+     /* create the new instance (which is a class,
+        since we are a metatype!) */
+@@ -438,8 +451,12 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
+         return NULL;
+ 
+     /* keep this for bw compatibility */
+-    if (PyDict_GetItemString(result->tp_dict, "_abstract_"))
++    if (_PyDict_GetItemIdWithError(result->tp_dict, &PyId__abstract_))
+         return (PyObject *)result;
++    if (PyErr_Occurred()) {
++        Py_DECREF(result);
++        return NULL;
++    }
+ 
+     dict = (StgDictObject *)_PyObject_CallNoArg((PyObject *)&PyCStgDict_Type);
+     if (!dict) {
+@@ -462,8 +479,19 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
+ 
+     dict->paramfunc = StructUnionType_paramfunc;
+ 
+-    fields = PyDict_GetItemString((PyObject *)dict, "_fields_");
+-    if (!fields) {
++    fields = _PyDict_GetItemIdWithError((PyObject *)dict, &PyId__fields_);
++    if (fields) {
++        if (_PyObject_SetAttrId((PyObject *)result, &PyId__fields_, fields) < 0) {
++            Py_DECREF(result);
++            return NULL;
++        }
++        return (PyObject *)result;
++    }
++    else if (PyErr_Occurred()) {
++        Py_DECREF(result);
++        return NULL;
++    }
++    else {
+         StgDictObject *basedict = PyType_stgdict((PyObject *)result->tp_base);
+ 
+         if (basedict == NULL)
+@@ -477,12 +505,6 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
+         basedict->flags |= DICTFLAG_FINAL; /* set the 'final' flag in the baseclass dict */
+         return (PyObject *)result;
+     }
+-
+-    if (-1 == PyObject_SetAttrString((PyObject *)result, "_fields_", fields)) {
+-        Py_DECREF(result);
+-        return NULL;
+-    }
+-    return (PyObject *)result;
+ }
+ 
+ static PyObject *
+@@ -667,7 +689,9 @@ CDataType_in_dll(PyObject *type, PyObject *args)
+     }
+ 
+ #ifdef MS_WIN32
++    Py_BEGIN_ALLOW_THREADS
+     address = (void *)GetProcAddress(handle, name);
++    Py_END_ALLOW_THREADS
+     if (!address) {
+         PyErr_Format(PyExc_ValueError,
+                      "symbol '%s' not found",
+@@ -697,6 +721,7 @@ static const char from_param_doc[] =
+ static PyObject *
+ CDataType_from_param(PyObject *type, PyObject *value)
+ {
++    _Py_IDENTIFIER(_as_parameter_);
+     PyObject *as_parameter;
+     int res = PyObject_IsInstance(value, type);
+     if (res == -1)
+@@ -730,7 +755,9 @@ CDataType_from_param(PyObject *type, PyObject *value)
+         return NULL;
+     }
+ 
+-    as_parameter = PyObject_GetAttrString(value, "_as_parameter_");
++    if (_PyObject_LookupAttrId(value, &PyId__as_parameter_, &as_parameter) < 0) {
++        return NULL;
++    }
+     if (as_parameter) {
+         value = CDataType_from_param(type, as_parameter);
+         Py_DECREF(as_parameter);
+@@ -965,6 +992,7 @@ PyCPointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+     StgDictObject *stgdict;
+     PyObject *proto;
+     PyObject *typedict;
++    _Py_IDENTIFIER(_type_);
+ 
+     typedict = PyTuple_GetItem(args, 2);
+     if (!typedict)
+@@ -984,15 +1012,15 @@ PyCPointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+     stgdict->paramfunc = PyCPointerType_paramfunc;
+     stgdict->flags |= TYPEFLAG_ISPOINTER;
+ 
+-    proto = PyDict_GetItemString(typedict, "_type_"); /* Borrowed ref */
+-    if (proto && -1 == PyCPointerType_SetProto(stgdict, proto)) {
+-        Py_DECREF((PyObject *)stgdict);
+-        return NULL;
+-    }
+-
++    proto = _PyDict_GetItemIdWithError(typedict, &PyId__type_); /* Borrowed ref */
+     if (proto) {
+-        StgDictObject *itemdict = PyType_stgdict(proto);
++        StgDictObject *itemdict;
+         const char *current_format;
++        if (-1 == PyCPointerType_SetProto(stgdict, proto)) {
++            Py_DECREF((PyObject *)stgdict);
++            return NULL;
++        }
++        itemdict = PyType_stgdict(proto);
+         /* PyCPointerType_SetProto has verified proto has a stgdict. */
+         assert(itemdict);
+         /* If itemdict->format is NULL, then this is a pointer to an
+@@ -1013,6 +1041,10 @@ PyCPointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+             return NULL;
+         }
+     }
++    else if (PyErr_Occurred()) {
++        Py_DECREF((PyObject *)stgdict);
++        return NULL;
++    }
+ 
+     /* create the new instance (which is a class,
+        since we are a metatype!) */
+@@ -1038,6 +1070,7 @@ static PyObject *
+ PyCPointerType_set_type(PyTypeObject *self, PyObject *type)
+ {
+     StgDictObject *dict;
++    _Py_IDENTIFIER(_type_);
+ 
+     dict = PyType_stgdict((PyObject *)self);
+     if (!dict) {
+@@ -1049,7 +1082,7 @@ PyCPointerType_set_type(PyTypeObject *self, PyObject *type)
+     if (-1 == PyCPointerType_SetProto(dict, type))
+         return NULL;
+ 
+-    if (-1 == PyDict_SetItemString((PyObject *)dict, "_type_", type))
++    if (-1 == _PyDict_SetItemId((PyObject *)dict, &PyId__type_, type))
+         return NULL;
+ 
+     Py_RETURN_NONE;
+@@ -1094,11 +1127,7 @@ PyCPointerType_from_param(PyObject *type, PyObject *value)
+         */
+         StgDictObject *v = PyObject_stgdict(value);
+         assert(v); /* Cannot be NULL for pointer or array objects */
+-        int ret = PyObject_IsSubclass(v->proto, typedict->proto);
+-        if (ret < 0) {
+-            return NULL;
+-        }
+-        if (ret) {
++        if (PyObject_IsSubclass(v->proto, typedict->proto)) {
+             Py_INCREF(value);
+             return value;
+         }
+@@ -1398,6 +1427,8 @@ PyCArrayType_paramfunc(CDataObject *self)
+ static PyObject *
+ PyCArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+ {
++    _Py_IDENTIFIER(_length_);
++    _Py_IDENTIFIER(_type_);
+     PyTypeObject *result;
+     StgDictObject *stgdict;
+     StgDictObject *itemdict;
+@@ -1416,14 +1447,29 @@ PyCArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+     stgdict = NULL;
+     type_attr = NULL;
+ 
+-    length_attr = PyObject_GetAttrString((PyObject *)result, "_length_");
+-    if (!length_attr || !PyLong_Check(length_attr)) {
++    if (_PyObject_LookupAttrId((PyObject *)result, &PyId__length_, &length_attr) < 0) {
++        goto error;
++    }
++    if (!length_attr) {
+         PyErr_SetString(PyExc_AttributeError,
+-                        "class must define a '_length_' attribute, "
+-                        "which must be a positive integer");
+-        Py_XDECREF(length_attr);
++                        "class must define a '_length_' attribute");
++        goto error;
++    }
++
++    if (!PyLong_Check(length_attr)) {
++        Py_DECREF(length_attr);
++        PyErr_SetString(PyExc_TypeError,
++                        "The '_length_' attribute must be an integer");
++        goto error;
++    }
++
++    if (_PyLong_Sign(length_attr) == -1) {
++        Py_DECREF(length_attr);
++        PyErr_SetString(PyExc_ValueError,
++                        "The '_length_' attribute must not be negative");
+         goto error;
+     }
++
+     length = PyLong_AsSsize_t(length_attr);
+     Py_DECREF(length_attr);
+     if (length == -1 && PyErr_Occurred()) {
+@@ -1434,7 +1480,9 @@ PyCArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+         goto error;
+     }
+ 
+-    type_attr = PyObject_GetAttrString((PyObject *)result, "_type_");
++    if (_PyObject_LookupAttrId((PyObject *)result, &PyId__type_, &type_attr) < 0) {
++        goto error;
++    }
+     if (!type_attr) {
+         PyErr_SetString(PyExc_AttributeError,
+                         "class must define a '_type_' attribute");
+@@ -1470,7 +1518,7 @@ PyCArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+     }
+ 
+     itemsize = itemdict->size;
+-    if (itemsize != 0 && length > PY_SSIZE_T_MAX / itemsize) {
++    if (length * itemsize < 0) {
+         PyErr_SetString(PyExc_OverflowError,
+                         "array too large");
+         goto error;
+@@ -1578,6 +1626,7 @@ static const char SIMPLE_TYPE_CHARS[] = "cbBhHiIlLdfuzZqQPXOv?g";
+ static PyObject *
+ c_wchar_p_from_param(PyObject *type, PyObject *value)
+ {
++    _Py_IDENTIFIER(_as_parameter_);
+     PyObject *as_parameter;
+     int res;
+     if (value == Py_None) {
+@@ -1627,7 +1676,9 @@ c_wchar_p_from_param(PyObject *type, PyObject *value)
+         }
+     }
+ 
+-    as_parameter = PyObject_GetAttrString(value, "_as_parameter_");
++    if (_PyObject_LookupAttrId(value, &PyId__as_parameter_, &as_parameter) < 0) {
++        return NULL;
++    }
+     if (as_parameter) {
+         value = c_wchar_p_from_param(type, as_parameter);
+         Py_DECREF(as_parameter);
+@@ -1642,6 +1693,7 @@ c_wchar_p_from_param(PyObject *type, PyObject *value)
+ static PyObject *
+ c_char_p_from_param(PyObject *type, PyObject *value)
+ {
++    _Py_IDENTIFIER(_as_parameter_);
+     PyObject *as_parameter;
+     int res;
+     if (value == Py_None) {
+@@ -1691,7 +1743,9 @@ c_char_p_from_param(PyObject *type, PyObject *value)
+         }
+     }
+ 
+-    as_parameter = PyObject_GetAttrString(value, "_as_parameter_");
++    if (_PyObject_LookupAttrId(value, &PyId__as_parameter_, &as_parameter) < 0) {
++        return NULL;
++    }
+     if (as_parameter) {
+         value = c_char_p_from_param(type, as_parameter);
+         Py_DECREF(as_parameter);
+@@ -1706,6 +1760,7 @@ c_char_p_from_param(PyObject *type, PyObject *value)
+ static PyObject *
+ c_void_p_from_param(PyObject *type, PyObject *value)
+ {
++    _Py_IDENTIFIER(_as_parameter_);
+     StgDictObject *stgd;
+     PyObject *as_parameter;
+     int res;
+@@ -1827,7 +1882,9 @@ c_void_p_from_param(PyObject *type, PyObject *value)
+         }
+     }
+ 
+-    as_parameter = PyObject_GetAttrString(value, "_as_parameter_");
++    if (_PyObject_LookupAttrId(value, &PyId__as_parameter_, &as_parameter) < 0) {
++        return NULL;
++    }
+     if (as_parameter) {
+         value = c_void_p_from_param(type, as_parameter);
+         Py_DECREF(as_parameter);
+@@ -1948,6 +2005,7 @@ PyCSimpleType_paramfunc(CDataObject *self)
+ static PyObject *
+ PyCSimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+ {
++    _Py_IDENTIFIER(_type_);
+     PyTypeObject *result;
+     StgDictObject *stgdict;
+     PyObject *proto;
+@@ -1962,13 +2020,15 @@ PyCSimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+     if (result == NULL)
+         return NULL;
+ 
+-    proto = PyObject_GetAttrString((PyObject *)result, "_type_"); /* new ref */
++    if (_PyObject_LookupAttrId((PyObject *)result, &PyId__type_, &proto) < 0) {
++        return NULL;
++    }
+     if (!proto) {
+         PyErr_SetString(PyExc_AttributeError,
+                         "class must define a '_type_' attribute");
+   error:
+         Py_XDECREF(proto);
+-        Py_XDECREF(result);
++        Py_DECREF(result);
+         return NULL;
+     }
+     if (PyUnicode_Check(proto)) {
+@@ -2130,6 +2190,7 @@ PyCSimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+ static PyObject *
+ PyCSimpleType_from_param(PyObject *type, PyObject *value)
+ {
++    _Py_IDENTIFIER(_as_parameter_);
+     StgDictObject *dict;
+     const char *fmt;
+     PyCArgObject *parg;
+@@ -2173,7 +2234,9 @@ PyCSimpleType_from_param(PyObject *type, PyObject *value)
+     PyErr_Clear();
+     Py_DECREF(parg);
+ 
+-    as_parameter = PyObject_GetAttrString(value, "_as_parameter_");
++    if (_PyObject_LookupAttrId(value, &PyId__as_parameter_, &as_parameter) < 0) {
++        return NULL;
++    }
+     if (as_parameter) {
+         if (Py_EnterRecursiveCall("while processing _as_parameter_")) {
+             Py_DECREF(as_parameter);
+@@ -2248,6 +2311,7 @@ PyTypeObject PyCSimpleType_Type = {
+ static PyObject *
+ converters_from_argtypes(PyObject *ob)
+ {
++    _Py_IDENTIFIER(from_param);
+     PyObject *converters;
+     Py_ssize_t i;
+     Py_ssize_t nArgs;
+@@ -2272,22 +2336,22 @@ converters_from_argtypes(PyObject *ob)
+     */
+ 
+     for (i = 0; i < nArgs; ++i) {
++        PyObject *cnv;
+         PyObject *tp = PyTuple_GET_ITEM(ob, i);
+-        PyObject *cnv = PyObject_GetAttrString(tp, "from_param");
+-        if (!cnv)
+-            goto argtypes_error_1;
++        if (_PyObject_LookupAttrId(tp, &PyId_from_param, &cnv) <= 0) {
++            Py_DECREF(converters);
++            Py_DECREF(ob);
++            if (!PyErr_Occurred()) {
++                PyErr_Format(PyExc_TypeError,
++                             "item %zd in _argtypes_ has no from_param method",
++                             i+1);
++            }
++            return NULL;
++        }
+         PyTuple_SET_ITEM(converters, i, cnv);
+     }
+     Py_DECREF(ob);
+     return converters;
+-
+-  argtypes_error_1:
+-    Py_XDECREF(converters);
+-    Py_DECREF(ob);
+-    PyErr_Format(PyExc_TypeError,
+-                 "item %zd in _argtypes_ has no from_param method",
+-                 i+1);
+-    return NULL;
+ }
+ 
+ static int
+@@ -2295,6 +2359,10 @@ make_funcptrtype_dict(StgDictObject *stgdict)
+ {
+     PyObject *ob;
+     PyObject *converters = NULL;
++    _Py_IDENTIFIER(_flags_);
++    _Py_IDENTIFIER(_argtypes_);
++    _Py_IDENTIFIER(_restype_);
++    _Py_IDENTIFIER(_check_retval_);
+ 
+     stgdict->align = _ctypes_get_fielddesc("P")->pffi_type->alignment;
+     stgdict->length = 1;
+@@ -2303,26 +2371,31 @@ make_funcptrtype_dict(StgDictObject *stgdict)
+     stgdict->getfunc = NULL;
+     stgdict->ffi_type_pointer = ffi_type_pointer;
+ 
+-    ob = PyDict_GetItemString((PyObject *)stgdict, "_flags_");
++    ob = _PyDict_GetItemIdWithError((PyObject *)stgdict, &PyId__flags_);
+     if (!ob || !PyLong_Check(ob)) {
+-        PyErr_SetString(PyExc_TypeError,
+-            "class must define _flags_ which must be an integer");
++        if (!PyErr_Occurred()) {
++            PyErr_SetString(PyExc_TypeError,
++                "class must define _flags_ which must be an integer");
++        }
+         return -1;
+     }
+-    stgdict->flags = PyLong_AS_LONG(ob) | TYPEFLAG_ISPOINTER;
++    stgdict->flags = PyLong_AsUnsignedLongMask(ob) | TYPEFLAG_ISPOINTER;
+ 
+     /* _argtypes_ is optional... */
+-    ob = PyDict_GetItemString((PyObject *)stgdict, "_argtypes_");
++    ob = _PyDict_GetItemIdWithError((PyObject *)stgdict, &PyId__argtypes_);
+     if (ob) {
+         converters = converters_from_argtypes(ob);
+         if (!converters)
+-            goto error;
++            return -1;
+         Py_INCREF(ob);
+         stgdict->argtypes = ob;
+         stgdict->converters = converters;
+     }
++    else if (PyErr_Occurred()) {
++        return -1;
++    }
+ 
+-    ob = PyDict_GetItemString((PyObject *)stgdict, "_restype_");
++    ob = _PyDict_GetItemIdWithError((PyObject *)stgdict, &PyId__restype_);
+     if (ob) {
+         if (ob != Py_None && !PyType_stgdict(ob) && !PyCallable_Check(ob)) {
+             PyErr_SetString(PyExc_TypeError,
+@@ -2331,12 +2404,17 @@ make_funcptrtype_dict(StgDictObject *stgdict)
+         }
+         Py_INCREF(ob);
+         stgdict->restype = ob;
+-        stgdict->checker = PyObject_GetAttrString(ob, "_check_retval_");
+-        if (stgdict->checker == NULL)
+-            PyErr_Clear();
++        if (_PyObject_LookupAttrId(ob, &PyId__check_retval_,
++                                   &stgdict->checker) < 0)
++        {
++            return -1;
++        }
++    }
++    else if (PyErr_Occurred()) {
++        return -1;
+     }
+ /* XXX later, maybe.
+-    ob = PyDict_GetItemString((PyObject *)stgdict, "_errcheck_");
++    ob = _PyDict_GetItemIdWithError((PyObject *)stgdict, &PyId__errcheck_);
+     if (ob) {
+         if (!PyCallable_Check(ob)) {
+             PyErr_SetString(PyExc_TypeError,
+@@ -2346,13 +2424,11 @@ make_funcptrtype_dict(StgDictObject *stgdict)
+         Py_INCREF(ob);
+         stgdict->errcheck = ob;
+     }
++    else if (PyErr_Occurred()) {
++        return -1;
++    }
+ */
+     return 0;
+-
+-  error:
+-    Py_XDECREF(converters);
+-    return -1;
+-
+ }
+ 
+ static PyCArgObject *
+@@ -2667,11 +2743,10 @@ PyCData_reduce(PyObject *myself, PyObject *args)
+                         "ctypes objects containing pointers cannot be pickled");
+         return NULL;
+     }
+-    PyObject *dict = PyObject_GetAttrString(myself, "__dict__");
+-    if (dict == NULL) {
+-        return NULL;
+-    }
+-    return Py_BuildValue("O(O(NN))", _unpickle, Py_TYPE(myself), dict,
++    return Py_BuildValue("O(O(NN))",
++                         _unpickle,
++                         Py_TYPE(myself),
++                         PyObject_GetAttrString(myself, "__dict__"),
+                          PyBytes_FromStringAndSize(self->b_ptr, self->b_size));
+ }
+ 
+@@ -3088,9 +3163,13 @@ PyCFuncPtr_get_errcheck(PyCFuncPtrObject *self, void *Py_UNUSED(ignored))
+ static int
+ PyCFuncPtr_set_restype(PyCFuncPtrObject *self, PyObject *ob, void *Py_UNUSED(ignored))
+ {
++    _Py_IDENTIFIER(_check_retval_);
++    PyObject *checker, *oldchecker;
+     if (ob == NULL) {
++        oldchecker = self->checker;
++        self->checker = NULL;
+         Py_CLEAR(self->restype);
+-        Py_CLEAR(self->checker);
++        Py_XDECREF(oldchecker);
+         return 0;
+     }
+     if (ob != Py_None && !PyType_stgdict(ob) && !PyCallable_Check(ob)) {
+@@ -3098,11 +3177,14 @@ PyCFuncPtr_set_restype(PyCFuncPtrObject *self, PyObject *ob, void *Py_UNUSED(ign
+                         "restype must be a type, a callable, or None");
+         return -1;
+     }
++    if (_PyObject_LookupAttrId(ob, &PyId__check_retval_, &checker) < 0) {
++        return -1;
++    }
++    oldchecker = self->checker;
++    self->checker = checker;
+     Py_INCREF(ob);
+     Py_XSETREF(self->restype, ob);
+-    Py_XSETREF(self->checker, PyObject_GetAttrString(ob, "_check_retval_"));
+-    if (self->checker == NULL)
+-        PyErr_Clear();
++    Py_XDECREF(oldchecker);
+     return 0;
+ }
+ 
+@@ -3175,18 +3257,23 @@ static PyGetSetDef PyCFuncPtr_getsets[] = {
+ #ifdef MS_WIN32
+ static PPROC FindAddress(void *handle, const char *name, PyObject *type)
+ {
++    PPROC address;
+ #ifdef MS_WIN64
+     /* win64 has no stdcall calling conv, so it should
+        also not have the name mangling of it.
+     */
+-    return (PPROC)GetProcAddress(handle, name);
++    Py_BEGIN_ALLOW_THREADS
++    address = (PPROC)GetProcAddress(handle, name);
++    Py_END_ALLOW_THREADS
++    return address;
+ #else
+-    PPROC address;
+     char *mangled_name;
+     int i;
+     StgDictObject *dict;
+ 
++    Py_BEGIN_ALLOW_THREADS
+     address = (PPROC)GetProcAddress(handle, name);
++    Py_END_ALLOW_THREADS
+     if (address)
+         return address;
+     if (((size_t)name & ~0xFFFF) == 0) {
+@@ -3207,7 +3294,9 @@ static PPROC FindAddress(void *handle, const char *name, PyObject *type)
+         return NULL;
+     for (i = 0; i < 32; ++i) {
+         sprintf(mangled_name, "_%s@%d", name, i*4);
++        Py_BEGIN_ALLOW_THREADS
+         address = (PPROC)GetProcAddress(handle, mangled_name);
++        Py_END_ALLOW_THREADS
+         if (address)
+             return address;
+     }
+@@ -3532,9 +3621,12 @@ PyCFuncPtr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+        like that.
+     */
+ /*
+-    if (kwds && PyDict_GetItemString(kwds, "options")) {
++    if (kwds && _PyDict_GetItemIdWithError(kwds, &PyId_options)) {
+         ...
+     }
++    else if (PyErr_Occurred()) {
++        return NULL;
++    }
+ */
+ 
+     dict = PyType_stgdict((PyObject *)type);
+@@ -3611,10 +3703,16 @@ _get_arg(int *pindex, PyObject *name, PyObject *defval, PyObject *inargs, PyObje
+         Py_INCREF(v);
+         return v;
+     }
+-    if (kwds && name && (v = PyDict_GetItem(kwds, name))) {
+-        ++*pindex;
+-        Py_INCREF(v);
+-        return v;
++    if (kwds && name) {
++        v = PyDict_GetItemWithError(kwds, name);
++        if (v) {
++            ++*pindex;
++            Py_INCREF(v);
++            return v;
++        }
++        else if (PyErr_Occurred()) {
++            return NULL;
++        }
+     }
+     if (defval) {
+         Py_INCREF(defval);
+@@ -3691,7 +3789,7 @@ _build_callargs(PyCFuncPtrObject *self, PyObject *argtypes,
+     for (i = 0; i < len; ++i) {
+         PyObject *item = PyTuple_GET_ITEM(paramflags, i);
+         PyObject *ob;
+-        int flag;
++        unsigned int flag;
+         PyObject *name = NULL;
+         PyObject *defval = NULL;
+ 
+@@ -3699,7 +3797,7 @@ _build_callargs(PyCFuncPtrObject *self, PyObject *argtypes,
+            calls below. */
+         /* We HAVE already checked that the tuple can be parsed with "i|ZO", so... */
+         Py_ssize_t tsize = PyTuple_GET_SIZE(item);
+-        flag = PyLong_AS_LONG(PyTuple_GET_ITEM(item, 0));
++        flag = PyLong_AsUnsignedLongMask(PyTuple_GET_ITEM(item, 0));
+         name = tsize > 1 ? PyTuple_GET_ITEM(item, 1) : NULL;
+         defval = tsize > 2 ? PyTuple_GET_ITEM(item, 2) : NULL;
+ 
+@@ -3779,7 +3877,7 @@ _build_callargs(PyCFuncPtrObject *self, PyObject *argtypes,
+             break;
+         default:
+             PyErr_Format(PyExc_ValueError,
+-                         "paramflag %d not yet implemented", flag);
++                         "paramflag %u not yet implemented", flag);
+             goto error;
+             break;
+         }
+@@ -4142,6 +4240,7 @@ _init_pos_args(PyObject *self, PyTypeObject *type,
+     StgDictObject *dict;
+     PyObject *fields;
+     Py_ssize_t i;
++    _Py_IDENTIFIER(_fields_);
+ 
+     if (PyType_stgdict((PyObject *)type->tp_base)) {
+         index = _init_pos_args(self, type->tp_base,
+@@ -4152,9 +4251,13 @@ _init_pos_args(PyObject *self, PyTypeObject *type,
+     }
+ 
+     dict = PyType_stgdict((PyObject *)type);
+-    fields = PyDict_GetItemString((PyObject *)dict, "_fields_");
+-    if (fields == NULL)
++    fields = _PyDict_GetItemIdWithError((PyObject *)dict, &PyId__fields_);
++    if (fields == NULL) {
++        if (PyErr_Occurred()) {
++            return -1;
++        }
+         return index;
++    }
+ 
+     for (i = 0;
+          i < dict->length && (i+index) < PyTuple_GET_SIZE(args);
+@@ -4170,13 +4273,20 @@ _init_pos_args(PyObject *self, PyTypeObject *type,
+             return -1;
+         }
+         val = PyTuple_GET_ITEM(args, i + index);
+-        if (kwds && PyDict_GetItem(kwds, name)) {
+-            PyErr_Format(PyExc_TypeError,
+-                         "duplicate values for field %R",
+-                         name);
+-            Py_DECREF(pair);
+-            Py_DECREF(name);
+-            return -1;
++        if (kwds) {
++            if (PyDict_GetItemWithError(kwds, name)) {
++                PyErr_Format(PyExc_TypeError,
++                            "duplicate values for field %R",
++                            name);
++                Py_DECREF(pair);
++                Py_DECREF(name);
++                return -1;
++            }
++            else if (PyErr_Occurred()) {
++                Py_DECREF(pair);
++                Py_DECREF(name);
++                return -1;
++            }
+         }
+ 
+         res = PyObject_SetAttr(self, name, val);
+@@ -4376,8 +4486,7 @@ Array_subscript(PyObject *myself, PyObject *item)
+         StgDictObject *stgdict, *itemdict;
+         PyObject *proto;
+         PyObject *np;
+-        Py_ssize_t start, stop, step, slicelen, i;
+-        size_t cur;
++        Py_ssize_t start, stop, step, slicelen, cur, i;
+ 
+         if (PySlice_Unpack(item, &start, &stop, &step) < 0) {
+             return NULL;
+@@ -4517,8 +4626,7 @@ Array_ass_subscript(PyObject *myself, PyObject *item, PyObject *value)
+         return Array_ass_item(myself, i, value);
+     }
+     else if (PySlice_Check(item)) {
+-        Py_ssize_t start, stop, step, slicelen, otherlen, i;
+-        size_t cur;
++        Py_ssize_t start, stop, step, slicelen, otherlen, i, cur;
+ 
+         if (PySlice_Unpack(item, &start, &stop, &step) < 0) {
+             return -1;
+@@ -4649,6 +4757,10 @@ PyCArrayType_from_ctype(PyObject *itemtype, Py_ssize_t length)
+         Py_DECREF(key);
+         return result;
+     }
++    else if (PyErr_Occurred()) {
++        Py_DECREF(key);
++        return NULL;
++    }
+ 
+     if (!PyType_Check(itemtype)) {
+         PyErr_SetString(PyExc_TypeError,
+@@ -5023,8 +5135,7 @@ Pointer_subscript(PyObject *myself, PyObject *item)
+         PyObject *np;
+         StgDictObject *stgdict, *itemdict;
+         PyObject *proto;
+-        Py_ssize_t i, len;
+-        size_t cur;
++        Py_ssize_t i, len, cur;
+ 
+         /* Since pointers have no length, and we want to apply
+            different semantics to negative indices than normal
+@@ -5619,4 +5730,4 @@ PyInit__ctypes(void)
+  Local Variables:
+  compile-command: "cd .. && python setup.py -q build -g && python setup.py -q build install --home ~"
+  End:
+-*/
++*/
+\ No newline at end of file
+diff --git a/Modules/_ctypes/callbacks.c b/Modules/_ctypes/callbacks.c
+index a3d1c386b7..5a59922ae6 100644
+--- a/Modules/_ctypes/callbacks.c
++++ b/Modules/_ctypes/callbacks.c
+@@ -375,7 +375,7 @@ CThunkObject *_ctypes_alloc_callback(PyObject *callable,
+     }
+ 
+     cc = FFI_DEFAULT_ABI;
+-#if defined(MS_WIN32) && !defined(_WIN32_WCE) && !defined(MS_WIN64)
++#if defined(MS_WIN32) && defined(_M_IX86) && !defined(_WIN32_WCE)
+     if ((flags & FUNCFLAG_CDECL) == 0)
+         cc = FFI_STDCALL;
+ #endif
+diff --git a/Modules/_ctypes/callproc.c b/Modules/_ctypes/callproc.c
+index 5861042398..5c3cd575f4 100644
+--- a/Modules/_ctypes/callproc.c
++++ b/Modules/_ctypes/callproc.c
+@@ -146,7 +146,7 @@ _ctypes_get_errobj(int **pspace)
+         if (error_object_name == NULL)
+             return NULL;
+     }
+-    errobj = PyDict_GetItem(dict, error_object_name);
++    errobj = PyDict_GetItemWithError(dict, error_object_name);
+     if (errobj) {
+         if (!PyCapsule_IsValid(errobj, CTYPES_CAPSULE_NAME_PYMEM)) {
+             PyErr_SetString(PyExc_RuntimeError,
+@@ -155,7 +155,7 @@ _ctypes_get_errobj(int **pspace)
+         }
+         Py_INCREF(errobj);
+     }
+-    else {
++    else if (!PyErr_Occurred()) {
+         void *space = PyMem_Malloc(sizeof(int) * 2);
+         if (space == NULL)
+             return NULL;
+@@ -171,6 +171,9 @@ _ctypes_get_errobj(int **pspace)
+             return NULL;
+         }
+     }
++    else {
++        return NULL;
++    }
+     *pspace = (int *)PyCapsule_GetPointer(errobj, CTYPES_CAPSULE_NAME_PYMEM);
+     return errobj;
+ }
+@@ -239,9 +242,7 @@ static WCHAR *FormatError(DWORD code)
+ {
+     WCHAR *lpMsgBuf;
+     DWORD n;
+-    n = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+-                       FORMAT_MESSAGE_FROM_SYSTEM |
+-                       FORMAT_MESSAGE_IGNORE_INSERTS,
++    n = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+                        NULL,
+                        code,
+                        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), /* Default language */
+@@ -705,8 +706,11 @@ static int ConvParam(PyObject *obj, Py_ssize_t index, struct argument *pa)
+ #endif
+ 
+     {
++        _Py_IDENTIFIER(_as_parameter_);
+         PyObject *arg;
+-        arg = PyObject_GetAttrString(obj, "_as_parameter_");
++        if (_PyObject_LookupAttrId(obj, &PyId__as_parameter_, &arg) < 0) {
++            return -1;
++        }
+         /* Which types should we exactly allow here?
+            integers are required for using Python classes
+            as parameters (they have to expose the '_as_parameter_'
+@@ -725,6 +729,23 @@ static int ConvParam(PyObject *obj, Py_ssize_t index, struct argument *pa)
+     }
+ }
+ 
++#if defined(MS_WIN32) && !defined(_WIN32_WCE)
++/*
++Per: https://msdn.microsoft.com/en-us/library/7572ztz4.aspx
++To be returned by value in RAX, user-defined types must have a length 
++of 1, 2, 4, 8, 16, 32, or 64 bits
++*/
++int can_return_struct_as_int(size_t s)
++{
++  return s == 1 || s == 2 || s == 4;
++}
++
++int can_return_struct_as_sint64(size_t s)
++{
++  return s == 8;
++}
++#endif
++
+ 
+ ffi_type *_ctypes_get_ffi_type(PyObject *obj)
+ {
+@@ -774,12 +795,9 @@ static int _call_function_pointer(int flags,
+     int *space;
+     ffi_cif cif;
+     int cc;
+-#ifdef MS_WIN32
+-    int delta;
+-#ifndef DONT_USE_SEH
++#if defined(MS_WIN32) && !defined(DONT_USE_SEH)
+     DWORD dwExceptionCode = 0;
+     EXCEPTION_RECORD record;
+-#endif
+ #endif
+     /* XXX check before here */
+     if (restype == NULL) {
+@@ -789,7 +807,7 @@ static int _call_function_pointer(int flags,
+     }
+ 
+     cc = FFI_DEFAULT_ABI;
+-#if defined(MS_WIN32) && !defined(MS_WIN64) && !defined(_WIN32_WCE)
++#if defined(MS_WIN32) && defined(_M_IX86) && !defined(_WIN32_WCE)
+     if ((flags & FUNCFLAG_CDECL) == 0)
+         cc = FFI_STDCALL;
+ #endif
+@@ -824,7 +842,6 @@ static int _call_function_pointer(int flags,
+ #ifndef DONT_USE_SEH
+     __try {
+ #endif
+-        delta =
+ #endif
+                 ffi_call(&cif, (void *)pProc, resmem, avalues);
+ #ifdef MS_WIN32
+@@ -856,35 +873,6 @@ static int _call_function_pointer(int flags,
+         return -1;
+     }
+ #endif
+-#ifdef MS_WIN64
+-    if (delta != 0) {
+-        PyErr_Format(PyExc_RuntimeError,
+-                 "ffi_call failed with code %d",
+-                 delta);
+-        return -1;
+-    }
+-#else
+-    if (delta < 0) {
+-        if (flags & FUNCFLAG_CDECL)
+-            PyErr_Format(PyExc_ValueError,
+-                     "Procedure called with not enough "
+-                     "arguments (%d bytes missing) "
+-                     "or wrong calling convention",
+-                     -delta);
+-        else
+-            PyErr_Format(PyExc_ValueError,
+-                     "Procedure probably called with not enough "
+-                     "arguments (%d bytes missing)",
+-                     -delta);
+-        return -1;
+-    } else if (delta > 0) {
+-        PyErr_Format(PyExc_ValueError,
+-                 "Procedure probably called with too many "
+-                 "arguments (%d bytes in excess)",
+-                 delta);
+-        return -1;
+-    }
+-#endif
+ #endif
+     if ((flags & FUNCFLAG_PYTHONAPI) && PyErr_Occurred())
+         return -1;
+@@ -1282,7 +1270,10 @@ static PyObject *load_library(PyObject *self, PyObject *args)
+     if (!name)
+         return NULL;
+ 
++    Py_BEGIN_ALLOW_THREADS
+     hMod = LoadLibraryW(name);
++    Py_END_ALLOW_THREADS
++
+     if (!hMod)
+         return PyErr_SetFromWindowsErr(GetLastError());
+ #ifdef _WIN64
+@@ -1299,9 +1290,15 @@ Free the handle of an executable previously loaded by LoadLibrary.\n";
+ static PyObject *free_library(PyObject *self, PyObject *args)
+ {
+     void *hMod;
++    BOOL result;
+     if (!PyArg_ParseTuple(args, "O&:FreeLibrary", &_parse_voidp, &hMod))
+         return NULL;
+-    if (!FreeLibrary((HMODULE)hMod))
++
++    Py_BEGIN_ALLOW_THREADS
++    result = FreeLibrary((HMODULE)hMod);
++    Py_END_ALLOW_THREADS
++
++    if (!result)
+         return PyErr_SetFromWindowsErr(GetLastError());
+     Py_RETURN_NONE;
+ }
+@@ -1705,11 +1702,14 @@ POINTER(PyObject *self, PyObject *cls)
+     PyObject *key;
+     char *buf;
+ 
+-    result = PyDict_GetItem(_ctypes_ptrtype_cache, cls);
++    result = PyDict_GetItemWithError(_ctypes_ptrtype_cache, cls);
+     if (result) {
+         Py_INCREF(result);
+         return result;
+     }
++    else if (PyErr_Occurred()) {
++        return NULL;
++    }
+     if (PyUnicode_CheckExact(cls)) {
+         const char *name = PyUnicode_AsUTF8(cls);
+         if (name == NULL)
+@@ -1765,12 +1765,16 @@ pointer(PyObject *self, PyObject *arg)
+     PyObject *result;
+     PyObject *typ;
+ 
+-    typ = PyDict_GetItem(_ctypes_ptrtype_cache, (PyObject *)Py_TYPE(arg));
+-    if (typ)
++    typ = PyDict_GetItemWithError(_ctypes_ptrtype_cache, (PyObject *)Py_TYPE(arg));
++    if (typ) {
+         return PyObject_CallFunctionObjArgs(typ, arg, NULL);
++    }
++    else if (PyErr_Occurred()) {
++        return NULL;
++    }
+     typ = POINTER(NULL, (PyObject *)Py_TYPE(arg));
+     if (typ == NULL)
+-                    return NULL;
++        return NULL;
+     result = PyObject_CallFunctionObjArgs(typ, arg, NULL);
+     Py_DECREF(typ);
+     return result;
+@@ -1841,4 +1845,4 @@ PyMethodDef _ctypes_module_methods[] = {
+  Local Variables:
+  compile-command: "cd .. && python setup.py -q build -g && python setup.py -q build install --home ~"
+  End:
+-*/
++*/
+\ No newline at end of file
+diff --git a/PC/pyconfig.h b/PC/pyconfig.h
+index 6e33f12e0d..967edbc82d 100644
 --- a/PC/pyconfig.h
 +++ b/PC/pyconfig.h
-@@ -335,7 +335,7 @@
- 			their Makefile (other compilers are generally
- 			taken care of by distutils.) */
- #			ifdef _DEBUG
--#				pragma comment(lib,"python27_d.lib")
-+#				pragma comment(lib,"python27.lib")
- #			else
- #				pragma comment(lib,"python27.lib")
- #			endif /* _DEBUG */
-@@ -376,9 +376,11 @@
- #	endif
+@@ -263,7 +263,7 @@ Py_NO_ENABLE_SHARED to find out.  Also support MS_NO_COREDLL for b/w compat */
+ #define HAVE_DECLSPEC_DLL
+ 
+ /* For an MSVC DLL, we can nominate the .lib files used by extensions */
+-#ifdef MS_COREDLL
++#if 0
+ #       if !defined(Py_BUILD_CORE) && !defined(Py_BUILD_CORE_BUILTIN)
+                 /* not building the core - must be an ext */
+ #               if defined(_MSC_VER)
+@@ -314,9 +314,6 @@ Py_NO_ENABLE_SHARED to find out.  Also support MS_NO_COREDLL for b/w compat */
+ #       endif
  #endif
  
-+#if 0
- #ifdef _DEBUG
- #	define Py_DEBUG
- #endif
-+#endif
+-#ifdef _DEBUG
+-#       define Py_DEBUG
+-#endif
  
  
  #ifdef MS_WIN32
+diff --git a/cmake/python-config.cmake b/cmake/python-config.cmake
+new file mode 100644
+index 0000000000..cdbdc4dcae
+--- /dev/null
++++ b/cmake/python-config.cmake
+@@ -0,0 +1 @@
++include(${CMAKE_CURRENT_LIST_DIR}/python.cmake)
+\ No newline at end of file

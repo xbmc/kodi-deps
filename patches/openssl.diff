@@ -3,7 +3,7 @@ new file mode 100644
 index 0000000000..a92d7101fb
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,104 @@
+@@ -0,0 +1,107 @@
 +cmake_minimum_required(VERSION 3.0)
 +
 +project(openssl VERSION 1.1.1 LANGUAGES C)
@@ -30,12 +30,15 @@ index 0000000000..a92d7101fb
 +	message(FATAL_ERROR "Unsupported target architecture")
 +endif()
 +
++list(APPEND CONFIGURE_FLAGS disable-capieng enable-static-engine no-asm no-dso no-shared no-tests no-ui-console)
 +if (WINDOWS_STORE)
-+	set(OPENSSL_PLATFORM "${OPENSSL_PLATFORM}-UWP")
++  set(OPENSSL_PLATFORM "${OPENSSL_PLATFORM}-UWP")
++  # See NOTES.WIN in openssl, says this is required for uwp
++  list(APPEND CONFIGURE_FLAGS no-uplink)
 +endif()
 +
-+message(STATUS "perl Configure ${OPENSSL_PLATFORM} disable-capieng enable-static-engine no-asm no-dso no-shared no-tests no-ui-console --prefix=${CMAKE_INSTALL_PREFIX}")
-+execute_process(COMMAND perl Configure ${OPENSSL_PLATFORM} disable-capieng enable-static-engine no-asm no-dso no-shared no-tests no-ui-console --prefix=${CMAKE_INSTALL_PREFIX} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
++message(STATUS "perl Configure ${OPENSSL_PLATFORM} ${CONFIGURE_FLAGS} --prefix=${CMAKE_INSTALL_PREFIX}")
++execute_process(COMMAND perl Configure ${OPENSSL_PLATFORM} ${CONFIGURE_FLAGS} --prefix=${CMAKE_INSTALL_PREFIX} WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 +
 +add_custom_target(openssl ALL COMMAND nmake build_generated libcrypto.lib libssl.lib WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 +
@@ -232,6 +235,15 @@ index 5a699836f3..859b9f4ad9 100755
      "whirlpool",
      "weak-ssl-ciphers",
      "zlib",
+@@ -1118,6 +1118,8 @@ foreach my $feature (@{$target{enable}}) {
+         delete $disabled{$feature};
+     }
+ }
++# If uplink_arch isn't defined, disable uplink
++$disabled{uplink} = 'no uplink_arch' unless (defined $target{uplink_arch});
+
+ $target{CXXFLAGS}//=$target{CFLAGS} if $target{CXX};
+ $target{cxxflags}//=$target{cflags} if $target{CXX};
 diff --git a/INSTALL b/INSTALL
 index 2119cbae9e..51a7cd2f0b 100644
 --- a/INSTALL
