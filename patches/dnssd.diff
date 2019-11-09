@@ -45,7 +45,7 @@
 +  NOT_HAVE_SA_LEN
 +)
 +
-+target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32.lib)
++target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32.lib Advapi32.lib)
 +
 +
 +include(CMakePackageConfigHelpers)
