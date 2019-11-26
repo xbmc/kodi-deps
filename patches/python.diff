@@ -1,26 +1,3 @@
-diff --git a/.gitignore b/.gitignore
-index 6ebf6247f6..a61d81935e 100644
---- a/.gitignore
-+++ b/.gitignore
-@@ -63,9 +63,9 @@ PCbuild/*-pgo
- PCbuild/*.VC.db
- PCbuild/*.VC.opendb
- PCbuild/.vs/
--PCbuild/amd64/
-+PCbuild/amd64*/
- PCbuild/obj/
--PCbuild/win32/
-+PCbuild/win32*/
- .purify
- Parser/pgen
- Parser/pgen.exe
-@@ -110,3 +110,6 @@ Tools/ssl/win32
- .vs/
- .vscode/
- gmon.out
-+*.obj
-+*.lib
-+*.exp
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 new file mode 100644
 index 0000000000..8b33692bef
@@ -791,7 +768,7 @@ index 0000000000..8b33692bef
 +
 +install(FILES
 +  ${CMAKE_CURRENT_SOURCE_DIR}/PC/pyconfig.h
-+  DESTINATION include/${LIB_NAME}
++  DESTINATION include/${PY_SHARED_LIB_NAME}
 +)
 +
 +foreach(PYTHON_MODULE IN LISTS PYTHON_MODULES)
