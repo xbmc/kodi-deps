@@ -1,9 +1,9 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 new file mode 100644
-index 0000000000..8b33692bef
+index 0000000000..dd5159da3f
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,834 @@
+@@ -0,0 +1,835 @@
 +cmake_minimum_required(VERSION 3.10.0)
 +
 +project(python VERSION 3.7.5 LANGUAGES C CXX ASM)
@@ -276,6 +276,7 @@ index 0000000000..8b33692bef
 +    PC/msvcrtmodule.c
 +    PC/pyconfig.h
 +    PC/winreg.c
++    PCbuild/python.natvis
 +    Python/_warnings.c
 +    Python/asdl.c
 +    Python/ast_opt.c
@@ -1697,7 +1698,7 @@ index a3d1c386b7..dd7f87525d 100644
          cc = FFI_STDCALL;
  #endif
 diff --git a/Modules/_ctypes/callproc.c b/Modules/_ctypes/callproc.c
-index 5861042398..a01009a777 100644
+index 5861042398..38137ed0aa 100644
 --- a/Modules/_ctypes/callproc.c
 +++ b/Modules/_ctypes/callproc.c
 @@ -146,7 +146,7 @@ _ctypes_get_errobj(int **pspace)
@@ -1752,30 +1753,28 @@ index 5861042398..a01009a777 100644
          /* Which types should we exactly allow here?
             integers are required for using Python classes
             as parameters (they have to expose the '_as_parameter_'
-@@ -725,6 +729,22 @@ static int ConvParam(PyObject *obj, Py_ssize_t index, struct argument *pa)
+@@ -725,7 +729,6 @@ static int ConvParam(PyObject *obj, Py_ssize_t index, struct argument *pa)
      }
  }
  
-+#if defined(MS_WIN32) && !defined(_WIN32_WCE)
-+/*
-+Per: https://msdn.microsoft.com/en-us/library/7572ztz4.aspx
-+To be returned by value in RAX, user-defined types must have a length 
-+of 1, 2, 4, 8, 16, 32, or 64 bits
-+*/
-+int can_return_struct_as_int(size_t s)
-+{
-+  return s == 1 || s == 2 || s == 4;
-+}
-+
-+int can_return_struct_as_sint64(size_t s)
-+{
-+  return s == 8;
-+}
-+#endif
- 
+-
  ffi_type *_ctypes_get_ffi_type(PyObject *obj)
  {
-@@ -771,15 +791,12 @@ static int _call_function_pointer(int flags,
+     StgDictObject *dict;
+@@ -739,9 +742,10 @@ ffi_type *_ctypes_get_ffi_type(PyObject *obj)
+        It returns small structures in registers
+     */
+     if (dict->ffi_type_pointer.type == FFI_TYPE_STRUCT) {
+-        if (can_return_struct_as_int(dict->ffi_type_pointer.size))
++		size_t size = dict->ffi_type_pointer.size;
++        if (size == 1 || size == 2 || size == 4)
+             return &ffi_type_sint32;
+-        else if (can_return_struct_as_sint64 (dict->ffi_type_pointer.size))
++        else if (size == 8)
+             return &ffi_type_sint64;
+     }
+ #endif
+@@ -771,15 +775,12 @@ static int _call_function_pointer(int flags,
  {
      PyThreadState *_save = NULL; /* For Py_BLOCK_THREADS and Py_UNBLOCK_THREADS */
      PyObject *error_object = NULL;
@@ -1793,7 +1792,7 @@ index 5861042398..a01009a777 100644
  #endif
      /* XXX check before here */
      if (restype == NULL) {
-@@ -789,7 +806,7 @@ static int _call_function_pointer(int flags,
+@@ -789,7 +790,7 @@ static int _call_function_pointer(int flags,
      }
  
      cc = FFI_DEFAULT_ABI;
@@ -1802,7 +1801,7 @@ index 5861042398..a01009a777 100644
      if ((flags & FUNCFLAG_CDECL) == 0)
          cc = FFI_STDCALL;
  #endif
-@@ -810,13 +827,13 @@ static int _call_function_pointer(int flags,
+@@ -810,13 +811,13 @@ static int _call_function_pointer(int flags,
      }
      if ((flags & FUNCFLAG_PYTHONAPI) == 0)
          Py_UNBLOCK_THREADS
@@ -1818,7 +1817,7 @@ index 5861042398..a01009a777 100644
          int temp = space[1];
          space[1] = GetLastError();
          SetLastError(temp);
-@@ -824,7 +841,6 @@ static int _call_function_pointer(int flags,
+@@ -824,7 +825,6 @@ static int _call_function_pointer(int flags,
  #ifndef DONT_USE_SEH
      __try {
  #endif
@@ -1826,7 +1825,7 @@ index 5861042398..a01009a777 100644
  #endif
                  ffi_call(&cif, (void *)pProc, resmem, avalues);
  #ifdef MS_WIN32
-@@ -835,13 +851,13 @@ static int _call_function_pointer(int flags,
+@@ -835,13 +835,13 @@ static int _call_function_pointer(int flags,
          ;
      }
  #endif
@@ -1842,7 +1841,7 @@ index 5861042398..a01009a777 100644
          int temp = space[0];
          space[0] = errno;
          errno = temp;
-@@ -856,35 +872,6 @@ static int _call_function_pointer(int flags,
+@@ -856,35 +856,6 @@ static int _call_function_pointer(int flags,
          return -1;
      }
  #endif
@@ -1878,7 +1877,7 @@ index 5861042398..a01009a777 100644
  #endif
      if ((flags & FUNCFLAG_PYTHONAPI) && PyErr_Occurred())
          return -1;
-@@ -983,6 +970,7 @@ error:
+@@ -983,6 +954,7 @@ error:
  
  
  #ifdef MS_WIN32
@@ -1886,7 +1885,7 @@ index 5861042398..a01009a777 100644
  
  static PyObject *
  GetComError(HRESULT errcode, GUID *riid, IUnknown *pIunk)
-@@ -1052,6 +1040,7 @@ GetComError(HRESULT errcode, GUID *riid, IUnknown *pIunk)
+@@ -1052,6 +1024,7 @@ GetComError(HRESULT errcode, GUID *riid, IUnknown *pIunk)
      return NULL;
  }
  #endif
@@ -1894,7 +1893,7 @@ index 5861042398..a01009a777 100644
  
  #if (defined(__x86_64__) && (defined(__MINGW64__) || defined(__CYGWIN__))) || \
      defined(__aarch64__) || defined(__riscv)
-@@ -1209,9 +1198,11 @@ PyObject *_ctypes_callproc(PPROC pProc,
+@@ -1209,9 +1182,11 @@ PyObject *_ctypes_callproc(PPROC pProc,
  
  #ifdef MS_WIN32
      if (iid && pIunk) {
@@ -1906,7 +1905,7 @@ index 5861042398..a01009a777 100644
              retval = PyLong_FromLong(*(int *)resbuf);
      } else if (flags & FUNCFLAG_HRESULT) {
          if (*(int *)resbuf & 0x80000000)
-@@ -1282,7 +1273,14 @@ static PyObject *load_library(PyObject *self, PyObject *args)
+@@ -1282,7 +1257,14 @@ static PyObject *load_library(PyObject *self, PyObject *args)
      if (!name)
          return NULL;
  
@@ -1922,7 +1921,7 @@ index 5861042398..a01009a777 100644
      if (!hMod)
          return PyErr_SetFromWindowsErr(GetLastError());
  #ifdef _WIN64
-@@ -1299,9 +1297,15 @@ Free the handle of an executable previously loaded by LoadLibrary.\n";
+@@ -1299,9 +1281,15 @@ Free the handle of an executable previously loaded by LoadLibrary.\n";
  static PyObject *free_library(PyObject *self, PyObject *args)
  {
      void *hMod;
@@ -1939,7 +1938,7 @@ index 5861042398..a01009a777 100644
          return PyErr_SetFromWindowsErr(GetLastError());
      Py_RETURN_NONE;
  }
-@@ -1705,11 +1709,14 @@ POINTER(PyObject *self, PyObject *cls)
+@@ -1705,11 +1693,14 @@ POINTER(PyObject *self, PyObject *cls)
      PyObject *key;
      char *buf;
  
@@ -1955,7 +1954,7 @@ index 5861042398..a01009a777 100644
      if (PyUnicode_CheckExact(cls)) {
          const char *name = PyUnicode_AsUTF8(cls);
          if (name == NULL)
-@@ -1765,12 +1772,16 @@ pointer(PyObject *self, PyObject *arg)
+@@ -1765,12 +1756,16 @@ pointer(PyObject *self, PyObject *arg)
      PyObject *result;
      PyObject *typ;
  
@@ -1975,7 +1974,7 @@ index 5861042398..a01009a777 100644
      result = PyObject_CallFunctionObjArgs(typ, arg, NULL);
      Py_DECREF(typ);
      return result;
-@@ -1841,4 +1852,4 @@ PyMethodDef _ctypes_module_methods[] = {
+@@ -1841,4 +1836,4 @@ PyMethodDef _ctypes_module_methods[] = {
   Local Variables:
   compile-command: "cd .. && python setup.py -q build -g && python setup.py -q build install --home ~"
   End:
@@ -2001,6 +2000,19 @@ index 5d3b966338..09017bb86c 100644
  typedef struct tagPyCArgObject PyCArgObject;
  typedef struct tagCDataObject CDataObject;
  typedef PyObject *(* GETFUNC)(void *, Py_ssize_t size);
+diff --git a/Modules/_ctypes/stgdict.c b/Modules/_ctypes/stgdict.c
+index af12d314ab..44687ecd4d 100644
+--- a/Modules/_ctypes/stgdict.c
++++ b/Modules/_ctypes/stgdict.c
+@@ -805,7 +805,7 @@ PyCStructUnionType_update_stgdict(PyObject *type, PyObject *fields, int isStruct
+                 element_types[element_index++] = &dict->ffi_type_pointer;
+             }
+             else {
+-                int length = dict->length;
++                int length = (int)dict->length;
+                 StgDictObject *edict;
+ 
+                 edict = PyType_stgdict(dict->proto);
 diff --git a/Modules/_io/bufferedio.c b/Modules/_io/bufferedio.c
 index 358a654a98..0d130b1f0d 100644
 --- a/Modules/_io/bufferedio.c
@@ -2103,10 +2115,16 @@ index ac6e017a4e..b9d41b187b 100644
  #endif
  
 diff --git a/Modules/_localemodule.c b/Modules/_localemodule.c
-index f946898118..2f692a2fc9 100644
+index f946898118..44f2b496fa 100644
 --- a/Modules/_localemodule.c
 +++ b/Modules/_localemodule.c
-@@ -391,31 +391,31 @@ exit:
+@@ -388,34 +388,37 @@ exit:
+ #endif
+ 
+ #if defined(MS_WINDOWS)
++int
++PyOS_snwprintf(wchar_t*, size_t, const wchar_t*, ...);
++
  static PyObject*
  PyLocale_getdefaultlocale(PyObject* self)
  {
@@ -2528,7 +2546,7 @@ index 97c64f6330..1eea16f78e 100644
  
      /* Configure Windows to not display the Windows Error Reporting dialog */
 diff --git a/Modules/mmapmodule.c b/Modules/mmapmodule.c
-index 37a5c3dade..bca2c95089 100644
+index 37a5c3dade..dc86221c1b 100644
 --- a/Modules/mmapmodule.c
 +++ b/Modules/mmapmodule.c
 @@ -102,7 +102,7 @@ typedef struct {
@@ -2566,6 +2584,15 @@ index 37a5c3dade..bca2c95089 100644
      } else {
          return PyLong_FromSsize_t(self->size);
      }
+@@ -485,7 +482,7 @@ mmap_resize_method(mmap_object *self,
+         /* Change the size of the file */
+         SetEndOfFile(self->file_handle);
+         /* Create another mapping object and remap the file view */
+-        self->map_handle = CreateFileMapping(
++        self->map_handle = CreateFileMappingW(
+             self->file_handle,
+             NULL,
+             PAGE_READWRITE,
 @@ -687,7 +684,7 @@ mmap__sizeof__method(mmap_object *self, void *unused)
  
      res = _PyObject_SIZE(Py_TYPE(self));
@@ -2575,6 +2602,15 @@ index 37a5c3dade..bca2c95089 100644
      return PyLong_FromSsize_t(res);
  }
  #endif
+@@ -1201,7 +1198,7 @@ new_mmap_object(PyTypeObject *type, PyObject *args, PyObject *kwdict)
+     DWORD off_lo;       /* lower 32 bits of offset */
+     DWORD size_hi;      /* upper 32 bits of size */
+     DWORD size_lo;      /* lower 32 bits of size */
+-    const char *tagname = "";
++    const wchar_t *tagname = L"";
+     DWORD dwErr = 0;
+     int fileno;
+     HANDLE fh = 0;
 @@ -1296,17 +1293,13 @@ new_mmap_object(PyTypeObject *type, PyObject *args, PyObject *kwdict)
              return NULL;
          }
@@ -2596,7 +2632,16 @@ index 37a5c3dade..bca2c95089 100644
              if (size == 0) {
                  PyErr_SetString(PyExc_ValueError,
                                  "cannot mmap an empty file");
-@@ -1349,7 +1342,7 @@ new_mmap_object(PyTypeObject *type, PyObject *args, PyObject *kwdict)
+@@ -1342,14 +1335,14 @@ new_mmap_object(PyTypeObject *type, PyObject *args, PyObject *kwdict)
+     m_obj->weakreflist = NULL;
+     m_obj->exports = 0;
+     /* set the tag name */
+-    if (tagname != NULL && *tagname != '\0') {
+-        m_obj->tagname = PyMem_Malloc(strlen(tagname)+1);
++    if (tagname != NULL && *tagname != L'\0') {
++        m_obj->tagname = PyMem_Malloc((wcslen(tagname)+1) * sizeof(wchar_t));
+         if (m_obj->tagname == NULL) {
+             PyErr_NoMemory();
              Py_DECREF(m_obj);
              return NULL;
          }
@@ -2615,7 +2660,7 @@ index 37a5c3dade..bca2c95089 100644
                                            flProtect,
                                            size_hi,
 diff --git a/Modules/overlapped.c b/Modules/overlapped.c
-index 596ee33027..ca649e555d 100644
+index 596ee33027..a40ae45dff 100644
 --- a/Modules/overlapped.c
 +++ b/Modules/overlapped.c
 @@ -37,6 +37,10 @@
@@ -2637,7 +2682,15 @@ index 596ee33027..ca649e555d 100644
  
  #define GET_WSA_POINTER(s, x)                                           \
      (SOCKET_ERROR != WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,    \
-@@ -126,9 +129,6 @@ initialize_function_pointers(void)
+@@ -104,7 +107,6 @@ initialize_function_pointers(void)
+     GUID GuidConnectEx = WSAID_CONNECTEX;
+     GUID GuidDisconnectEx = WSAID_DISCONNECTEX;
+     GUID GuidTransmitFile = WSAID_TRANSMITFILE;
+-    HINSTANCE hKernel32;
+     SOCKET s;
+     DWORD dwBytes;
+ 
+@@ -126,9 +128,6 @@ initialize_function_pointers(void)
  
      closesocket(s);
  
@@ -2647,16 +2700,7 @@ index 596ee33027..ca649e555d 100644
      return 0;
  }
  
-@@ -280,7 +280,7 @@ overlapped_RegisterWaitWithQueue(PyObject *self, PyObject *args)
- 
-     *pdata = data;
- 
--    if (!RegisterWaitForSingleObject(
-+    if (!RegisterWaitForSingleObjectEx(
-             &NewWaitObject, Object, (WAITORTIMERCALLBACK)PostToQueueCallback,
-             pdata, Milliseconds,
-             WT_EXECUTEINWAITTHREAD | WT_EXECUTEONLYONCE))
-@@ -595,9 +595,6 @@ Overlapped_dealloc(OverlappedObject *self)
+@@ -595,9 +594,6 @@ Overlapped_dealloc(OverlappedObject *self)
      if (!HasOverlappedIoCompleted(&self->overlapped) &&
          self->type != TYPE_NOT_STARTED)
      {
@@ -2666,7 +2710,7 @@ index 596ee33027..ca649e555d 100644
          Py_BEGIN_ALLOW_THREADS
          ret = GetOverlappedResult(self->handle, &self->overlapped,
                                    &bytes, wait);
-@@ -642,10 +639,7 @@ Overlapped_cancel(OverlappedObject *self)
+@@ -642,10 +638,7 @@ Overlapped_cancel(OverlappedObject *self)
  
      if (!HasOverlappedIoCompleted(&self->overlapped)) {
          Py_BEGIN_ALLOW_THREADS
@@ -2678,7 +2722,7 @@ index 596ee33027..ca649e555d 100644
          Py_END_ALLOW_THREADS
      }
  
-@@ -1312,6 +1306,17 @@ PyDoc_STRVAR(
+@@ -1312,6 +1305,17 @@ PyDoc_STRVAR(
      "ConnectPipe(addr) -> pipe_handle\n\n"
      "Connect to the pipe for asynchronous I/O (overlapped).");
  
@@ -2696,7 +2740,7 @@ index 596ee33027..ca649e555d 100644
  static PyObject *
  ConnectPipe(OverlappedObject *self, PyObject *args)
  {
-@@ -1327,7 +1332,7 @@ ConnectPipe(OverlappedObject *self, PyObject *args)
+@@ -1327,7 +1331,7 @@ ConnectPipe(OverlappedObject *self, PyObject *args)
          return NULL;
  
      Py_BEGIN_ALLOW_THREADS
@@ -5235,6 +5279,138 @@ index 16a10c7232..b649943311 100644
  
  
 +#endif
+diff --git a/PCbuild/python.natvis b/PCbuild/python.natvis
+new file mode 100644
+index 0000000000..a7fe600f68
+--- /dev/null
++++ b/PCbuild/python.natvis
+@@ -0,0 +1,125 @@
++<?xml version="1.0" encoding="utf-8"?> 
++<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
++  <Type Name="_object">
++    <Intrinsic Name="IsLong" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 24)" />
++    <Intrinsic Name="IsList" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 25)" />
++    <Intrinsic Name="IsTuple" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 26)" />
++    <Intrinsic Name="IsBytes" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 27)" />
++    <Intrinsic Name="IsString" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 28)" />
++    <Intrinsic Name="IsDict" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 29)" />
++    <Intrinsic Name="IsExcBase" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 30)" />
++    <Intrinsic Name="IsType" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 31)" />
++    <Intrinsic Name="IsCallable" Expression="ob_type-&gt;tp_call != 0" />
++    <Intrinsic Name="IsPyFunction" Expression="ob_type == &amp;PyFunction_Type" />
++    <Intrinsic Name="IsPyCFunction" Expression="ob_type == &amp;PyCFunction_Type" />
++    <Intrinsic Name="IsCode" Expression="ob_type == &amp;PyCode_Type" />
++    <Intrinsic Name="IsModule" Expression="ob_type == &amp;PyModule_Type" />
++    <Intrinsic Name="IsMethod" Expression="ob_type == &amp;PyMethod_Type" />
++    <Intrinsic Name="IsInstance" Expression="ob_type == &amp;PyInstanceMethod_Type" />
++    <Intrinsic Name="IsNone" Expression="ob_type == &amp;_PyNone_Type" />
++    <Intrinsic Name="PyUnicode_IS_ASCII" Expression="((PyASCIIObject*)this)-&gt;state.ascii" />
++    <Intrinsic Name="PyUnicode_KIND" Expression="((PyASCIIObject *)this)-&gt;state.kind" />
++    <Intrinsic Name="PyUnicode_IS_COMPACT" Expression=" ((PyASCIIObject*)this)-&gt;state.compact" />
++    <Intrinsic Name="PyUnicode_IS_COMPACT_ASCII" Expression="((PyASCIIObject*)this)-&gt;state.ascii &amp;&amp; PyUnicode_IS_COMPACT()"/>
++    <Intrinsic Name="_PyUnicode_COMPACT_DATA" Expression="PyUnicode_IS_ASCII() ? (void*)((PyASCIIObject*)this + 1) : (void*)((PyCompactUnicodeObject*)this + 1)" />
++    <Intrinsic Name="_PyUnicode_NONCOMPACT_DATA" Expression="((PyUnicodeObject *)this)-&gt;data.any" />
++    <Intrinsic Name="PyUnicode_DATA" Expression="PyUnicode_IS_COMPACT() ? _PyUnicode_COMPACT_DATA() : _PyUnicode_NONCOMPACT_DATA()" />
++    <Intrinsic Name="PyUnicode_1BYTE_DATA" Expression="(Py_UCS1*)PyUnicode_DATA()" />
++    <Intrinsic Name="PyUnicode_2BYTE_DATA" Expression="(Py_UCS2*)PyUnicode_DATA()" />
++    <Intrinsic Name="PyUnicode_4BYTE_DATA" Expression="(Py_UCS4*)PyUnicode_DATA()" />
++    <Intrinsic Name="DK_SIZE" Expression="((PyDictObject*)this)->ma_keys->dk_size" />
++    <Intrinsic Name="PointerSize" Expression="sizeof(PyObject*)" />
++    <Intrinsic Name="DK_IXSIZE" Expression="DK_SIZE() &lt;= 0xff ? 1 : DK_SIZE() &lt;= 0xffff ? 2 : DK_SIZE() &lt;= 0xffffffff ? 4 : 8" />
++    <Intrinsic Name="DK_ENTRIES" Expression="((PyDictKeyEntry*)(&amp;((int8_t*)(((PyDictObject*)this)->ma_keys->dk_indices))[DK_SIZE() * DK_IXSIZE()]))" />
++
++    <DisplayString Condition="IsString() &amp;&amp; (PyUnicode_IS_ASCII() || PyUnicode_KIND() == 1)">{PyUnicode_1BYTE_DATA(),na}</DisplayString>
++    <DisplayString Condition="IsString() &amp;&amp; (PyUnicode_KIND() == 0 || PyUnicode_KIND() == 2)">{PyUnicode_2BYTE_DATA(),na}</DisplayString>
++    <DisplayString Condition="IsString() &amp;&amp; PyUnicode_KIND() == 4">{PyUnicode_4BYTE_DATA(),na}</DisplayString>
++    <DisplayString Condition="IsList()">{{ size={((PyVarObject*)this)->ob_size} }}</DisplayString>
++    <DisplayString Condition="IsCallable()">{{ PyFunctionObject name={((PyFunctionObject*)this)->func_name,na} }}</DisplayString>
++    <DisplayString Condition="IsBytes()">{{ PyBytesObject size={((PyVarObject*)this)->ob_size} }}</DisplayString>
++    <DisplayString Condition="IsTuple()">{{ PyTupleObject size={((PyVarObject*)this)->ob_size} }}</DisplayString>
++    <DisplayString Condition="IsLong()">{{ PyLongObject value={*((PyLongObject*)this)->ob_digit} }}</DisplayString>
++    <DisplayString Condition="IsNone()">{{ PyNoneObject }}</DisplayString>
++    <DisplayString Condition="IsModule()">{{ PyModuleObject name={((PyModuleObject*)this)->md_name,na} }}</DisplayString>
++    <DisplayString Condition="IsMethod()">{{ PyMethodObject func={((PyMethodObject*)this)->im_func,na} }}</DisplayString>
++    <DisplayString Condition="IsInstance()">{{ PyInstanceMethodObject func={((PyInstanceMethodObject*)this)->func,na} }}</DisplayString>
++    <DisplayString Condition="IsDict()">{{ PyDictObject size={((PyDictObject*)this)->ma_keys->dk_nentries} }}</DisplayString>
++    <DisplayString Condition="!IsString() &amp;&amp; !IsList()">{ob_type->tp_name}</DisplayString>
++    <Expand>
++      <Item Name="ob_refcnt">ob_refcnt</Item>
++      <!--List object section PyListObject-->
++      <Item Name="[capacity]" Condition="IsList()">(((PyVarObject*)(this))->ob_size)</Item>
++      <ArrayItems Condition="IsList()">
++          <Size>(((PyVarObject*)(this))->ob_size)</Size>
++          <ValuePointer>((PyListObject *)this)->ob_item</ValuePointer>
++      </ArrayItems>
++      <ArrayItems Condition="IsBytes()">
++          <Size>(((PyVarObject*)(this))->ob_size)</Size>
++          <ValuePointer>((PyBytesObject *)this)->ob_sval</ValuePointer>
++      </ArrayItems>
++      <ArrayItems Condition="IsTuple()">
++          <Size>(((PyVarObject*)(this))->ob_size)</Size>
++          <ValuePointer>((PyTupleObject *)this)->ob_item</ValuePointer>
++      </ArrayItems>
++      <!--Callable object section PyFunctionObject-->
++      <Item Name="func_name" Condition="IsCallable()">((PyFunctionObject*)this)->func_name</Item>
++      <Item Name="func_doc" Condition="IsCallable()">((PyFunctionObject*)this)->func_doc</Item>
++      <Item Name="func_module" Condition="IsCallable()">((PyFunctionObject*)this)->func_module</Item>
++      <Item Name="func_qualname" Condition="IsCallable()">((PyFunctionObject*)this)->func_qualname</Item>
++      <Item Name="func_code" Condition="IsCallable()">((PyFunctionObject*)this)->func_code</Item>
++      <Item Name="func_globals" Condition="IsCallable()">((PyFunctionObject*)this)->func_globals</Item>
++      <Item Name="func_defaults" Condition="IsCallable()">((PyFunctionObject*)this)->func_defaults</Item>
++      <Item Name="func_kwdefaults" Condition="IsCallable()">((PyFunctionObject*)this)->func_kwdefaults</Item>
++      <Item Name="func_closure" Condition="IsCallable()">((PyFunctionObject*)this)->func_closure</Item>
++      <Item Name="func_dict" Condition="IsCallable()">((PyFunctionObject*)this)->func_dict</Item>
++      <Item Name="func_weakreflist" Condition="IsCallable()">((PyFunctionObject*)this)->func_weakreflist</Item>
++      <Item Name="func_annotations" Condition="IsCallable()">((PyFunctionObject*)this)->func_annotations</Item>
++
++      <!--Code object section PyCodeObject-->
++      <Item Name="co_argcount" Condition="IsCode()">((PyCodeObject*)this)->co_argcount</Item>
++      <Item Name="co_kwonlyargcount" Condition="IsCode()">((PyCodeObject*)this)->co_kwonlyargcount</Item>
++      <Item Name="co_nlocals" Condition="IsCode()">((PyCodeObject*)this)->co_nlocals</Item>
++      <Item Name="co_stacksize" Condition="IsCode()">((PyCodeObject*)this)->co_stacksize</Item>
++      <Item Name="co_flags" Condition="IsCode()">((PyCodeObject*)this)->co_flags</Item>
++      <Item Name="co_firstlineno" Condition="IsCode()">((PyCodeObject*)this)->co_firstlineno</Item>
++      <Item Name="co_code" Condition="IsCode()">((PyCodeObject*)this)->co_code</Item>
++      <Item Name="co_consts" Condition="IsCode()">((PyCodeObject*)this)->co_consts</Item>
++      <Item Name="co_names" Condition="IsCode()">((PyCodeObject*)this)->co_names</Item>
++      <Item Name="co_varnames" Condition="IsCode()">((PyCodeObject*)this)->co_varnames</Item>
++      <Item Name="co_freevars" Condition="IsCode()">((PyCodeObject*)this)->co_freevars</Item>
++      <Item Name="co_cellvars" Condition="IsCode()">((PyCodeObject*)this)->co_cellvars</Item>
++      <Item Name="co_cell2arg" Condition="IsCode()">((PyCodeObject*)this)->co_cell2arg</Item>
++      <Item Name="co_filename" Condition="IsCode()">((PyCodeObject*)this)->co_filename</Item>
++      <Item Name="co_name" Condition="IsCode()">((PyCodeObject*)this)->co_name</Item>
++      <Item Name="co_lnotab" Condition="IsCode()">((PyCodeObject*)this)->co_lnotab</Item>
++
++      <!--Module object section PyModuleObject-->
++      <Item Name="md_name" Condition="IsModule()">((PyModuleObject*)this)->md_name</Item>
++      <Item Name="md_dict" Condition="IsModule()">((PyModuleObject*)this)->md_dict</Item>
++      <Item Name="md_def" Condition="IsModule()">((PyModuleObject*)this)->md_def</Item>
++      <Item Name="md_state" Condition="IsModule()">((PyModuleObject*)this)->md_state</Item>
++      <Item Name="md_weaklist" Condition="IsModule()">((PyModuleObject*)this)->md_weaklist</Item>
++
++      <!--Method object section PyMethodObject-->
++      <Item Name="im_func" Condition="IsMethod()">((PyMethodObject*)this)->im_func</Item>
++      <Item Name="im_self" Condition="IsMethod()">((PyMethodObject*)this)->im_self</Item>
++      <Item Name="im_weakreflist" Condition="IsMethod()">((PyMethodObject*)this)->im_weakreflist</Item>
++
++      <!--Dict object section PyDictObject-->
++      <Item Name="ma_used" Condition="IsDict()">((PyDictObject*)this)->ma_used</Item>
++      <Item Name="ma_version_tag" Condition="IsDict()">((PyDictObject*)this)->ma_version_tag</Item>
++      <Item Name="ma_keys" Condition="IsDict()">((PyDictObject*)this)->ma_keys</Item>
++      <Item Name="ma_values" Condition="IsDict()">((PyDictObject*)this)->ma_values</Item>
++
++      <ArrayItems Condition="IsDict()">
++        <Size>((PyDictObject*)this)->ma_keys->dk_nentries</Size>
++        <ValuePointer Condition="((PyDictObject*)this)-&gt;ma_values != 0">*((PyDictObject *)this)->ma_values</ValuePointer>
++        <ValuePointer Condition="((PyDictObject*)this)-&gt;ma_values == 0">DK_ENTRIES()</ValuePointer>
++      </ArrayItems>
++    </Expand>
++  </Type>
++  <Type Name="_typeobject">
++    <DisplayString >{tp_name}</DisplayString>
++  </Type>
++</AutoVisualizer>
+\ No newline at end of file
 diff --git a/Python/bootstrap_hash.c b/Python/bootstrap_hash.c
 index 58b0802f46..20b66c093a 100644
 --- a/Python/bootstrap_hash.c
@@ -5587,26 +5763,13 @@ index b2c634db23..f565b512d9 100644
      return 0;
  
 diff --git a/Python/mysnprintf.c b/Python/mysnprintf.c
-index a08e249b42..d1d89c948a 100644
+index a08e249b42..c86a887b79 100644
 --- a/Python/mysnprintf.c
 +++ b/Python/mysnprintf.c
 @@ -102,3 +102,69 @@ Done:
      return len;
  #undef _PyOS_vsnprintf_EXTRA_SPACE
  }
-+
-+int
-+PyOS_snwprintf(wchar_t *str, size_t size, const wchar_t *format, ...)
-+{
-+    int rc;
-+    va_list va;
-+
-+    va_start(va, format);
-+    rc = PyOS_vsnwprintf(str, size, format, va);
-+    va_end(va);
-+    return rc;
-+}
-+
 +int
 +PyOS_vsnwprintf(wchar_t *str, size_t size, const wchar_t *format, va_list va)
 +{
@@ -5660,6 +5823,19 @@ index a08e249b42..d1d89c948a 100644
 +    return len;
 +#undef _PyOS_vsnprintf_EXTRA_SPACE
 +}
++
++int
++PyOS_snwprintf(wchar_t *str, size_t size, const wchar_t *format, ...)
++{
++    int rc;
++    va_list va;
++
++    va_start(va, format);
++    rc = PyOS_vsnwprintf(str, size, format, va);
++    va_end(va);
++    return rc;
++}
++
 diff --git a/Python/pytime.c b/Python/pytime.c
 index 0e94131741..40b36481cd 100644
 --- a/Python/pytime.c
@@ -5705,9 +5881,27 @@ index 0e94131741..40b36481cd 100644
      }
  
 diff --git a/Python/sysmodule.c b/Python/sysmodule.c
-index b953a00097..37e3b7170a 100644
+index b953a00097..96e2244cb8 100644
 --- a/Python/sysmodule.c
 +++ b/Python/sysmodule.c
+@@ -1078,7 +1078,7 @@ sys_getwindowsversion(PyObject *self)
+ {
+     PyObject *version;
+     int pos = 0;
+-    OSVERSIONINFOEX ver;
++    OSVERSIONINFOEXW ver;
+     DWORD realMajor, realMinor, realBuild;
+     HANDLE hKernel32;
+     wchar_t kernel32_path[MAX_PATH];
+@@ -1086,7 +1086,7 @@ sys_getwindowsversion(PyObject *self)
+     DWORD verblock_size;
+ 
+     ver.dwOSVersionInfoSize = sizeof(ver);
+-    if (!GetVersionEx((OSVERSIONINFO*) &ver))
++    if (!GetVersionExW((LPOSVERSIONINFOW)&ver))
+         return PyErr_SetFromWindowsErr(0);
+ 
+     version = PyStructSequence_New(&WindowsVersionType);
 @@ -1097,7 +1097,7 @@ sys_getwindowsversion(PyObject *self)
      PyStructSequence_SET_ITEM(version, pos++, PyLong_FromLong(ver.dwMinorVersion));
      PyStructSequence_SET_ITEM(version, pos++, PyLong_FromLong(ver.dwBuildNumber));
