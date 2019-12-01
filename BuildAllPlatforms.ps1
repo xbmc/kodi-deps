@@ -1,7 +1,8 @@
 [CmdletBinding()]
 Param(
   [Parameter()]
-  [string[]] $Packages,
+  [ValidateSet('bzip2', 'crossguid', 'curl', 'dnssd', 'easyhook', 'expat', 'flatc', 'freetype', 'fstrcmp', 'lcms2', 'libaacs', 'libass', 'libbdplus', 'libbluray', 'libcdi', 'libcec', 'libffi', 'libfribidi', 'libgrypt', 'libgpg-error', 'libjpeg-turbo', 'libiconv', 'libmicrohttpd', 'libnfs', 'libplist', 'libwebp', 'libxml2', 'libxsl', 'libyajl', 'lzo2', 'mariadb-connector-c', 'openssl', 'pcre', 'python', 'shairplay', 'sqlite', 'taglib', 'tinyxml', 'winflexbison', 'xz', 'zlib')]
+  [string[]] $Packages = @('bzip2', 'crossguid', 'curl', 'expat', 'flatc', 'freetype', 'fstrcmp', 'lcms2', 'libaacs', 'libass', 'libbdplus', 'libbluray', 'libcdi', 'libcec', 'libffi', 'libfribidi', 'libgrypt', 'libgpg-error', 'libiconv', 'libjpeg-turbo', 'libmicrohttpd', 'libnfs', 'libplist', 'libwebp', 'libxml2', 'libxsl', 'libyajl', 'lzo2', 'mariadb-connector-c', 'openssl', 'pcre', 'python', 'shairplay', 'sqlite', 'taglib', 'tinyxml', 'winflexbison', 'xz', 'zlib'),
   [switch] $GenerateProjects,
   [switch] $Rel = $false,
   [switch] $Deb = $false,
@@ -9,7 +10,11 @@ Param(
   [switch] $Desktop = $false,
   [switch] $App = $false,
   [ValidateSet( 'arm', 'win32', 'x64', 'arm64' )]
-  [string[]] $Platforms = @( 'arm', 'win32', 'x64', 'arm64' )
+  [string[]] $Platforms = @( 'arm', 'win32', 'x64', 'arm64' ),
+  [ValidateSet('10.0.17763.0', '10.0.18362.0')]
+  [string] $SdkVersion,
+  [ValidateRange(15, 16)]
+  [int] $VsVersion
 )
 
 $ErrorActionPreference = "Stop"
@@ -22,7 +27,7 @@ if ($GenerateProjects) {
       if (!(Test-Path $path)) {
         New-Item $path -ItemType Directory
       }
-      cmake -G "Visual Studio 15" -A $platform -Thost=x64 -S $PsScriptRoot -B $path
+      cmake -G "Visual Studio $VsVersion" -A $platform -Thost=x64 -DPATCH="C:\Program Files\Git\usr\bin\patch.exe" -S $PsScriptRoot -B $path
     }
 
     if ($App) {
@@ -30,7 +35,7 @@ if ($GenerateProjects) {
       if (!(Test-Path $path)) {
         New-Item $path -ItemType Directory
       }
-      cmake -G "Visual Studio 15" -A $platform -Thost=x64 -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION='10.0.17763.0' -S $PsScriptRoot -B $path
+      cmake -G "Visual Studio $VsVersion" -A $platform -Thost=x64 -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION="$SdkVersion" -DPATCH="C:\Program Files\Git\usr\bin\patch.exe" -S $PsScriptRoot -B $path
     }
   }
 }
