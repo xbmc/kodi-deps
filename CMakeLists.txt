@@ -136,14 +136,14 @@ add_dependency_project_package(expat 2.2.9)
 
 ExternalProject_Add(libiconv
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.15.tar.gz
+	URL https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.16.tar.gz
 	URL_HASH SHA256=ccf536620a45458d26ba83887a983b96827001e92a13847b45e4925cc8913178
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
-add_dependency_project_package(libiconv 1.15)
+add_dependency_project_package(libiconv 1.16)
 
 ExternalProject_Add(openssl
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
