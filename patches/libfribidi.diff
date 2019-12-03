@@ -1,7 +1,10 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+new file mode 100644
+index 0000000..b92927c
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,250 @@
-+cmake_minimum_required(VERSION 3.2)
+@@ -0,0 +1,182 @@
++cmake_minimum_required(VERSION 3.15)
 +
 +project(fribidi C)
 +
@@ -26,116 +29,22 @@
 +
 +set(COMPRESSION 2)
 +
-+add_executable(gen-unicode-version
-+  gen.tab/gen-unicode-version.c)
-+target_include_directories(gen-unicode-version PUBLIC
-+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
++set(VS_VERSION "Visual Studio 15")
++if (MSVC_TOOLSET_VERSION EQUAL 142)
++  set(VS_VERSION "Visual Studio 16")
++endif()
++add_custom_target(generators
++  COMMAND cmake -G ${VS_VERSION} -A x64 -Thost=x64 -S ${CMAKE_CURRENT_SOURCE_DIR}/gen.tab -B ${CMAKE_CURRENT_BINARY_DIR}/generators
++  COMMAND cmake --build ${CMAKE_CURRENT_BINARY_DIR}/generators --config RelWithDebInfo
++  BYPRODUCTS
++    ${CMAKE_CURRENT_SOURCE_DIR}/lib/fribidi-unicode-version.h
++    ${CMAKE_CURRENT_SOURCE_DIR}/lib/derived_bidi-type.tab.i
++    ${CMAKE_CURRENT_SOURCE_DIR}/lib/bidi-type.tab.i
++    ${CMAKE_CURRENT_SOURCE_DIR}/lib/joining-type.tab.i
++    ${CMAKE_CURRENT_SOURCE_DIR}/lib/arabic-shaping.tab.i
++    ${CMAKE_CURRENT_SOURCE_DIR}/lib/mirroring.tab.i
++  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 +)
-+
-+target_compile_definitions(gen-unicode-version
-+  PRIVATE
-+  _CRT_SECURE_NO_WARNINGS
-+  _CRT_NONSTDC_NO_DEPRECATE
-+)
-+add_custom_target(gen-unicode
-+  COMMAND gen-unicode-version
-+  ${CMAKE_CURRENT_SOURCE_DIR}/gen.tab/unidata/ReadMe.txt >
-+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/fribidi-unicode-version.h
-+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib
-+  BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/lib/fribidi-unicode-version.h
-+  )
-+
-+add_executable(gen-bidi-type-tab
-+  gen.tab/gen-bidi-type-tab.c
-+  gen.tab/packtab.h
-+  gen.tab/packtab.c)
-+target_include_directories(gen-bidi-type-tab PUBLIC
-+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
-+)
-+target_compile_definitions(gen-bidi-type-tab
-+  PRIVATE
-+  _CRT_SECURE_NO_WARNINGS
-+  _CRT_NONSTDC_NO_DEPRECATE
-+)
-+add_dependencies(gen-bidi-type-tab gen-unicode)
-+
-+add_custom_target(gen-derived-bidi-type
-+  COMMAND gen-bidi-type-tab
-+  ${COMPRESSION}
-+  ${CMAKE_CURRENT_SOURCE_DIR}/gen.tab/unidata/DerivedBidiClass.txt >
-+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/derived_bidi-type.tab.i
-+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib
-+  BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/lib/derived_bidi-type.tab.i)
-+
-+add_custom_target(gen-bidi-type
-+  COMMAND gen-bidi-type-tab
-+  ${COMPRESSION}
-+  ${CMAKE_CURRENT_SOURCE_DIR}/gen.tab/unidata/UnicodeData.txt >
-+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/bidi-type.tab.i
-+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib
-+  BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/lib/bidi-type.tab.i)
-+
-+add_executable(gen-joining-type-tab
-+  gen.tab/packtab.h
-+  gen.tab/packtab.c
-+  gen.tab/gen-joining-type-tab.c)
-+target_include_directories(gen-joining-type-tab PUBLIC
-+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
-+)
-+target_compile_definitions(gen-joining-type-tab
-+  PRIVATE
-+  _CRT_SECURE_NO_WARNINGS
-+  _CRT_NONSTDC_NO_DEPRECATE
-+)
-+add_dependencies(gen-joining-type-tab gen-unicode)
-+
-+add_custom_target(gen-joining-type
-+  COMMAND gen-joining-type-tab
-+  ${COMPRESSION}
-+  ${CMAKE_CURRENT_SOURCE_DIR}/gen.tab/unidata/UnicodeData.txt
-+  ${CMAKE_CURRENT_SOURCE_DIR}/gen.tab/unidata/ArabicShaping.txt >
-+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/joining-type.tab.i
-+  BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/lib/joining-type.tab.i)
-+
-+add_executable(gen-arabic-shaping-tab
-+  gen.tab/gen-arabic-shaping-tab.c)
-+target_include_directories(gen-arabic-shaping-tab PUBLIC
-+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
-+)
-+target_compile_definitions(gen-arabic-shaping-tab
-+  PRIVATE
-+  _CRT_SECURE_NO_WARNINGS
-+  _CRT_NONSTDC_NO_DEPRECATE
-+)
-+add_dependencies(gen-arabic-shaping-tab gen-unicode)
-+
-+add_custom_target(gen-arabic-shaping
-+  COMMAND gen-arabic-shaping-tab
-+  ${COMPRESSION}
-+  ${CMAKE_CURRENT_SOURCE_DIR}/gen.tab/unidata/UnicodeData.txt >
-+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/arabic-shaping.tab.i
-+  BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/lib/arabic-shaping.tab.i)
-+
-+add_executable(gen-mirroring-tab
-+  gen.tab/packtab.h
-+  gen.tab/packtab.c
-+  gen.tab/gen-mirroring-tab.c)
-+target_include_directories(gen-mirroring-tab PUBLIC
-+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lib>
-+)
-+target_compile_definitions(gen-mirroring-tab
-+  PRIVATE
-+  _CRT_SECURE_NO_WARNINGS
-+  _CRT_NONSTDC_NO_DEPRECATE
-+)
-+add_dependencies(gen-mirroring-tab gen-unicode)
-+
-+add_custom_target(gen-mirroring
-+  COMMAND gen-mirroring-tab
-+  ${COMPRESSION}
-+  ${CMAKE_CURRENT_SOURCE_DIR}/gen.tab/unidata/BidiMirroring.txt >
-+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/mirroring.tab.i
-+  BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/lib/mirroring.tab.i)
 +
 +add_library(fribidi STATIC
 +  lib/bidi-types.h
@@ -187,20 +96,46 @@
 +  _CRT_SECURE_NO_WARNINGS
 +  _CRT_NONSTDC_NO_DEPRECATE
 +)
-+add_dependencies(fribidi
-+  gen-unicode
-+  gen-mirroring
-+  gen-arabic-shaping
-+  gen-joining-type
-+  # gen-derived-bidi-type
-+  gen-bidi-type
-+  )
++target_compile_options(fribidi
++  PRIVATE
++    /sdl-
++)
++target_link_options(fribidi
++  PRIVATE
++    /debug:full
++)
++add_dependencies(fribidi generators)
++#   gen-unicode
++#   gen-mirroring
++#   gen-arabic-shaping
++#   gen-joining-type
++#   # gen-derived-bidi-type
++#   gen-bidi-type
++#   )
 +
 +include(CMakePackageConfigHelpers)
 +write_basic_package_version_file(
 +  ${CMAKE_CURRENT_BINARY_DIR}/fribidi-config-version.cmake
 +  VERSION ${FRIBIDI_VERSION}
 +  COMPATIBILITY AnyNewerVersion
++)
++
++set_target_properties(fribidi
++  PROPERTIES
++    COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
++    COMPILE_PDB_NAME fribidi
++    COMPILE_PDB_NAME_DEBUG fribidid
++    OUTPUT_NAME_DEBUG fribidid
++)
++install(FILES
++  ${PROJECT_BINARY_DIR}/RelWithDebInfo/fribidi.pdb
++  DESTINATION lib
++  CONFIGURATIONS RelWithDebInfo
++)
++install(FILES
++  ${PROJECT_BINARY_DIR}/Debug/fribidid.pdb
++  DESTINATION lib
++  CONFIGURATIONS Debug
 +)
 +
 +install(TARGETS fribidi EXPORT fribidi
@@ -251,10 +186,139 @@
 +  ${CMAKE_CURRENT_BINARY_DIR}/fribidi-config.cmake
 +  NAMESPACE fribidi::
 +)
+diff --git a/cmake/fribidi-config.cmake b/cmake/fribidi-config.cmake
+new file mode 100644
+index 0000000..f7cf2c0
 --- /dev/null
 +++ b/cmake/fribidi-config.cmake
 @@ -0,0 +1 @@
 +include(${CMAKE_CURRENT_LIST_DIR}/fribidi.cmake)
+diff --git a/gen.tab/CMakeLists.txt b/gen.tab/CMakeLists.txt
+new file mode 100644
+index 0000000..5a651b7
+--- /dev/null
++++ b/gen.tab/CMakeLists.txt
+@@ -0,0 +1,117 @@
++cmake_minimum_required(VERSION 3.15)
++project(fribidi_generators C)
++
++# ${CMAKE_CURRENT_SOURCE_DIR} is gen.tab
++set(ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
++set(COMPRESSION 2)
++
++add_executable(gen-unicode-version
++  ${ROOT}/gen.tab/gen-unicode-version.c)
++target_include_directories(gen-unicode-version PUBLIC
++  $<BUILD_INTERFACE:${ROOT}/lib>
++)
++
++target_compile_definitions(gen-unicode-version
++  PRIVATE
++  _CRT_SECURE_NO_WARNINGS
++  _CRT_NONSTDC_NO_DEPRECATE
++)
++add_custom_target(gen-unicode ALL
++  COMMAND gen-unicode-version
++  ${ROOT}/gen.tab/unidata/ReadMe.txt >
++  ${ROOT}/lib/fribidi-unicode-version.h
++  WORKING_DIRECTORY ${ROOT}/lib
++  BYPRODUCTS ${ROOT}/lib/fribidi-unicode-version.h
++  )
++
++add_executable(gen-bidi-type-tab
++  ${ROOT}/gen.tab/gen-bidi-type-tab.c
++  ${ROOT}/gen.tab/packtab.h
++  ${ROOT}/gen.tab/packtab.c)
++target_include_directories(gen-bidi-type-tab PUBLIC
++  $<BUILD_INTERFACE:${ROOT}/lib>
++)
++target_compile_definitions(gen-bidi-type-tab
++  PRIVATE
++  _CRT_SECURE_NO_WARNINGS
++  _CRT_NONSTDC_NO_DEPRECATE
++)
++add_dependencies(gen-bidi-type-tab gen-unicode)
++
++add_custom_target(gen-derived-bidi-type #ALL
++  COMMAND gen-bidi-type-tab
++  ${COMPRESSION}
++  ${ROOT}/gen.tab/unidata/DerivedBidiClass.txt >
++  ${ROOT}/lib/derived_bidi-type.tab.i
++  WORKING_DIRECTORY ${ROOT}/lib
++  BYPRODUCTS ${ROOT}/lib/derived_bidi-type.tab.i)
++
++add_custom_target(gen-bidi-type ALL
++  COMMAND gen-bidi-type-tab
++  ${COMPRESSION}
++  ${ROOT}/gen.tab/unidata/UnicodeData.txt >
++  ${ROOT}/lib/bidi-type.tab.i
++  WORKING_DIRECTORY ${ROOT}/lib
++  BYPRODUCTS ${ROOT}/lib/bidi-type.tab.i)
++
++add_executable(gen-joining-type-tab
++  ${ROOT}/gen.tab/packtab.h
++  ${ROOT}/gen.tab/packtab.c
++  ${ROOT}/gen.tab/gen-joining-type-tab.c)
++target_include_directories(gen-joining-type-tab PUBLIC
++  $<BUILD_INTERFACE:${ROOT}/lib>
++)
++target_compile_definitions(gen-joining-type-tab
++  PRIVATE
++  _CRT_SECURE_NO_WARNINGS
++  _CRT_NONSTDC_NO_DEPRECATE
++)
++add_dependencies(gen-joining-type-tab gen-unicode)
++
++add_custom_target(gen-joining-type ALL
++  COMMAND gen-joining-type-tab
++  ${COMPRESSION}
++  ${ROOT}/gen.tab/unidata/UnicodeData.txt
++  ${ROOT}/gen.tab/unidata/ArabicShaping.txt >
++  ${ROOT}/lib/joining-type.tab.i
++  BYPRODUCTS ${ROOT}/lib/joining-type.tab.i)
++
++add_executable(gen-arabic-shaping-tab
++  ${ROOT}/gen.tab/gen-arabic-shaping-tab.c)
++target_include_directories(gen-arabic-shaping-tab PUBLIC
++  $<BUILD_INTERFACE:${ROOT}/lib>
++)
++target_compile_definitions(gen-arabic-shaping-tab
++  PRIVATE
++  _CRT_SECURE_NO_WARNINGS
++  _CRT_NONSTDC_NO_DEPRECATE
++)
++add_dependencies(gen-arabic-shaping-tab gen-unicode)
++
++add_custom_target(gen-arabic-shaping ALL
++  COMMAND gen-arabic-shaping-tab
++  ${COMPRESSION}
++  ${ROOT}/gen.tab/unidata/UnicodeData.txt >
++  ${ROOT}/lib/arabic-shaping.tab.i
++  BYPRODUCTS ${ROOT}/lib/arabic-shaping.tab.i)
++
++add_executable(gen-mirroring-tab
++  ${ROOT}/gen.tab/packtab.h
++  ${ROOT}/gen.tab/packtab.c
++  ${ROOT}/gen.tab/gen-mirroring-tab.c)
++target_include_directories(gen-mirroring-tab PUBLIC
++  $<BUILD_INTERFACE:${ROOT}/lib>
++)
++target_compile_definitions(gen-mirroring-tab
++  PRIVATE
++  _CRT_SECURE_NO_WARNINGS
++  _CRT_NONSTDC_NO_DEPRECATE
++)
++add_dependencies(gen-mirroring-tab gen-unicode)
++
++add_custom_target(gen-mirroring ALL
++  COMMAND gen-mirroring-tab
++  ${COMPRESSION}
++  ${ROOT}/gen.tab/unidata/BidiMirroring.txt >
++  ${ROOT}/lib/mirroring.tab.i
++  BYPRODUCTS ${ROOT}/lib/mirroring.tab.i)
+\ No newline at end of file
+diff --git a/gen.tab/gen-arabic-shaping-tab.c b/gen.tab/gen-arabic-shaping-tab.c
+index fc21db2..328af3f 100644
 --- a/gen.tab/gen-arabic-shaping-tab.c
 +++ b/gen.tab/gen-arabic-shaping-tab.c
 @@ -36,20 +36,10 @@
@@ -278,6 +342,8 @@
  #if HAVE_STRINGS_H+0
  # include <strings.h>
  #endif
+diff --git a/gen.tab/gen-bidi-type-tab.c b/gen.tab/gen-bidi-type-tab.c
+index aacd768..00eb97f 100644
 --- a/gen.tab/gen-bidi-type-tab.c
 +++ b/gen.tab/gen-bidi-type-tab.c
 @@ -36,20 +36,10 @@
@@ -301,6 +367,8 @@
  #if HAVE_STRINGS_H+0
  # include <strings.h>
  #endif
+diff --git a/gen.tab/gen-joining-type-tab.c b/gen.tab/gen-joining-type-tab.c
+index 809d113..ebfd3b6 100644
 --- a/gen.tab/gen-joining-type-tab.c
 +++ b/gen.tab/gen-joining-type-tab.c
 @@ -36,20 +36,10 @@
@@ -324,6 +392,8 @@
  #if HAVE_STRINGS_H+0
  # include <strings.h>
  #endif
+diff --git a/gen.tab/gen-mirroring-tab.c b/gen.tab/gen-mirroring-tab.c
+index 4256d36..04c0005 100644
 --- a/gen.tab/gen-mirroring-tab.c
 +++ b/gen.tab/gen-mirroring-tab.c
 @@ -36,20 +36,10 @@
@@ -347,6 +417,8 @@
  #if HAVE_STRINGS_H+0
  # include <strings.h>
  #endif
+diff --git a/gen.tab/gen-unicode-version.c b/gen.tab/gen-unicode-version.c
+index ea9a9b5..d3e5207 100644
 --- a/gen.tab/gen-unicode-version.c
 +++ b/gen.tab/gen-unicode-version.c
 @@ -34,20 +34,10 @@
@@ -370,6 +442,8 @@
  #if HAVE_STRINGS_H+0
  # include <strings.h>
  #endif
+diff --git a/gen.tab/packtab.c b/gen.tab/packtab.c
+index 45f8658..f661f2e 100644
 --- a/gen.tab/packtab.c
 +++ b/gen.tab/packtab.c
 @@ -30,20 +30,10 @@
@@ -499,6 +573,8 @@
        j += best_p[best_lev - 1 - i];
      }
    fprintf (f, ")");
+diff --git a/gen.tab/unidata/ReadMe.txt b/gen.tab/unidata/ReadMe.txt
+index 370cbd0..7b09853 100644
 --- a/gen.tab/unidata/ReadMe.txt
 +++ b/gen.tab/unidata/ReadMe.txt
 @@ -10,6 +10,6 @@
@@ -509,6 +585,8 @@
 +for the Unicode Character Database (UCD) for Version 6.2.0.
  
  
+diff --git a/lib/common.h b/lib/common.h
+index 3e484b0..8a64089 100644
 --- a/lib/common.h
 +++ b/lib/common.h
 @@ -102,14 +102,10 @@
@@ -551,6 +629,8 @@
  
  /* As per recommendation of GNU Coding Standards. */
  #ifndef _GNU_SOURCE
+diff --git a/lib/fribidi-arabic.c b/lib/fribidi-arabic.c
+index 9e95de4..37acbc5 100644
 --- a/lib/fribidi-arabic.c
 +++ b/lib/fribidi-arabic.c
 @@ -33,9 +33,7 @@
@@ -563,6 +643,8 @@
  
  
  #include <fribidi-arabic.h>
+diff --git a/lib/fribidi-config.h.in b/lib/fribidi-config.h.in
+index 7e10261..89d9193 100644
 --- a/lib/fribidi-config.h.in
 +++ b/lib/fribidi-config.h.in
 @@ -21,6 +21,6 @@

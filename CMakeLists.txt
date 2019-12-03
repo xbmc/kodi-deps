@@ -137,7 +137,7 @@ add_dependency_project_package(expat 2.2.9)
 ExternalProject_Add(libiconv
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.16.tar.gz
-	URL_HASH SHA256=ccf536620a45458d26ba83887a983b96827001e92a13847b45e4925cc8913178
+	URL_HASH SHA256=e6a1b1b589654277ee790cce3734f07876ac4ccfaecbee8afa0b649cf529cc04
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -494,17 +494,19 @@ ExternalProject_Add(libcec
 add_dependency_project_package(libcec 4.0.2)
 
 ExternalProject_Add(libgpg-error
+	DEPENDS libiconv
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.27.tar.bz2
-	URL_HASH SHA256=4f93aac6fecb7da2b92871bb9ee33032be6a87b174f54abf8ddf0911a22d29d2
+	URL https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.36.tar.bz2
+	URL_HASH SHA256=babd98437208c163175c29453f8681094bcaf92968a15cafb1a276076b33c97c
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libiconv
 )
 
 ExternalProject_Add(libgcrypt
-	DEPENDS libgpg-error
+	DEPENDS libgpg-error libiconv
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.7.6.tar.bz2
 	URL_HASH SHA256=626aafee84af9d2ce253d2c143dc1c0902dda045780cc241f39970fc60be05bc
@@ -512,7 +514,7 @@ ExternalProject_Add(libgcrypt
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgpg-error
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgpg-error%3B%3B${PREFIX}/libiconv
 )
 
 ExternalProject_Add(winflexbison
@@ -527,21 +529,22 @@ ExternalProject_Add(winflexbison
 
 ExternalProject_Add(libaacs
 	DOWNLOAD_NAME libaacs-295df3f.tar.gz
-	DEPENDS libgcrypt libgpg-error winflexbison
+	DEPENDS libgcrypt libgpg-error winflexbison libiconv
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL ftp://ftp.videolan.org/pub/videolan/libaacs/0.9.0/libaacs-0.9.0.tar.bz2
 	URL_HASH SHA512=b9c658db22a0966486070d3b762509a7c0120469ab29d1e57c1b624cad309701de8b92455ec649db4d731be4a5c29c38fb4f99bb7617dbb4254270284a1903f6
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
+		-DBUILD_SHARED_LIBS:BOOL=ON
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgcrypt%3B%3B${PREFIX}/libgpg-error%3B%3B${PREFIX}/winflexbison
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgcrypt%3B%3B${PREFIX}/libgpg-error%3B%3B${PREFIX}/winflexbison%3B%3B${PREFIX}/libiconv
 )
 add_dependency_project_package(libaacs 0.9.0)
 
 ExternalProject_Add(libbdplus
 	DOWNLOAD_NAME libbdplus-45c76dd.tar.gz
-	DEPENDS libgcrypt libgpg-error
+	DEPENDS libgcrypt libgpg-error libiconv
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://github.com/ace20022/libbdplus/archive/45c76dd.tar.gz
 	URL_HASH SHA256=843081a7fb05567f5d0ca8bbe69996f3cf18bf94e76871519aa8f2e598210f7f
@@ -549,7 +552,7 @@ ExternalProject_Add(libbdplus
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgcrypt%3B%3B${PREFIX}/libgpg-error
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgcrypt%3B%3B${PREFIX}/libgpg-error%3B%3B${PREFIX}/libiconv
 )
 add_dependency_project_package(libbdplus 45c76dd)
 

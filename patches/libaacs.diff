@@ -1,6 +1,9 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+new file mode 100644
+index 0000000..374cffa
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,161 @@
+@@ -0,0 +1,195 @@
 +cmake_minimum_required(VERSION 3.0)
 +
 +set(AACS_VERSION_MAJOR 0)
@@ -12,8 +15,9 @@
 +configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/libaacs/aacs-version.h.in
 +               ${CMAKE_CURRENT_SOURCE_DIR}/src/libaacs/aacs-version.h)
 +
-+find_package(libpgp-error 1.2.7 REQUIRED NO_MODULE)
++find_package(libgpg-error 1.2.7 REQUIRED NO_MODULE)
 +find_package(libgcrypt 1.7 REQUIRED NO_MODULE)
++find_package(iconv REQUIRED NO_MODULE)
 +
 +if(MSVC)
 +  #set(CMAKE_DEBUG_POSTFIX "d")
@@ -31,7 +35,7 @@
 +  message(FATAL_ERROR "FLEX not found, can't generate error codes")
 +endif()
 +
-+set(SRCS
++add_library(libaacs
 +  cmake/libaacs.def
 +  src/file/dirs.h
 +  src/file/dirs_win32.c
@@ -73,7 +77,6 @@
 +  src/util/strutl.h
 +)
 +
-+ADD_LIBRARY(libaacs SHARED ${SRCS})
 +SET_TARGET_PROPERTIES(libaacs PROPERTIES LINK_FLAGS "/DEF:\"libaacs.def\"")
 +
 +target_compile_definitions(libaacs
@@ -83,6 +86,23 @@
 +  _CRT_SECURE_NO_WARNINGS
 +  _CRT_NONSTDC_NO_WARNINGS
 +  __PRETTY_FUNCTION__=__FUNCTION__
++)
++
++if(WINDOWS_STORE)
++  target_compile_definitions(libaacs
++    PRIVATE
++      MS_APP
++  )
++endif()
++
++target_link_libraries(libaacs
++  PRIVATE
++	kernel32.lib
++)
++
++target_link_options(libaacs
++  PRIVATE
++    /debug:full
 +)
 +  
 +target_include_directories(libaacs
@@ -99,26 +119,28 @@
 +  COMMAND ${BISON} -l -y -d -p libaacs_yy -o ${CMAKE_CURRENT_SOURCE_DIR}/src/file/keydbcfg-parser.c ${CMAKE_CURRENT_SOURCE_DIR}/src/file/keydbcfg-parser.y
 +)
 +
-+target_link_libraries(libaacs PRIVATE libpgp-error::libpgp-error libgcrypt::libgcrypt)
++target_link_libraries(libaacs PRIVATE libgpg-error::libgpg-error libgcrypt::libgcrypt iconv::iconv)
 +
-+set(EX_SRCS
-+  ${CMAKE_CURRENT_SOURCE_DIR}/src/examples/aacs_info.c
-+)
++if (NOT WINDOWS_STORE)
++  set(EX_SRCS
++    ${CMAKE_CURRENT_SOURCE_DIR}/src/examples/aacs_info.c
++  )
 +
-+ADD_EXECUTABLE(aacsinfo ${EX_SRCS})
-+target_compile_definitions(aacsinfo
-+  PRIVATE
-+  HAVE_CONFIG_H
-+  _CRT_SECURE_NO_WARNINGS
-+  _CRT_NONSTDC_NO_WARNINGS)
-+  
-+target_include_directories(aacsinfo
-+  PRIVATE
-+  $<BUILD_INTERFACE:.;cmake;src;${CMAKE_CURRENT_BINARY_DIR}>
-+  INTERFACE
-+)
-+add_dependencies(aacsinfo libaacs)
-+target_link_libraries(aacsinfo PRIVATE libaacs)
++  ADD_EXECUTABLE(aacsinfo ${EX_SRCS})
++  target_compile_definitions(aacsinfo
++    PRIVATE
++    HAVE_CONFIG_H
++    _CRT_SECURE_NO_WARNINGS
++    _CRT_NONSTDC_NO_WARNINGS)
++    
++  target_include_directories(aacsinfo
++    PRIVATE
++    $<BUILD_INTERFACE:.;cmake;src;${CMAKE_CURRENT_BINARY_DIR}>
++    INTERFACE
++  )
++  add_dependencies(aacsinfo libaacs)
++  target_link_libraries(aacsinfo PRIVATE libaacs)
++endif(NOT WINDOWS_STORE)
 +
 +include(CMakePackageConfigHelpers)
 +write_basic_package_version_file(
@@ -143,7 +165,22 @@
 +install(FILES src/libaacs/aacs.h src/file/filesystem.h src/libaacs/aacs-version.h DESTINATION include/${PROJECT_NAME})
 +
 +if(MSVC)
-+  install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/${PROJECT_NAME}.pdb DESTINATION lib CONFIGURATIONS RelWithDebInfo)
++  set_target_properties(libaacs
++    PROPERTIES
++      COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
++      COMPILE_PDB_NAME libaacs
++      COMPILE_PDB_NAME_DEBUG libaacsd
++  )
++  install(FILES
++    ${PROJECT_BINARY_DIR}/RelWithDebInfo/libaacs.pdb
++    DESTINATION lib
++    CONFIGURATIONS RelWithDebInfo
++  )
++  install(FILES
++    ${PROJECT_BINARY_DIR}/Debug/libaacsd.pdb
++    DESTINATION lib
++    CONFIGURATIONS Debug
++  )
 +endif()
 +
 +install(EXPORT ${PROJECT_NAME}
@@ -162,6 +199,9 @@
 +  DESTINATION
 +    lib/cmake/${PROJECT_NAME}
 +)
+diff --git a/cmake/config.h b/cmake/config.h
+new file mode 100644
+index 0000000..b134b56
 --- /dev/null
 +++ b/cmake/config.h
 @@ -0,0 +1,127 @@
@@ -285,17 +325,23 @@
 +
 +/* Define to '0x0500' for Windows XP APIs. */
 +#define _WIN32_WINNT 0x0502
-+#else
++#elif !defined(MS_APP)
 +/* Define to '0x0600' for IE 6.0. */
 +#define _WIN32_IE 0x0600
 +
 +/* Define to '0x0600' for Windows Vista APIs. */
 +#define _WIN32_WINNT 0x0600
 +#endif
+diff --git a/cmake/libaacs-config.cmake b/cmake/libaacs-config.cmake
+new file mode 100644
+index 0000000..d491e75
 --- /dev/null
 +++ b/cmake/libaacs-config.cmake
 @@ -0,0 +1 @@
 +include(${CMAKE_CURRENT_LIST_DIR}/libbdplus.cmake)
+diff --git a/cmake/libaacs.def b/cmake/libaacs.def
+new file mode 100644
+index 0000000..9f30c8c
 --- /dev/null
 +++ b/cmake/libaacs.def
 @@ -0,0 +1,22 @@
@@ -321,6 +367,74 @@
 +    aacs_register_file
 +    aacs_select_title
 +    aacs_set_fopen
+diff --git a/src/file/dirs_win32.c b/src/file/dirs_win32.c
+index 9f77a2e..7817330 100644
+--- a/src/file/dirs_win32.c
++++ b/src/file/dirs_win32.c
+@@ -28,8 +28,13 @@
+ #include <stdio.h>
+ #include <string.h>
+ 
++#ifndef WIN32_LEAN_AND_MEAN
++#define WIN32_LEAN_AND_MEAN
++#endif
+ #include <windows.h>
++#ifndef MS_APP
+ #include <shlobj.h>
++#endif
+ #include <limits.h>
+ 
+ 
+@@ -40,6 +45,9 @@ char *file_get_config_home(void)
+ 
+ char *file_get_data_home(void)
+ {
++#ifdef MS_APP
++	return NULL;
++#else
+     wchar_t wdir[MAX_PATH];
+ 
+     /* Get the "Application Data" folder for the user */
+@@ -55,6 +63,7 @@ char *file_get_data_home(void)
+ 
+     BD_DEBUG(DBG_FILE, "Can't find user configuration directory !\n");
+     return NULL;
++#endif
+ }
+ 
+ char *file_get_cache_home(void)
+@@ -64,6 +73,9 @@ char *file_get_cache_home(void)
+ 
+ const char *file_get_config_system(const char *dir)
+ {
++#ifdef MS_APP
++	return NULL;
++#else
+     static char *appdir = NULL;
+     wchar_t wdir[MAX_PATH];
+ 
+@@ -92,4 +104,5 @@ const char *file_get_config_system(const char *dir)
+     }
+ 
+     return dir;
++#endif
+ }
+diff --git a/src/file/file_win32.c b/src/file/file_win32.c
+index 7d3e2d4..8391aff 100644
+--- a/src/file/file_win32.c
++++ b/src/file/file_win32.c
+@@ -34,6 +34,9 @@
+ #include <stdlib.h>
+ #include <inttypes.h>
+ 
++#ifndef WIN32_LEAN_AND_MEAN
++#define WIN32_LEAN_AND_MEAN
++#endif
+ #include <windows.h>
+ 
+ static void _file_close(AACS_FILE_H *file)
+diff --git a/src/file/keydb.h b/src/file/keydb.h
+index c98762f..38e586c 100644
 --- a/src/file/keydb.h
 +++ b/src/file/keydb.h
 @@ -4,17 +4,17 @@
@@ -344,9 +458,46 @@
    },
  };
  
+diff --git a/src/file/mmc_device_win32.c b/src/file/mmc_device_win32.c
+index f78dd1c..862474e 100644
+--- a/src/file/mmc_device_win32.c
++++ b/src/file/mmc_device_win32.c
+@@ -28,8 +28,11 @@
+ #include "util/macro.h"
+ #include "util/logging.h"
+ 
++#ifndef WIN32_LEAN_AND_MEAN
++#define WIN32_LEAN_AND_MEAN
++#endif
+ #include <windows.h>
+-#include <winsock.h>
++#include <winsock2.h>
+ 
+ #include <stdlib.h>
+ #include <string.h>
+@@ -131,6 +134,9 @@ int device_send_cmd(MMCDEV *dev, const uint8_t *cmd, uint8_t *buf, size_t tx, si
+ 
+ MMCDEV *device_open(const char *path)
+ {
++#ifdef MS_APP
++	return NULL;
++#else
+     char    drive[] = { path[0], ':', '\\', 0 };
+     char    volume[] = {'\\', '\\', '.', '\\', path[0], ':', 0};
+     UINT    type;
+@@ -169,6 +175,7 @@ MMCDEV *device_open(const char *path)
+ 
+     dev->fd = fd;
+     return dev;
++#endif
+ }
+ 
+ void device_close(MMCDEV **pp)
+diff --git a/src/libaacs/crypto.c b/src/libaacs/crypto.c
+index 4db7641..1075645 100644
 --- a/src/libaacs/crypto.c
 +++ b/src/libaacs/crypto.c
-@@ -366,22 +366,26 @@
+@@ -366,22 +366,26 @@ static gcry_error_t _aacs_sexp_sha1(gcry_sexp_t *p_sexp_data,
      }
  
      /* Build an s-expression for the hash */

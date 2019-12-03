@@ -1,8 +1,8 @@
 [CmdletBinding()]
 Param(
   [Parameter()]
-  [ValidateSet('bzip2', 'crossguid', 'curl', 'dnssd', 'easyhook', 'expat', 'flatc', 'freetype', 'fstrcmp', 'lcms2', 'libaacs', 'libass', 'libbdplus', 'libbluray', 'libcdi', 'libcec', 'libffi', 'libfribidi', 'libgrypt', 'libgpg-error', 'libjpeg-turbo', 'libiconv', 'libmicrohttpd', 'libnfs', 'libplist', 'libwebp', 'libxml2', 'libxsl', 'libyajl', 'lzo2', 'mariadb-connector-c', 'openssl', 'pcre', 'python', 'shairplay', 'sqlite', 'taglib', 'tinyxml', 'winflexbison', 'xz', 'zlib')]
-  [string[]] $Packages = @('bzip2', 'crossguid', 'curl', 'expat', 'flatc', 'freetype', 'fstrcmp', 'lcms2', 'libaacs', 'libass', 'libbdplus', 'libbluray', 'libcdi', 'libcec', 'libffi', 'libfribidi', 'libgrypt', 'libgpg-error', 'libiconv', 'libjpeg-turbo', 'libmicrohttpd', 'libnfs', 'libplist', 'libwebp', 'libxml2', 'libxsl', 'libyajl', 'lzo2', 'mariadb-connector-c', 'openssl', 'pcre', 'python', 'shairplay', 'sqlite', 'taglib', 'tinyxml', 'winflexbison', 'xz', 'zlib'),
+  [ValidateSet('bzip2', 'crossguid', 'curl', 'dnssd', 'easyhook', 'expat', 'flatc', 'freetype', 'fstrcmp', 'lcms2', 'libaacs', 'libass', 'libbdplus', 'libbluray', 'libcdi', 'libcec', 'libffi', 'libfribidi', 'libgrypt', 'libgpg-error', 'libgcrypt', 'libjpeg-turbo', 'libiconv', 'libmicrohttpd', 'libnfs', 'libplist', 'libwebp', 'libxml2', 'libxsl', 'libyajl', 'lzo2', 'mariadb-connector-c', 'openssl', 'pcre', 'python', 'shairplay', 'sqlite', 'taglib', 'tinyxml', 'winflexbison', 'xz', 'zlib')]
+  [string[]] $Packages = @('bzip2', 'crossguid', 'curl', 'expat', 'flatc', 'freetype', 'fstrcmp', 'lcms2', 'libaacs', 'libass', 'libbdplus', 'libbluray', 'libcdi', 'libcec', 'libffi', 'libfribidi', 'libgrypt', 'libgpg-error', 'libiconv', 'libgcrypt', 'libjpeg-turbo', 'libmicrohttpd', 'libnfs', 'libplist', 'libwebp', 'libxml2', 'libxsl', 'libyajl', 'lzo2', 'mariadb-connector-c', 'openssl', 'pcre', 'python', 'shairplay', 'sqlite', 'taglib', 'tinyxml', 'winflexbison', 'xz', 'zlib'),
   [switch] $GenerateProjects,
   [switch] $Rel = $false,
   [switch] $Deb = $false,

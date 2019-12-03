@@ -1,11 +1,15 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+new file mode 100644
+index 00000000..affaec8e
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,233 @@
+@@ -0,0 +1,286 @@
 +cmake_minimum_required(VERSION 3.0)
 +
-+project(libgcrypt VERSION 1.7.6 LANGUAGES C)
++project(libgcrypt VERSION 1.7.6 LANGUAGES C CXX)
 +
-+find_package(libpgp-error 1.2.7 REQUIRED)
++find_package(libgpg-error 1.36.0 NO_MODULE REQUIRED)
++find_package(iconv NO_MODULE REQUIRED)
 +
 +if(MSVC)
 +  set(CMAKE_DEBUG_POSTFIX "d")
@@ -13,7 +17,7 @@
 +
 +file(COPY mpi/generic/mpi-asm-defs.h DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/mpi) 
 +
-+set(SRCS
++add_library(libgcrypt
 +  cipher/arcfour.c
 +  cipher/bithelp.h
 +  cipher/blowfish.c
@@ -176,10 +180,41 @@
 +  src/visibility.h
 +)
 +
-+ADD_LIBRARY(libgcrypt ${SRCS})
-+SET_TARGET_PROPERTIES(libgcrypt PROPERTIES LINK_FLAGS "/DEF:\"libgcrypt.def\"")
-+target_link_libraries(libgcrypt PRIVATE libpgp-error::libpgp-error)
++if(WINDOWS_STORE)
++  target_sources(libgcrypt PRIVATE
++    src/uwp_compat.cpp
++  )
++  target_compile_definitions(libgcrypt
++    PRIVATE
++      MS_APP
++  )
++endif()
 +
++set_target_properties(libgcrypt PROPERTIES LINK_FLAGS "/DEF:\"libgcrypt.def\"")
++
++target_link_libraries(libgcrypt
++  PRIVATE
++    $<$<CONFIG:Debug>:vccorlibd.lib>
++    $<$<CONFIG:RelWithDebInfo>:vccorlib.lib>
++    $<$<CONFIG:Debug>:msvcrtd.lib>
++    $<$<CONFIG:RelWithDebInfo>:msvcrt.lib>
++    libgpg-error::libgpg-error
++    iconv::iconv
++    ws2_32.lib
++    version.lib
++    shlwapi.lib
++    Advapi32.lib
++    Kernel32.lib
++)
++
++target_link_options(libgcrypt PRIVATE
++  /NODEFAULTLIB:vccorlibd
++  /NODEFAULTLIB:msvcrtd
++  /NODEFAULTLIB:vccorlib
++  /NODEFAULTLIB:msvcrt
++  /INCREMENTAL:NO
++  /debug:full
++)
 +target_compile_definitions(libgcrypt
 +  PRIVATE
 +  HAVE_CONFIG_H
@@ -189,6 +224,13 @@
 +  __builtin_bswap32=_byteswap_ulong
 +  __builtin_bswap64=_byteswap_uint64
 +  asm=__asm__
++)
++ target_compile_options(libgcrypt
++  PRIVATE
++  /sdl-
++  /ZW
++  /EHsc
++  /MP
 +)
 +
 +target_include_directories(libgcrypt
@@ -214,8 +256,22 @@
 +install(FILES cmake/gcrypt.h DESTINATION include/libgcrypt)
 +
 +if(MSVC)
-+  set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME ${PROJECT_NAME})
-+  install(FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/libgcrypt.pdb DESTINATION lib CONFIGURATIONS RelWithDebInfo)
++  set_target_properties(${PROJECT_NAME}
++    PROPERTIES
++      COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
++      COMPILE_PDB_NAME ${PROJECT_NAME}
++      COMPILE_PDB_NAME_DEBUG ${PROJECT_NAME}d
++  )
++  install(FILES
++    ${PROJECT_BINARY_DIR}/RelWithDebInfo/libgcrypt.pdb
++    DESTINATION lib
++    CONFIGURATIONS RelWithDebInfo
++  )
++  install(FILES
++    ${PROJECT_BINARY_DIR}/Debug/libgcryptd.pdb
++    DESTINATION lib
++    CONFIGURATIONS Debug
++  )
 +endif()
 +
 +install(EXPORT ${PROJECT_NAME}
@@ -234,9 +290,85 @@
 +  DESTINATION
 +    lib/cmake/${PROJECT_NAME}
 +)
+\ No newline at end of file
+diff --git a/cipher/bithelp.h b/cipher/bithelp.h
+index 45753805..0ddd7d63 100644
+--- a/cipher/bithelp.h
++++ b/cipher/bithelp.h
+@@ -53,7 +53,7 @@ _gcry_bswap32(u32 x)
+ static inline u64
+ _gcry_bswap64(u64 x)
+ {
+-	return ((u64)_gcry_bswap32(x) << 32) | (_gcry_bswap32(x >> 32));
++	return ((u64)_gcry_bswap32((u32)x) << 32) | (_gcry_bswap32((u32)(x >> 32)));
+ }
+ #endif
+ 
+@@ -106,9 +106,9 @@ _gcry_ctz64(u64 x)
+   return x? __builtin_ctz (x) : 8 * sizeof (x);
+ #else
+   if ((x & 0xffffffff))
+-    return _gcry_ctz (x);
++    return _gcry_ctz ((u32)x);
+   else
+-    return 32 + _gcry_ctz (x >> 32);
++    return 32 + _gcry_ctz ((u32)(x >> 32));
+ #endif
+ }
+ 
+diff --git a/cipher/bufhelp.h b/cipher/bufhelp.h
+index df355947..70326843 100644
+--- a/cipher/bufhelp.h
++++ b/cipher/bufhelp.h
+@@ -342,27 +342,27 @@ static inline u64 buf_get_le64(const void *_buf)
+ static inline void buf_put_be64(void *_buf, u64 val)
+ {
+   byte *out = _buf;
+-  out[0] = val >> 56;
+-  out[1] = val >> 48;
+-  out[2] = val >> 40;
+-  out[3] = val >> 32;
+-  out[4] = val >> 24;
+-  out[5] = val >> 16;
+-  out[6] = val >> 8;
+-  out[7] = val;
++  out[0] = (byte)(val >> 56);
++  out[1] = (byte)(val >> 48);
++  out[2] = (byte)(val >> 40);
++  out[3] = (byte)(val >> 32);
++  out[4] = (byte)(val >> 24);
++  out[5] = (byte)(val >> 16);
++  out[6] = (byte)(val >> 8);
++  out[7] = (byte)val;
+ }
+ 
+ static inline void buf_put_le64(void *_buf, u64 val)
+ {
+   byte *out = _buf;
+-  out[7] = val >> 56;
+-  out[6] = val >> 48;
+-  out[5] = val >> 40;
+-  out[4] = val >> 32;
+-  out[3] = val >> 24;
+-  out[2] = val >> 16;
+-  out[1] = val >> 8;
+-  out[0] = val;
++  out[7] = (byte)(val >> 56);
++  out[6] = (byte)(val >> 48);
++  out[5] = (byte)(val >> 40);
++  out[4] = (byte)(val >> 32);
++  out[3] = (byte)(val >> 24);
++  out[2] = (byte)(val >> 16);
++  out[1] = (byte)(val >> 8);
++  out[0] = (byte)val;
+ }
+ 
+ #else /*BUFHELP_FAST_UNALIGNED_ACCESS*/
+diff --git a/cipher/cipher-ccm.c b/cipher/cipher-ccm.c
+index d7f14d89..12d9de48 100644
 --- a/cipher/cipher-ccm.c
 +++ b/cipher/cipher-ccm.c
-@@ -38,7 +38,7 @@
+@@ -38,7 +38,7 @@ static unsigned int
  do_cbc_mac (gcry_cipher_hd_t c, const unsigned char *inbuf, size_t inlen,
              int do_padding)
  {
@@ -245,9 +377,26 @@
    gcry_cipher_encrypt_t enc_fn = c->spec->encrypt;
    unsigned char tmp[blocksize];
    unsigned int burn = 0;
+@@ -133,12 +133,12 @@ _gcry_cipher_ccm_set_nonce (gcry_cipher_hd_t c, const unsigned char *nonce,
+   c->marks.key = marks_key;
+ 
+   /* Setup CTR */
+-  c->u_ctr.ctr[0] = L_;
++  c->u_ctr.ctr[0] = (unsigned char)L_;
+   memcpy (&c->u_ctr.ctr[1], nonce, noncelen);
+   memset (&c->u_ctr.ctr[1 + noncelen], 0, L);
+ 
+   /* Setup IV */
+-  c->u_iv.iv[0] = L_;
++  c->u_iv.iv[0] = (unsigned char)L_;
+   memcpy (&c->u_iv.iv[1], nonce, noncelen);
+   /* Add (8 * M_ + 64 * flags) to iv[0] and set iv[noncelen + 1 ... 15] later
+      in set_aad.  */
+diff --git a/cipher/cipher-poly1305.c b/cipher/cipher-poly1305.c
+index a2a74e8f..5f35ee7b 100644
 --- a/cipher/cipher-poly1305.c
 +++ b/cipher/cipher-poly1305.c
-@@ -71,7 +71,7 @@
+@@ -71,7 +71,7 @@ poly1305_fill_bytecounts (gcry_cipher_hd_t c)
  static void
  poly1305_do_padding (gcry_cipher_hd_t c, u32 ctr[2])
  {
@@ -256,9 +405,11 @@
    u32 padding_count;
  
    /* Padding to 16 byte boundary. */
+diff --git a/cipher/stribog.c b/cipher/stribog.c
+index 7b6e330d..3ca6d801 100644
 --- a/cipher/stribog.c
 +++ b/cipher/stribog.c
-@@ -1284,7 +1284,7 @@
+@@ -1284,7 +1284,7 @@ static void
  stribog_final (void *context)
  {
    STRIBOG_CONTEXT *hd = context;
@@ -267,6 +418,9 @@
    int i;
  
    _gcry_md_block_write (context, NULL, 0); /* flush */ ;
+diff --git a/cmake/config.h b/cmake/config.h
+new file mode 100644
+index 00000000..1daf0475
 --- /dev/null
 +++ b/cmake/config.h
 @@ -0,0 +1,517 @@
@@ -787,6 +941,9 @@
 +
 +#endif /*_GCRYPT_CONFIG_H_INCLUDED*/
 +
+diff --git a/cmake/gcrypt.h b/cmake/gcrypt.h
+new file mode 100644
+index 00000000..5058dbbb
 --- /dev/null
 +++ b/cmake/gcrypt.h
 @@ -0,0 +1,1780 @@
@@ -2570,6 +2727,9 @@
 +
 +
 +*/
+diff --git a/cmake/gost-sb.h b/cmake/gost-sb.h
+new file mode 100644
+index 00000000..5a87fc95
 --- /dev/null
 +++ b/cmake/gost-sb.h
 @@ -0,0 +1,2127 @@
@@ -4700,10 +4860,16 @@
 +  { "1.2.643.7.1.2.5.1.1", sbox_TC26_Z },
 +  { NULL, NULL }
 +};
+diff --git a/cmake/libgcrypt-config.cmake b/cmake/libgcrypt-config.cmake
+new file mode 100644
+index 00000000..630f51ae
 --- /dev/null
 +++ b/cmake/libgcrypt-config.cmake
 @@ -0,0 +1 @@
 +include(${CMAKE_CURRENT_LIST_DIR}/libgcrypt.cmake)
+diff --git a/cmake/libgcrypt.def b/cmake/libgcrypt.def
+new file mode 100644
+index 00000000..067cb843
 --- /dev/null
 +++ b/cmake/libgcrypt.def
 @@ -0,0 +1,285 @@
@@ -4992,6 +5158,9 @@
 +      gcry_mpi_ec_decode_point  @246
 +
 +;; end of file with public symbols for Windows.
+diff --git a/cmake/mod-source-info.h b/cmake/mod-source-info.h
+new file mode 100644
+index 00000000..76c850e0
 --- /dev/null
 +++ b/cmake/mod-source-info.h
 @@ -0,0 +1,11 @@
@@ -5006,6 +5175,9 @@
 +  ":generic/mpih-lshift.c"
 +  ":generic/mpih-rshift.c"
 +  ;
+diff --git a/cmake/sys/time.h b/cmake/sys/time.h
+new file mode 100644
+index 00000000..197b4568
 --- /dev/null
 +++ b/cmake/sys/time.h
 @@ -0,0 +1,70 @@
@@ -5079,6 +5251,9 @@
 +#endif /* _MSC_VER */
 +
 +#endif /* _SMP_SYS_TIME_H_ */
+diff --git a/cmake/version.h b/cmake/version.h
+new file mode 100644
+index 00000000..b4ddc51b
 --- /dev/null
 +++ b/cmake/version.h
 @@ -0,0 +1,11 @@
@@ -5093,6 +5268,21 @@
 +
 +/* The time this package was configured for a build */
 +#define BUILD_TIMESTAMP "2017-01-22T11:19+0000"
+diff --git a/mpi/mpi-pow.c b/mpi/mpi-pow.c
+index a780ebd1..06c04487 100644
+--- a/mpi/mpi-pow.c
++++ b/mpi/mpi-pow.c
+@@ -397,7 +397,7 @@ mul_mod (mpi_ptr_t xp, mpi_size_t *xsize_p,
+  */
+ void
+ _gcry_mpi_powm (gcry_mpi_t res,
+-                gcry_mpi_t base, gcry_mpi_t expo, gcry_mpi_t mod)
++                const gcry_mpi_t base, const gcry_mpi_t expo, const gcry_mpi_t mod)
+ {
+   /* Pointer to the limbs of the arguments, their size and signs. */
+   mpi_ptr_t  rp, ep, mp, bp;
+diff --git a/random/random-csprng.c b/random/random-csprng.c
+index 5a771c29..5c529425 100644
 --- a/random/random-csprng.c
 +++ b/random/random-csprng.c
 @@ -40,7 +40,14 @@
@@ -5123,6 +5313,8 @@
  #include "g10lib.h"
  #include "random.h"
  #include "rand-internal.h"
+diff --git a/random/random-drbg.c b/random/random-drbg.c
+index e2fe8615..e9099e1c 100644
 --- a/random/random-drbg.c
 +++ b/random/random-drbg.c
 @@ -147,7 +147,6 @@
@@ -5142,6 +5334,8 @@
  
  
  /******************************************************************
+diff --git a/random/random-system.c b/random/random-system.c
+index 8b79511c..6ddf993b 100644
 --- a/random/random-system.c
 +++ b/random/random-system.c
 @@ -27,7 +27,6 @@
@@ -5152,6 +5346,8 @@
  #ifdef HAVE_GETTIMEOFDAY
  #include <sys/time.h>
  #endif
+diff --git a/random/random.c b/random/random.c
+index ff9be166..afb790e5 100644
 --- a/random/random.c
 +++ b/random/random.c
 @@ -28,13 +28,13 @@
@@ -5169,6 +5365,183 @@
  
  /* If not NULL a progress function called from certain places and the
     opaque value passed along.  Registered by
+diff --git a/random/rndw32.c b/random/rndw32.c
+index de6e783c..3e996843 100644
+--- a/random/rndw32.c
++++ b/random/rndw32.c
+@@ -257,6 +257,7 @@ static void
+ init_system_rng (void)
+ {
+   system_rng_available = 0;
++#ifndef MS_APP
+   hRNGProv = NULL;
+ 
+   hAdvAPI32 = GetModuleHandle ("AdvAPI32.dll");
+@@ -289,6 +290,7 @@ init_system_rng (void)
+       hAdvAPI32 = NULL;
+     }
+   else
++#endif
+     system_rng_available = 1;
+ }
+ 
+@@ -300,6 +302,10 @@ read_system_rng (void (*add)(const void*, size_t, enum random_origins),
+ {
+   BYTE buffer[ SYSTEMRNG_BYTES + 8 ];
+   int quality = 0;
++#ifdef MS_APP
++  if (uwp_urandom(buffer, SYSTEMRNG_BYTES))
++    quality = 80;
++#else
+ 
+   if (!system_rng_available)
+     return;
+@@ -317,6 +323,7 @@ read_system_rng (void (*add)(const void*, size_t, enum random_origins),
+       if ( pRtlGenRandom (buffer, SYSTEMRNG_BYTES))
+         quality = 50;
+     }
++#endif
+   if (quality > 0)
+     {
+       if (debug_me)
+@@ -337,7 +344,7 @@ read_mbm_data (void (*add)(const void*, size_t, enum random_origins),
+   HANDLE hMBMData;
+   SharedData *mbmDataPtr;
+ 
+-  hMBMData = OpenFileMapping (FILE_MAP_READ, FALSE, "$M$B$M$5$S$D$" );
++  hMBMData = OpenFileMapping (FILE_MAP_READ, FALSE, L"$M$B$M$5$S$D$" );
+   if (hMBMData)
+     {
+       mbmDataPtr = (SharedData*)MapViewOfFile (hMBMData, FILE_MAP_READ,0,0,0);
+@@ -353,12 +360,12 @@ read_mbm_data (void (*add)(const void*, size_t, enum random_origins),
+     }
+ }
+ 
+-
+ /* Fallback method using the registry to poll the statistics.  */
+ static void
+ registry_poll (void (*add)(const void*, size_t, enum random_origins),
+                enum random_origins requester)
+ {
++  #ifndef MS_APP
+   static int cbPerfData = PERFORMANCE_BUFFER_SIZE;
+   int iterations;
+   DWORD dwSize, status;
+@@ -478,6 +485,7 @@ registry_poll (void (*add)(const void*, size_t, enum random_origins),
+      isn't done then any system components which provide performance data
+      can't be removed or changed while the handle remains active.  */
+   RegCloseKey (HKEY_PERFORMANCE_DATA);
++#endif
+ }
+ 
+ 
+@@ -494,6 +502,7 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
+   int no_results = 0;
+   void *buffer;
+ 
++#ifndef MS_APP
+   if ( !is_initialized )
+     {
+       HKEY hKey;
+@@ -569,10 +578,12 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
+ 
+       is_initialized = 1;
+     }
++#endif
+ 
+   read_system_rng ( add, requester );
+   read_mbm_data ( add, requester );
+ 
++#ifndef MS_APP
+   /* Get network statistics.    Note: Both NT Workstation and NT Server by
+      default will be running both the workstation and server services.  The
+      heuristic below is probably useful though on the assumption that the
+@@ -765,6 +776,7 @@ slow_gatherer ( void (*add)(const void*, size_t, enum random_origins),
+      somewhat troublesome registry poll.  */
+   if (no_results < 15)
+     registry_poll (add, requester);
++#endif
+ }
+ 
+ 
+@@ -786,12 +798,6 @@ _gcry_rndw32_gather_random (void (*add)(const void*, size_t,
+ 
+   if (!is_initialized)
+     {
+-      OSVERSIONINFO osvi = { sizeof( osvi ) };
+-
+-      GetVersionEx( &osvi );
+-      if (osvi.dwPlatformId != VER_PLATFORM_WIN32_NT)
+-        log_fatal ("can only run on a Windows NT platform\n" );
+-      system_is_w2000 = (osvi.dwMajorVersion == 5 && osvi.dwMinorVersion == 0);
+       init_system_rng ();
+       is_initialized = 1;
+     }
+@@ -842,22 +848,30 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
+                         ADDINT((SIZE_T)aptr);                      \
+                       } while (0)
+ 
++#ifndef MS_APP
+     ADDPTR ( GetActiveWindow ());
+     ADDPTR ( GetCapture ());
++#endif
++#ifndef MS_APP
+     ADDPTR ( GetClipboardOwner ());
+     ADDPTR ( GetClipboardViewer ());
++#endif
+     ADDPTR ( GetCurrentProcess ());
+     ADDINT ( GetCurrentProcessId ());
+     ADDPTR ( GetCurrentThread ());
+     ADDINT ( GetCurrentThreadId ());
++#ifndef MS_APP
+     ADDPTR ( GetDesktopWindow ());
+     ADDPTR ( GetFocus ());
+     ADDINT ( GetInputState ());
+     ADDINT ( GetMessagePos ());
+     ADDINT ( GetMessageTime ());
+     ADDPTR ( GetOpenClipboardWindow ());
++#endif
+     ADDPTR ( GetProcessHeap ());
++#ifndef MS_APP
+     ADDPTR ( GetProcessWindowStation ());
++#endif
+     /* Following function in some cases stops returning events, and cannot
+        be used as an entropy source.  */
+     /*ADDINT ( GetQueueStatus (QS_ALLEVENTS));*/
+@@ -869,6 +883,7 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
+ #undef ADDPTR
+   }
+ 
++#ifndef MS_APP
+   /* Get multiword system information: Current caret position, current
+      mouse cursor position.  */
+   {
+@@ -890,6 +905,7 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
+     GlobalMemoryStatus (&memoryStatus);
+     (*add) ( &memoryStatus, sizeof (memoryStatus), origin );
+   }
++#endif
+ 
+   /* Get thread and process creation time, exit time, time in kernel
+      mode, and time in user mode in 100ns intervals.  */
+@@ -924,6 +940,7 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
+   }
+ 
+ 
++#ifndef MS_APP
+   /* The following are fixed for the lifetime of the process so we only
+    * add them once */
+   if (!addedFixedItems)
+@@ -938,6 +955,7 @@ _gcry_rndw32_gather_random_fast (void (*add)(const void*, size_t,
+       (*add) ( &startupInfo, sizeof (STARTUPINFO), origin );
+       addedFixedItems = 1;
+     }
++#endif
+ 
+   /* The performance of QPC varies depending on the architecture it's
+      running on and on the OS, the MS documentation is vague about the
+diff --git a/src/context.c b/src/context.c
+index f77878bc..65a98e0b 100644
 --- a/src/context.c
 +++ b/src/context.c
 @@ -22,7 +22,6 @@
@@ -5179,6 +5552,8 @@
  
  #include "g10lib.h"
  #include "mpi.h"
+diff --git a/src/fips.c b/src/fips.c
+index af3fe2c6..33bdd343 100644
 --- a/src/fips.c
 +++ b/src/fips.c
 @@ -21,7 +21,12 @@
@@ -5195,6 +5570,8 @@
  #include <string.h>
  #ifdef ENABLE_HMAC_BINARY_CHECK
  # include <dlfcn.h>
+diff --git a/src/global.c b/src/global.c
+index 4283460b..3352aae4 100644
 --- a/src/global.c
 +++ b/src/global.c
 @@ -29,7 +29,6 @@
@@ -5205,6 +5582,8 @@
  #ifdef HAVE_SYSLOG
  # include <syslog.h>
  #endif /*HAVE_SYSLOG*/
+diff --git a/src/hwf-x86.c b/src/hwf-x86.c
+index eeacccb9..680ed0f7 100644
 --- a/src/hwf-x86.c
 +++ b/src/hwf-x86.c
 @@ -23,7 +23,6 @@
@@ -5215,6 +5594,8 @@
  
  #include "g10lib.h"
  #include "hwf-common.h"
+diff --git a/src/hwfeatures.c b/src/hwfeatures.c
+index 07221e8e..9c17e787 100644
 --- a/src/hwfeatures.c
 +++ b/src/hwfeatures.c
 @@ -24,7 +24,6 @@
@@ -5225,6 +5606,8 @@
  #ifdef HAVE_SYSLOG
  # include <syslog.h>
  #endif /*HAVE_SYSLOG*/
+diff --git a/src/misc.c b/src/misc.c
+index 413d7d82..44aed35c 100644
 --- a/src/misc.c
 +++ b/src/misc.c
 @@ -24,7 +24,7 @@
@@ -5236,6 +5619,8 @@
  
  #include "g10lib.h"
  #include "secmem.h"
+diff --git a/src/secmem.c b/src/secmem.c
+index 46bbf82e..60b24d2a 100644
 --- a/src/secmem.c
 +++ b/src/secmem.c
 @@ -25,7 +25,6 @@
@@ -5246,3 +5631,46 @@
  #include <stddef.h>
  
  #if defined(HAVE_MLOCK) || defined(HAVE_MMAP)
+diff --git a/src/uwp_compat.cpp b/src/uwp_compat.cpp
+new file mode 100644
+index 00000000..ad4da86d
+--- /dev/null
++++ b/src/uwp_compat.cpp
+@@ -0,0 +1,23 @@
++#include <windows.h>
++
++#ifdef MS_APP
++#include <windows.security.cryptography.h>
++using namespace Windows::Security::Cryptography;
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++int
++uwp_urandom(unsigned char* buffer, size_t size) {
++	auto s = static_cast<unsigned int>(size);
++	auto buf = ref new Platform::Array<unsigned char>(buffer, s);
++	auto cryptoBuffer = CryptographicBuffer::GenerateRandom(s);
++	CryptographicBuffer::CopyToByteArray(cryptoBuffer, &buf);
++	return TRUE;
++}
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif
+\ No newline at end of file
+diff --git a/src/visibility.c b/src/visibility.c
+index 3abbd379..007b66f8 100644
+--- a/src/visibility.c
++++ b/src/visibility.c
+@@ -692,7 +692,7 @@ _gcry_mpi_get_const (int no)
+     case 3: return _gcry_mpi_const (MPI_C_THREE);
+     case 4: return _gcry_mpi_const (MPI_C_FOUR);
+     case 8: return _gcry_mpi_const (MPI_C_EIGHT);
+-    default: log_bug("unsupported GCRYMPI_CONST_ macro used\n");
++	default: log_bug("unsupported GCRYMPI_CONST_ macro used\n"); return 0;
+     }
+ }
+ 
