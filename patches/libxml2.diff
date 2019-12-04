@@ -1,58 +1,60 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+new file mode 100644
+index 0000000..99da25c
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,217 @@
+@@ -0,0 +1,212 @@
 +cmake_minimum_required(VERSION 3.2)
 +
 +project(libxml2 VERSION 2.9.4 LANGUAGES C)
 +
 +option(BUILD_SHARED_LIBS "Build as shared lib instead of static" ON)
-+option(WITH_TRIO "Enable TRIO string manipulator" ON)
-+option(WITH_THREADS:STRING "Enable thread safety [no|ctls|native|posix" "native")
-+option(WITH_FTP "Enable FTP client" OFF)
-+option(WITH_HTTP "Enable HTTP client" OFF)
-+option(WITH_HTML "Enable HTML processor" ON)
-+option(WITH_C14N "Enable C14N support" ON)
-+option(WITH_CATALOG "Enable catalog support" ON)
-+option(WITH_DOCB "Enable DocBook support" ON)
-+option(WITH_XPATH "Enable XPath support" ON)
-+option(WITH_XPTR "Enable XPointer support" ON)
-+option(WITH_XINCLUDE "Enable XInclude support" ON)
-+option(WITH_ICONV "Enable iconv support" ON)
-+option(WITH_ICU "Enable icu support" OFF)
-+option(WITH_ISO8859X "Enable ISO8859X support" OFF)
-+option(WITH_ZLIB "Enable zlib support" OFF)
-+option(WITH_LZMA "Enable lzma support" OFF)
-+option(WITH_DEBUG "Enable XML debugging module" ON)
-+option(WITH_MEM_DEBUG "Enable memory debugger" OFF)
-+option(WITH_RUN_DEBUG "Enable memory debugger" OFF)
-+option(WITH_SCHEMAS "Enable XML schema support" ON)
-+option(WITH_SCHEMATRON "Enable schematron support" ON)
-+option(WITH_REGEXPS "Enable regular expressions" ON)
-+option(WITH_MODULES "Enable module support" ON)
-+option(WITH_TREE "Enable tree api" ON)
-+option(WITH_READER "Enable xmlReader api" ON)
-+option(WITH_WRITER "Enable xmlWriter api" ON)
-+option(WITH_WALKER "Enable xmlDocWalker api" ON)
-+option(WITH_PATTERN "Enable xmlPattern api" ON)
-+option(WITH_PUSH "Enable push api" ON)
-+option(WITH_VALID "Enable DTD validation support" ON)
-+option(WITH_SAX1 "Enable SAX1 api" ON)
-+option(WITH_LEGACY "Enable deprecated api's" OFF)
-+option(WITH_OUTPUT "Enable serialization support" ON)
-+option(WITH_PYTHON "Enable Python bindings" OFF)
++option(WITH_TRIO "Enable TRIO string manipulator" 1)
++option(WITH_THREADS:BOOL "Enable thread safety [no|ctls|native|posix" ON)
++option(WITH_THREAD_ALLOC:BOOL "Thread specific allocators" ON)
++option(WITH_FTP "Enable FTP client" 0)
++option(WITH_HTTP "Enable HTTP client" 0)
++option(WITH_HTML "Enable HTML processor" 1)
++option(WITH_C14N "Enable C14N support" 1)
++option(WITH_CATALOG "Enable catalog support" 1)
++option(WITH_DOCB "Enable DocBook support" 1)
++option(WITH_XPATH "Enable XPath support" 1)
++option(WITH_XPTR "Enable XPointer support" 1)
++option(WITH_XINCLUDE "Enable XInclude support" 1)
++option(WITH_ICONV "Enable iconv support" 1)
++option(WITH_ICU "Enable icu support" 0)
++option(WITH_ISO8859X "Enable ISO8859X support" 0)
++option(WITH_ZLIB "Enable zlib support" 0)
++option(WITH_LZMA "Enable lzma support" 0)
++option(WITH_DEBUG "Enable XML debugging module" 1)
++option(WITH_MEM_DEBUG "Enable memory debugger" 0)
++option(WITH_RUN_DEBUG "Enable memory debugger" 0)
++option(WITH_SCHEMAS "Enable XML schema support" 1)
++option(WITH_SCHEMATRON "Enable schematron support" 1)
++option(WITH_REGEXPS "Enable regular expressions" 1)
++option(WITH_MODULES "Enable module support" 1)
++option(WITH_TREE:BOOL "Enable tree api" 1)
++option(WITH_READER "Enable xmlReader api" 1)
++option(WITH_WRITER "Enable xmlWriter api" 1)
++option(WITH_WALKER "Enable xmlDocWalker api" 1)
++option(WITH_PATTERN "Enable xmlPattern api" 1)
++option(WITH_PUSH "Enable push api" 1)
++option(WITH_VALID "Enable DTD validation support" 1)
++option(WITH_SAX1 "Enable SAX1 api" 1)
++option(WITH_LEGACY "Enable deprecated api's" 0)
++option(WITH_OUTPUT "Enable serialization support" 1)
++option(WITH_PYTHON "Enable Python bindings" 0)
++
++set(VERSION 2.9.4)
++set(LIBXML_VERSION_NUMBER 20904)
 +
 +include(CheckIncludeFile)
 +include(CheckFunctionExists)
 +
-+#CHECK_INCLUDE_FILE(sys/stat.h HAVE__STAT)
-+#(HAVE_ISINF)
-+#(HAVE_ISNAN)
-+#(HAVE_STAT)
-+set(SUPPORT_IP6 ON)
 +CHECK_INCLUDE_FILE(ctype.h HAVE_CTYPE_H)
 +CHECK_INCLUDE_FILE(dirent.h HAVE_DIRENT_H)
-+CHECK_INCLUDE_FILE(dl.h HAVE_DL_H)
 +CHECK_INCLUDE_FILE(dlfcn.h HAVEN_DLFCN_H)
++CHECK_INCLUDE_FILE(dl.h HAVE_DL_H)
 +CHECK_INCLUDE_FILE(errno.h HAVE_ERRNO_H)
 +CHECK_INCLUDE_FILE(fcntl.h HAVE_FCNTL_H)
 +CHECK_INCLUDE_FILE(ieeefp.h HAVE_IEEEP_H)
@@ -61,30 +63,38 @@
 +CHECK_INCLUDE_FILE(malloc.h HAVE_MALLOC_H)
 +CHECK_INCLUDE_FILE(math.h HAVE_MATH_H)
 +CHECK_INCLUDE_FILE(memory.h HAVE_MEMORY_H)
-+CHECK_INCLUDE_FILE(stdarg.h HAVE_STDARG_H)
-+CHECK_INCLUDE_FILE(stdint.h HAVE_STDINT_H)
-+CHECK_INCLUDE_FILE(stdlib.h HAVE_STDLIB_H)
-+CHECK_INCLUDE_FILE(sys/stat.h HAVE_SYS_STAT_H)
-+CHECK_INCLUDE_FILE(sys/types.h HAVE_SYS_TYPES_H)
-+CHECK_INCLUDE_FILE(time.h HAVE_TIME_H)
-+CHECK_INCLUDE_FILE(unistd.h HAVE_UNISTD_H)
++
 +
 +if(WIN32)
 +  set(CMAKE_DEBUG_POSTFIX "d")
 +endif()
 +
-+add_library(${PROJECT_NAME} 
-+  buf.c
++configure_file(
++  config.h.cmake
++  ${CMAKE_CURRENT_BINARY_DIR}/config.h
++)
++add_library(${PROJECT_NAME}
++  xzlib.h
 +  buf.h
++  config.h
++  elfgcchack.h
++  enc.h
++  libxml.h
++  save.h
++  timsort.h
++  trio.h
++  triodef.h
++  trionan.h
++  triop.h
++  triostr.h
++  xzlib.c
++  buf.c
 +  c14n.c
 +  catalog.c
 +  chvalid.c
-+  config.h
 +  debugXML.c
 +  dict.c
 +  DOCBparser.c
-+  elfgcchack.h
-+  enc.h
 +  encoding.c
 +  entities.c
 +  error.c
@@ -93,7 +103,6 @@
 +  HTMLparser.c
 +  HTMLtree.c
 +  legacy.c
-+  libxml.h
 +  list.c
 +  nanoftp.c
 +  nanohttp.c
@@ -101,26 +110,18 @@
 +  parserInternals.c
 +  pattern.c
 +  relaxng.c
-+  save.h
 +  SAX.c
 +  SAX2.c
 +  schematron.c
 +  threads.c
-+  timsort.h
 +  tree.c
 +  trio.c
-+  trio.h
-+  triodef.h
 +  trionan.c
-+  trionan.h
-+  triop.h
 +  triostr.c
-+  triostr.h
 +  uri.c
 +  valid.c
 +  xinclude.c
 +  xlink.c
-+  xmlcatalog.c
 +  xmlIO.c
 +  xmlmemory.c
 +  xmlmodule.c
@@ -134,24 +135,27 @@
 +  xmlwriter.c
 +  xpath.c
 +  xpointer.c
-+  xzlib.c
-+  xzlib.h
 +)
-+
 +add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 +target_include_directories(
 +  libxml2 PRIVATE
-+  $<BUILD_INTERFACE:.;include;include/libxml>
++  $<BUILD_INTERFACE:.;include;include/libxml;${CMAKE_CURRENT_BINARY_DIR}/include>
 +  INTERFACE
 +  $<INSTALL_INTERFACE:include>
++  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
++  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/libxml>
 +)
-+#  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-+#  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/libxml>
-+target_compile_definitions(libxml2 
-+  PRIVATE 
++target_compile_definitions(libxml2
++  PRIVATE
 +  _CRT_SECURE_NO_WARNINGS
 +  _CRT_STDC_NO_DEPRECATE)
 +
++if(WINDOWS_STORE)
++  target_compile_definitions(libxml2
++    PRIVATE
++      MS_APP
++  )
++endif()
 +if(BUILD_SHARED_LIBS AND MSVC)
 +  target_link_libraries(libxml2 PRIVATE ws2_32.lib)
 +endif()
@@ -159,19 +163,7 @@
 +if(WITH_ICONV)
 +  find_package(iconv 1.14 REQUIRED NO_MODULE)
 +  target_link_libraries(libxml2 PRIVATE iconv::iconv)
-+  set(ICONV_CONST const)
 +endif()
-+
-+if(WITH_LZMA)
-+  find_package(xz 5 REQUIRED)
-+  target_link_libraries(libxml2 PRIVATE xz::lzma)
-+  set(HAVE_LZMA_H ON)
-+endif()
-+
-+configure_file(
-+  config.h.cmake
-+  ${CMAKE_CURRENT_SOURCE_DIR}/config.h
-+)
 +
 +include(CMakePackageConfigHelpers)
 +write_basic_package_version_file(
@@ -213,18 +205,132 @@
 +)
 +
 +if(MSVC)
++  set_target_properties(libxml2
++    PROPERTIES
++      COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}
++      COMPILE_PDB_NAME libxml2
++      COMPILE_PDB_NAME_DEBUG libxml2d
++  )
 +  install(FILES
 +    $<TARGET_PDB_FILE:libxml2>
 +    DESTINATION lib
 +  )
 +endif()
+\ No newline at end of file
+diff --git a/catalog.c b/catalog.c
+index 6dfdfbb..62093e7 100644
+--- a/catalog.c
++++ b/catalog.c
+@@ -41,6 +41,11 @@
+ #include <libxml/threads.h>
+ #include <libxml/globals.h>
+ 
++#ifndef WIN32_LEAN_AND_MEAN
++#define WIN32_LEAN_AND_MEAN
++#endif
++#include <Windows.h>
++
+ #include "buf.h"
+ 
+ #define MAX_DELEGATE	50
+@@ -85,8 +90,6 @@ static char XML_XML_DEFAULT_CATALOG[256] = "file:///etc/xml/catalog";
+ #define GetModuleFileNameA GetModuleFileName
+ #else
+ #if !defined(_WINDOWS_)
+-void* __stdcall GetModuleHandleA(const char*);
+-unsigned long __stdcall GetModuleFileNameA(void*, char*, unsigned long);
+ #endif
+ #endif
+ #endif
+@@ -3093,6 +3096,30 @@ xmlInitializeCatalogData(void) {
+ 
+     xmlCatalogInitialized = 1;
+ }
++
++static char *
++fromW(const wchar_t *u16String)
++{
++    char *string = NULL;
++
++    if (u16String) {
++        int wLen =
++            WideCharToMultiByte(CP_UTF8, MB_ERR_INVALID_CHARS, u16String,
++                                -1, NULL, 0, NULL, NULL);
++        if (wLen) {
++            string = xmlMalloc(wLen);
++            if (string) {
++                if (WideCharToMultiByte
++                    (CP_UTF8, 0, u16String, -1, string, wLen, NULL, NULL) == 0) {
++                    xmlFree(string);
++                    string = NULL;
++                }
++            }
++        }
++    }
++
++    return string;
++}
+ /**
+  * xmlInitializeCatalog:
+  *
+@@ -3122,27 +3149,24 @@ xmlInitializeCatalog(void) {
+ 	if (catalogs == NULL)
+ #if defined(_WIN32) && defined(_MSC_VER)
+     {
+-		void* hmodule;
+-		hmodule = GetModuleHandleA("libxml2.dll");
+-		if (hmodule == NULL)
+-			hmodule = GetModuleHandleA(NULL);
+-		if (hmodule != NULL) {
+-			char buf[256];
+-			unsigned long len = GetModuleFileNameA(hmodule, buf, 255);
+-			if (len != 0) {
+-				char* p = &(buf[len]);
+-				while (*p != '\\' && p > buf)
+-					p--;
+-				if (p != buf) {
+-					xmlChar* uri;
+-					strncpy(p, "\\..\\etc\\catalog", 255 - (p - buf));
+-					uri = xmlCanonicPath((const xmlChar*)buf);
+-					if (uri != NULL) {
+-						strncpy(XML_XML_DEFAULT_CATALOG, uri, 255);
+-						xmlFree(uri);
+-					}
++		char wbuf[256];
++		unsigned long len = GetModuleFileNameW(NULL, wbuf, 255);
++		if (len != 0) {
++			char *buf = fromW(wbuf);
++			len = strlen(buf);
++			char* p = &(buf[len]);
++			while (*p != '\\' && p > buf)
++				p--;
++			if (p != buf) {
++				xmlChar* uri;
++				strncpy(p, "\\..\\etc\\catalog", 255 - (p - buf));
++				uri = xmlCanonicPath((const xmlChar*)buf);
++				if (uri != NULL) {
++					strncpy(XML_XML_DEFAULT_CATALOG, uri, 255);
++					xmlFree(uri);
+ 				}
+ 			}
++			xmlFree(buf);
+ 		}
+ 		catalogs = XML_XML_DEFAULT_CATALOG;
+     }
+diff --git a/cmake/libxml2-config.cmake b/cmake/libxml2-config.cmake
+new file mode 100644
+index 0000000..2586974
 --- /dev/null
 +++ b/cmake/libxml2-config.cmake
 @@ -0,0 +1 @@
 +include(${CMAKE_CURRENT_LIST_DIR}/libxml2.cmake)
+\ No newline at end of file
+diff --git a/config.h.cmake b/config.h.cmake
+new file mode 100644
+index 0000000..426a580
 --- /dev/null
 +++ b/config.h.cmake
-@@ -0,0 +1,343 @@
+@@ -0,0 +1,335 @@
 +/* config.h.in.  Generated from configure.ac by autoheader.  */
 +
 +/* Type cast for the gethostbyname() argument */
@@ -560,26 +666,42 @@
 +
 +/* Define to the type of an unsigned integer type of width exactly 32 bits if
 +   such a type exists and the standard includes do not define it. */
-+
-+#if defined(_WIN32)
-+#define SEND_ARG2_CAST
-+#define GETHOSTBYNAME_ARG_CAST
-+#if defined(NEED_SOCKETS)
-+#include <wsockcompat.h>
-+#endif
-+#endif
+diff --git a/encoding.c b/encoding.c
+index e49c7f8..91c4b86 100644
+--- a/encoding.c
++++ b/encoding.c
+@@ -1802,7 +1802,7 @@ xmlIconvWrapper(iconv_t cd, unsigned char *out, int *outlen,
+     }
+     icv_inlen = *inlen;
+     icv_outlen = *outlen;
+-    ret = iconv(cd, (ICONV_CONST char **) &icv_in, &icv_inlen, &icv_out, &icv_outlen);
++    ret = iconv(cd, (char **) &icv_in, &icv_inlen, &icv_out, &icv_outlen);
+     *inlen -= icv_inlen;
+     *outlen -= icv_outlen;
+     if ((icv_inlen != 0) || (ret == -1)) {
+diff --git a/include/libxml/xmlversion.h b/include/libxml/xmlversion.h
+index 59ba74f..7d69c18 100644
 --- a/include/libxml/xmlversion.h
 +++ b/include/libxml/xmlversion.h
-@@ -291,7 +291,7 @@
+@@ -174,7 +174,7 @@ XMLPUBFUN void XMLCALL xmlCheckVersion(int version);
   *
-  * Whether ISO-8859-* support is made available in case iconv is not
+  * Whether the FTP support is configured in
   */
 -#if 1
 +#if 0
- #define LIBXML_ISO8859X_ENABLED
+ #define LIBXML_FTP_ENABLED
  #endif
  
-@@ -388,7 +388,7 @@
+@@ -183,7 +183,7 @@ XMLPUBFUN void XMLCALL xmlCheckVersion(int version);
+  *
+  * Whether the HTTP support is configured in
+  */
+-#if 1
++#if 0
+ #define LIBXML_HTTP_ENABLED
+ #endif
+ 
+@@ -388,7 +388,7 @@ XMLPUBFUN void XMLCALL xmlCheckVersion(int version);
   *
   * the string suffix used by dynamic modules (usually shared libraries)
   */
@@ -588,7 +710,7 @@
  #endif
  
  /**
-@@ -396,7 +396,7 @@
+@@ -396,7 +396,7 @@ XMLPUBFUN void XMLCALL xmlCheckVersion(int version);
   *
   * Whether the Zlib support is compiled in
   */
@@ -597,7 +719,7 @@
  #define LIBXML_ZLIB_ENABLED
  #endif
  
-@@ -405,7 +405,7 @@
+@@ -405,7 +405,7 @@ XMLPUBFUN void XMLCALL xmlCheckVersion(int version);
   *
   * Whether the Lzma support is compiled in
   */
@@ -606,3 +728,87 @@
  #define LIBXML_LZMA_ENABLED
  #endif
  
+diff --git a/triostr.c b/triostr.c
+index 123bbeb..ac9a84f 100644
+--- a/triostr.c
++++ b/triostr.c
+@@ -78,7 +78,7 @@
+ # if defined(_WIN32_WCE)
+ #  define strcasecmp(x,y) _stricmp(x,y)
+ # else
+-#  define strcasecmp(x,y) strcmpi(x,y)
++#  define strcasecmp(x,y) _strcmpi(x,y)
+ # endif
+ #elif defined(TRIO_PLATFORM_OS400)
+ # define USE_STRCASECMP
+diff --git a/xmlIO.c b/xmlIO.c
+index 1a79c09..d3168df 100644
+--- a/xmlIO.c
++++ b/xmlIO.c
+@@ -726,26 +726,15 @@ static void
+ xmlInitPlatformSpecificIo(void)
+ {
+     static int xmlPlatformIoInitialized = 0;
+-    OSVERSIONINFO osvi;
+ 
+     if(xmlPlatformIoInitialized)
+       return;
+ 
+-    osvi.dwOSVersionInfoSize = sizeof(osvi);
+-
+-    if(GetVersionEx(&osvi) && (osvi.dwPlatformId == VER_PLATFORM_WIN32_NT)) {
+-      xmlWrapStat = xmlWrapStatUtf8;
+-      xmlWrapOpen = xmlWrapOpenUtf8;
++    xmlWrapStat = xmlWrapStatUtf8;
++    xmlWrapOpen = xmlWrapOpenUtf8;
+ #ifdef HAVE_ZLIB_H
+-      xmlWrapGzOpen = xmlWrapGzOpenUtf8;
++    xmlWrapGzOpen = xmlWrapGzOpenUtf8;
+ #endif
+-    } else {
+-      xmlWrapStat = xmlWrapStatNative;
+-      xmlWrapOpen = xmlWrapOpenNative;
+-#ifdef HAVE_ZLIB_H
+-      xmlWrapGzOpen = gzopen;
+-#endif
+-    }
+ 
+     xmlPlatformIoInitialized = 1;
+     return;
+diff --git a/xmlmodule.c b/xmlmodule.c
+index 50ed666..1c86b4f 100644
+--- a/xmlmodule.c
++++ b/xmlmodule.c
+@@ -308,7 +308,11 @@ xmlModulePlatformSymbol(void *handle, const char *name, void **symbol)
+ static void *
+ xmlModulePlatformOpen(const char *name)
+ {
++#ifdef MS_APP
++	return NULL;
++#else
+     return LoadLibraryA(name);
++#endif
+ }
+ 
+ /*
+diff --git a/xpath.c b/xpath.c
+index 113bce6..136635c 100644
+--- a/xpath.c
++++ b/xpath.c
+@@ -55,6 +55,8 @@
+ #include <libxml/pattern.h>
+ #endif
+ 
++#include <trionan.h>
++
+ #include "buf.h"
+ 
+ #ifdef LIBXML_PATTERN_ENABLED
+@@ -473,7 +475,6 @@ int wrap_cmp( xmlNodePtr x, xmlNodePtr y );
+ #ifndef TRIO_REPLACE_STDIO
+ #define TRIO_PUBLIC static
+ #endif
+-#include "trionan.c"
+ 
+ /*
+  * The lack of portability of this section of the libc is annoying !
