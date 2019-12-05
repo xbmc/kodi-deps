@@ -1,8 +1,99 @@
 [CmdletBinding()]
+
 Param(
   [Parameter()]
-  [ValidateSet('bzip2', 'crossguid', 'curl', 'dnssd', 'easyhook', 'expat', 'flatc', 'freetype', 'fstrcmp', 'lcms2', 'libaacs', 'libass', 'libbdplus', 'libbluray', 'libcdio', 'libcec', 'libffi', 'libfribidi', 'libgrypt', 'libgpg-error', 'libgcrypt', 'libjpeg-turbo', 'libiconv', 'libmicrohttpd', 'libnfs', 'libplist', 'libwebp', 'libxml2', 'libxslt', 'libyajl', 'lzo2', 'mariadb-connector-c', 'openssl', 'pcre', 'python', 'shairplay', 'sqlite', 'taglib', 'tinyxml', 'winflexbison', 'xz', 'zlib')]
-  [string[]] $Packages = @('bzip2', 'crossguid', 'curl', 'expat', 'flatc', 'freetype', 'fstrcmp', 'lcms2', 'libaacs', 'libass', 'libbdplus', 'libbluray', 'libcdio', 'libcec', 'libffi', 'libfribidi', 'libgrypt', 'libgpg-error', 'libiconv', 'libgcrypt', 'libjpeg-turbo', 'libmicrohttpd', 'libnfs', 'libplist', 'libwebp', 'libxml2', 'libxslt', 'libyajl', 'lzo2', 'mariadb-connector-c', 'openssl', 'pcre', 'python', 'shairplay', 'sqlite', 'taglib', 'tinyxml', 'winflexbison', 'xz', 'zlib'),
+  [ValidateSet(
+    'bzip2',
+    'crossguid',
+    'curl',
+    'dnssd',
+    'easyhook',
+    'expat',
+    'flatc',
+    'freetype',
+    'fstrcmp',
+    'lcms2',
+    'libaacs',
+    'libass',
+    'libbdplus',
+    'libbluray',
+    'libcdio',
+    'libcec',
+    'libffi',
+    'libfribidi',
+    'libgrypt',
+    'libgpg-error',
+    'libgcrypt',
+    'libjpeg-turbo',
+    'libiconv',
+    'libmicrohttpd',
+    'libnfs',
+    'libplist',
+    'libwebp',
+    'libxml2',
+    'libxslt',
+    'libyajl',
+    'lzo2',
+    'mariadb-connector-c',
+    'openssl',
+    'pcre',
+    'python',
+    'pillow',
+    'pycryptodome',
+    'shairplay',
+    'sqlite',
+    'taglib',
+    'tinyxml',
+    'winflexbison',
+    'xz',
+    'zlib'
+  )]
+  [string[]] $Packages = @(
+    'bzip2',
+    'crossguid',
+    'curl',
+    'dnssd',
+    'easyhook',
+    'expat',
+    'flatc',
+    'freetype',
+    'fstrcmp',
+    'lcms2',
+    'libaacs',
+    'libass',
+    'libbdplus',
+    'libbluray',
+    'libcdio',
+    'libcec',
+    'libffi',
+    'libfribidi',
+    'libgrypt',
+    'libgpg-error',
+    'libgcrypt',
+    'libjpeg-turbo',
+    'libiconv',
+    'libmicrohttpd',
+    'libnfs',
+    'libplist',
+    'libwebp',
+    'libxml2',
+    'libxslt',
+    'libyajl',
+    'lzo2',
+    'mariadb-connector-c',
+    'openssl',
+    'pcre',
+    'python',
+    'pillow',
+    'pycryptodome',
+    'shairplay',
+    'sqlite',
+    'taglib',
+    'tinyxml',
+    'winflexbison',
+    'xz',
+    'zlib'
+  ),
   [switch] $GenerateProjects,
   [switch] $Rel = $false,
   [switch] $Deb = $false,
@@ -12,13 +103,20 @@ Param(
   [ValidateSet( 'arm', 'win32', 'x64', 'arm64' )]
   [string[]] $Platforms = @( 'arm', 'win32', 'x64', 'arm64' ),
   [ValidateSet('10.0.17763.0', '10.0.18362.0')]
-  [string] $SdkVersion,
+  [string] $SdkVersion = '10.0.17763.0',
   [ValidateRange(15, 16)]
-  [int] $VsVersion
+  [int] $VsVersion = 15
 )
 
 $ErrorActionPreference = "Stop"
 
+
+$ExcludedFromUwp = @(
+  'dnssd',
+  'easyhook',
+  'libplist',
+  'shairplay'
+)
 
 if ($GenerateProjects) {
   foreach ($platform in $platforms) {
@@ -61,6 +159,11 @@ if ($null -ne $Packages) {
       }
 
       if ($App) {
+        if ($package -in $ExcludedFromUwp) {
+          Write-Warning "Ignoring $package as it isn't used for uwp"
+          continue
+        }
+
         $storePath = "$PsScriptRoot\Build\win10-$Platform"
         if ($Deb) {
           cmake --build $storePath --config Debug -t $package $cleanFirst

@@ -403,7 +403,7 @@ ExternalProject_Add(libass
 	URL https://github.com/libass/libass/releases/download/0.13.6/libass-0.13.6.tar.gz
 	URL_HASH SHA256=62070da83b2139c1875c9db65ece37f80f955097227b7d46ade680221efdff4b
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
-	INSTALL_COMMAND 
+	INSTALL_COMMAND
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
@@ -693,26 +693,27 @@ ExternalProject_Add(libjpeg-turbo
 		-DINSTALL_DOC:BOOL=OFF
 		-DWITH_JPEG8:BOOL=ON
 		-DWITH_SIMD:BOOL=OFF
+		-DWITH_CRT_DLL:BOOL=ON
 )
 
 ExternalProject_Add(pillow
 	DEPENDS freetype libjpeg-turbo python zlib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://pypi.python.org/packages/55/aa/f7f983fb72710a9daa4b3374b7c160091d3f94f5c09221f9336ade9027f3/Pillow-4.2.1.tar.gz
-	URL_HASH SHA256=c724f65870e545316f9e82e4c6d608ab5aa9dd82d5185e5b2e72119378740073
+	URL https://github.com/python-pillow/Pillow/archive/6.2.1.tar.gz
+	URL_HASH SHA256=7bf2d6bdb68fa6ccec15c0fd9aa20fac9641cd20dc6079344f5a6534e13a70f9
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype%3B%3B${PREFIX}/libjpeg-turbo%3B%3B${PREFIX}/python%3B%3B${PREFIX}/zlib
 )
-add_dependency_project_package(pillow 4.2.1)
+add_dependency_project_package(pillow 6.2.1)
 
 ExternalProject_Add(pycryptodome
 	DEPENDS python
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://pypi.python.org/packages/2b/9b/aaa940ab8affd66eed043d69332dc607cddd68f9e399d93dcdfc8149fb21/pycryptodome-3.4.7.tar.gz
-	URL_HASH SHA256=18d8dfe31bf0cb53d58694903e526be68f3cf48e6e3c6dfbbc1e7042b1693af7
+	URL https://github.com/Legrandin/pycryptodome/archive/v3.9.4.tar.gz
+	URL_HASH SHA256=d647f4ac048af7257a388adba88210eacbe03c395baf04f71a2b139d57aabe91
 	PATCH_COMMAND
 		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
 	CMAKE_ARGS
@@ -722,7 +723,7 @@ ExternalProject_Add(pycryptodome
 		-DBUILD_SHARED_LIBS:BOOL=ON
 		-DSEPARATE_NAMESPACE:BOOL=ON
 )
-add_dependency_project_package(pycryptodome 3.4.7)
+add_dependency_project_package(pycryptodome 3.9.4)
 
 ExternalProject_Add(shairplay
 	DOWNLOAD_NAME shairplay-ce80e00.tar.gz

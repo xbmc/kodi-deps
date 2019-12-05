@@ -5,7 +5,7 @@
  pad_number(VERSION_REVISION 3)
  set(LIBJPEG_TURBO_VERSION_NUMBER ${VERSION_MAJOR}${VERSION_MINOR}${VERSION_REVISION})
 +set(libjpeg-turbo_VERSION ${VERSION})
- 
+
  if(NOT WIN32)
    message(FATAL_ERROR "Platform not supported by this build system.  Use autotools instead.")
 @@ -62,6 +63,7 @@
@@ -13,11 +13,11 @@
  option(ENABLE_STATIC "Build static libraries" TRUE)
  option(ENABLE_SHARED "Build shared libraries" TRUE)
 +option(INSTALL_DOC "Install documentation" TRUE)
- 
+
  if(WITH_12BIT)
    set(WITH_SIMD FALSE)
 @@ -917,40 +919,29 @@
- 
+
  if(WITH_TURBOJPEG)
    if(ENABLE_SHARED)
 -    install(TARGETS turbojpeg tjbench
@@ -38,7 +38,7 @@
    endif()
    install(FILES ${CMAKE_SOURCE_DIR}/turbojpeg.h DESTINATION include)
  endif()
- 
+
  if(ENABLE_STATIC)
 -  install(TARGETS jpeg-static ARCHIVE DESTINATION lib)
 -  if(NOT ENABLE_SHARED)
@@ -51,7 +51,7 @@
 -  endif()
 +  install(TARGETS jpeg-static EXPORT ${PROJECT_NAME} ARCHIVE DESTINATION lib INCLUDES DESTINATION include)
  endif()
- 
+
 -install(TARGETS rdjpgcom wrjpgcom RUNTIME DESTINATION bin)
 -
 +if(INSTALL_DOC)
@@ -61,12 +61,12 @@
    ${CMAKE_SOURCE_DIR}/wizard.txt
    DESTINATION doc)
 +endif()
- 
+
  install(FILES ${CMAKE_BINARY_DIR}/jconfig.h ${CMAKE_SOURCE_DIR}/jerror.h
    ${CMAKE_SOURCE_DIR}/jmorecfg.h ${CMAKE_SOURCE_DIR}/jpeglib.h
 @@ -960,3 +951,27 @@
    "cmake_uninstall.cmake" IMMEDIATE @ONLY)
- 
+
  add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P cmake_uninstall.cmake)
 +
 +include(CMakePackageConfigHelpers)

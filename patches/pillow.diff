@@ -1,13 +1,13 @@
 --- /dev/null
 +++ b/CMakeLists.txt
-@@ -0,0 +1,138 @@
+@@ -0,0 +1,169 @@
 +cmake_minimum_required(VERSION 3.2)
 +
-+file(STRINGS PIL/version.py _pillow_version_str REGEX "__version__ = '[0-9.]+'")
-+string(REGEX REPLACE "__version__ = '([0-9.]+).*$" "\\1" PILLOW_VERSION ${_pillow_version_str})
-+unset(_pillow_version_str)
++# file(STRINGS src/PIL/version.py _pillow_version_str REGEX "__version__ = '[0-9.]+'")
++# string(REGEX REPLACE "__version__ = '([0-9.]+).*$" "//1" PILLOW_VERSION ${_pillow_version_str})
++# unset(_pillow_version_str)
 +
-+project(pillow VERSION 4.2.1 LANGUAGES C)
++project(pillow VERSION 6.2.1 LANGUAGES C)
 +
 +find_package(python REQUIRED NO_MODULE)
 +find_package(freetype REQUIRED NO_MODULE)
@@ -19,106 +19,137 @@
 +function(addPythonExtension name)
 +  cmake_parse_arguments(addPythonExtension "" "" "SOURCES;LIBRARIES;MACROS;INCLUDES" ${ARGN})
 +  add_library(${name} SHARED ${addPythonExtension_SOURCES})
-+  set_target_properties(${name} PROPERTIES SUFFIX ".pyd")
-+  target_include_directories(${name} PRIVATE "$<BUILD_INTERFACE:${addPythonExtension_INCLUDES};${INCLUDE_DIRS};${PYTHON_INCLUDE_DIRS}>")
++  set_target_properties(${name}
++    PROPERTIES
++      SUFFIX ".pyd"
++      PDB_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
++      PDB_NAME ${name}
++  )
++  target_include_directories(${name} PRIVATE $<BUILD_INTERFACE:${addPythonExtension_INCLUDES};${CMAKE_CURRENT_SOURCE_DIR}/src/libImaging/>)
 +  target_compile_definitions(${name} PRIVATE ${addPythonExtension_MACROS})
-+  target_link_libraries(${name} PRIVATE ${PYTHON_LIBRARIES})
++  target_compile_options(${name} PRIVATE /sdl- /MP)
++  target_link_libraries(${name}
++    PRIVATE
++      python::pythoncore
++      $<$<CONFIG:Debug>:vccorlibd.lib>
++      $<$<CONFIG:RelWithDebInfo>:vccorlib.lib>
++      $<$<CONFIG:Debug>:msvcrtd.lib>
++      $<$<CONFIG:RelWithDebInfo>:msvcrt.lib>
++  )
++  target_link_options(${name}
++    PRIVATE
++      /NODEFAULTLIB:vccorlibd
++      /NODEFAULTLIB:msvcrtd
++      /NODEFAULTLIB:vccorlib
++      /NODEFAULTLIB:msvcrt
++      /INCREMENTAL:NO
++      /debug
++)
 +  foreach(lib ${addPythonExtension_LIBRARIES})
 +    target_link_libraries(${name} PRIVATE ${lib})
 +  endforeach()
-+  install(TARGETS ${name} RUNTIME DESTINATION bin/Python/Lib/site-packages/PIL)
++  install(TARGETS ${name}
++    RUNTIME DESTINATION bin/Python/Lib/site-packages/PIL
++  )
++  install(FILES
++    $<TARGET_PDB_FILE:${name}>
++    DESTINATION lib
++  )
 +endfunction()
 +
 +addPythonExtension(_imaging
 +  SOURCES
-+    _imaging.c
-+    decode.c
-+    display.c
-+    encode.c
-+    map.c
-+    outline.c
-+    path.c
-+    libImaging/Access.c
-+    libImaging/AlphaComposite.c
-+    libImaging/Bands.c
-+    libImaging/BcnDecode.c
-+    libImaging/Bit.h
-+    libImaging/BitDecode.c
-+    libImaging/Blend.c
-+    libImaging/BoxBlur.c
-+    libImaging/Chops.c
-+    libImaging/codec_fd.c
-+    libImaging/Convert.c
-+    libImaging/ConvertYCbCr.c
-+    libImaging/Copy.c
-+    libImaging/Crc32.c
-+    libImaging/Crop.c
-+    libImaging/Dib.c
-+    libImaging/Draw.c
-+    libImaging/Effects.c
-+    libImaging/EpsEncode.c
-+    libImaging/File.c
-+    libImaging/Fill.c
-+    libImaging/Filter.c
-+    libImaging/FliDecode.c
-+    libImaging/Geometry.c
-+    libImaging/GetBBox.c
-+    libImaging/Gif.h
-+    libImaging/GifDecode.c
-+    libImaging/GifEncode.c
-+    libImaging/HexDecode.c
-+    libImaging/Histo.c
-+    libImaging/Imaging.h
-+    libImaging/ImDib.h
-+    libImaging/ImPlatform.h
-+    libImaging/Jpeg.h
-+    libImaging/Jpeg2K.h
-+    libImaging/Jpeg2KDecode.c
-+    libImaging/Jpeg2KEncode.c
-+    libImaging/JpegDecode.c
-+    libImaging/JpegEncode.c
-+    libImaging/Lzw.h
-+    libImaging/LzwDecode.c
-+    libImaging/Matrix.c
-+    libImaging/ModeFilter.c
-+    libImaging/Negative.c
-+    libImaging/Offset.c
-+    libImaging/Pack.c
-+    libImaging/PackDecode.c
-+    libImaging/Palette.c
-+    libImaging/Paste.c
-+    libImaging/PcdDecode.c
-+    libImaging/PcxDecode.c
-+    libImaging/PcxEncode.c
-+    libImaging/Point.c
-+    libImaging/Quant.c
-+    libImaging/QuantHash.c
-+    libImaging/QuantHash.h
-+    libImaging/QuantHeap.c
-+    libImaging/QuantHeap.h
-+    libImaging/QuantOctree.c
-+    libImaging/QuantOctree.h
-+    libImaging/QuantPngQuant.c
-+    libImaging/QuantPngQuant.h
-+    libImaging/QuantTypes.h
-+    libImaging/RankFilter.c
-+    libImaging/Raw.h
-+    libImaging/RawDecode.c
-+    libImaging/RawEncode.c
-+    libImaging/Resample.c
-+    libImaging/Storage.c
-+    libImaging/SunRleDecode.c
-+    libImaging/TgaRleDecode.c
-+    libImaging/TiffDecode.c
-+    libImaging/TiffDecode.h
-+    libImaging/Unpack.c
-+    libImaging/UnpackYCC.c
-+    libImaging/UnsharpMask.c
-+    libImaging/XbmDecode.c
-+    libImaging/XbmEncode.c
-+    libImaging/Zip.h
-+    libImaging/ZipDecode.c
-+    libImaging/ZipEncode.c
++    src/_imaging.c
++    src/decode.c
++    src/display.c
++    src/encode.c
++    src/map.c
++    src/outline.c
++    src/path.c
++    src/libImaging/Access.c
++    src/libImaging/AlphaComposite.c
++    src/libImaging/Bands.c
++    src/libImaging/BcnDecode.c
++    src/libImaging/Bit.h
++    src/libImaging/BitDecode.c
++    src/libImaging/Blend.c
++    src/libImaging/BoxBlur.c
++    src/libImaging/Chops.c
++    src/libImaging/codec_fd.c
++    src/libImaging/ColorLUT.c
++    src/libImaging/Convert.c
++    src/libImaging/ConvertYCbCr.c
++    src/libImaging/Copy.c
++    src/libImaging/Crop.c
++    src/libImaging/Dib.c
++    src/libImaging/Draw.c
++    src/libImaging/Effects.c
++    src/libImaging/EpsEncode.c
++    src/libImaging/File.c
++    src/libImaging/Fill.c
++    src/libImaging/Filter.c
++    src/libImaging/FliDecode.c
++    src/libImaging/Geometry.c
++    src/libImaging/GetBBox.c
++    src/libImaging/Gif.h
++    src/libImaging/GifDecode.c
++    src/libImaging/GifEncode.c
++    src/libImaging/HexDecode.c
++    src/libImaging/Histo.c
++    src/libImaging/Imaging.h
++    src/libImaging/ImagingUtils.h
++    src/libImaging/ImDib.h
++    src/libImaging/ImPlatform.h
++    src/libImaging/Jpeg.h
++    src/libImaging/Jpeg2K.h
++    src/libImaging/Jpeg2KDecode.c
++    src/libImaging/Jpeg2KEncode.c
++    src/libImaging/JpegDecode.c
++    src/libImaging/JpegEncode.c
++    src/libImaging/Matrix.c
++    src/libImaging/ModeFilter.c
++    src/libImaging/Negative.c
++    src/libImaging/Offset.c
++    src/libImaging/Pack.c
++    src/libImaging/PackDecode.c
++    src/libImaging/Palette.c
++    src/libImaging/Paste.c
++    src/libImaging/PcdDecode.c
++    src/libImaging/PcxDecode.c
++    src/libImaging/PcxEncode.c
++    src/libImaging/Point.c
++    src/libImaging/Quant.c
++    src/libImaging/QuantHash.c
++    src/libImaging/QuantHash.h
++    src/libImaging/QuantHeap.c
++    src/libImaging/QuantHeap.h
++    src/libImaging/QuantOctree.c
++    src/libImaging/QuantOctree.h
++    src/libImaging/QuantPngQuant.c
++    src/libImaging/QuantPngQuant.h
++    src/libImaging/QuantTypes.h
++    src/libImaging/RankFilter.c
++    src/libImaging/raqm.h
++    src/libImaging/Raw.h
++    src/libImaging/RawDecode.c
++    src/libImaging/RawEncode.c
++    src/libImaging/Resample.c
++    src/libImaging/Sgi.h
++    src/libImaging/SgiRleDecode.c
++    src/libImaging/Storage.c
++    src/libImaging/SunRleDecode.c
++    src/libImaging/TgaRleDecode.c
++    src/libImaging/TgaRleEncode.c
++    src/libImaging/TiffDecode.c
++    src/libImaging/TiffDecode.h
++    src/libImaging/Unpack.c
++    src/libImaging/UnpackYCC.c
++    src/libImaging/UnsharpMask.c
++    src/libImaging/XbmDecode.c
++    src/libImaging/XbmEncode.c
++    src/libImaging/Zip.h
++    src/libImaging/ZipDecode.c
++    src/libImaging/ZipEncode.c
 +  LIBRARIES
 +    libjpeg-turbo::jpeg-static
 +    zlib::zlibstatic
@@ -130,12 +161,363 @@
 +
 +addPythonExtension(_imagingft
 +  SOURCES
-+    _imagingft.c
++    src/_imagingft.c
 +  LIBRARIES
 +    freetype::freetype
 +)
 +
-+addPythonExtension(_imagingmath SOURCES _imagingmath.c)
-+addPythonExtension(_imagingmorph SOURCES _imagingmorph.c)
++addPythonExtension(_imagingmath SOURCES src/_imagingmath.c)
++addPythonExtension(_imagingmorph SOURCES src/_imagingmorph.c)
 +
-+install(DIRECTORY PIL DESTINATION bin/Python/Lib/site-packages)
++install(DIRECTORY src/PIL DESTINATION bin/Python/Lib/site-packages)
+--- a/src/_imagingft.c
++++ b/src/_imagingft.c
+@@ -160,8 +160,12 @@ setraqm(void)
+     if (!p_raqm.raqm) {
+         p_raqm.raqm = dlopen("libraqm.dylib", RTLD_LAZY);
+     }
++#else
++#ifdef MS_APP
++    p_raqm.raqm = LoadPackagedLibrary(L"libraqm", 0);
+ #else
+     p_raqm.raqm = LoadLibrary("libraqm");
++#endif
+ #endif
+
+     if (!p_raqm.raqm) {
+--- a/src/display.c
++++ b/src/display.c
+@@ -151,6 +151,9 @@ _query_palette(ImagingDisplayObject* display, PyObject* args)
+ static PyObject*
+ _getdc(ImagingDisplayObject* display, PyObject* args)
+ {
++#ifdef MS_APP
++    Py_RETURN_NOTIMPLEMENTED;
++#else
+     HWND window;
+     HDC dc;
+
+@@ -164,11 +167,15 @@ _getdc(ImagingDisplayObject* display, PyObject* args)
+     }
+
+     return Py_BuildValue(F_HANDLE, dc);
++#endif
+ }
+
+ static PyObject*
+ _releasedc(ImagingDisplayObject* display, PyObject* args)
+ {
++#ifdef MS_APP
++    Py_RETURN_NOTIMPLEMENTED;
++#else
+     HWND window;
+     HDC dc;
+
+@@ -179,6 +186,7 @@ _releasedc(ImagingDisplayObject* display, PyObject* args)
+
+     Py_INCREF(Py_None);
+     return Py_None;
++#endif
+ }
+
+ static PyObject*
+@@ -324,6 +332,9 @@ typedef HANDLE(__stdcall* Func_SetThreadDpiAwarenessContext)(HANDLE);
+ PyObject*
+ PyImaging_GrabScreenWin32(PyObject* self, PyObject* args)
+ {
++#ifdef MS_APP
++    Py_RETURN_NOTIMPLEMENTED;
++#else
+     int x = 0, y = 0, width, height;
+     int includeLayeredWindows = 0, all_screens = 0;
+     HBITMAP bitmap;
+@@ -414,8 +425,11 @@ error:
+     DeleteDC(screen);
+
+     return NULL;
++#endif
+ }
+
++
++#ifdef MS_DESKTOP
+ static BOOL CALLBACK list_windows_callback(HWND hwnd, LPARAM lParam)
+ {
+     PyObject* window_list = (PyObject*) lParam;
+@@ -457,10 +471,14 @@ static BOOL CALLBACK list_windows_callback(HWND hwnd, LPARAM lParam)
+
+     return 1;
+ }
++#endif
+
+ PyObject*
+ PyImaging_ListWindowsWin32(PyObject* self, PyObject* args)
+ {
++#ifdef MS_APP
++    Py_RETURN_NOTIMPLEMENTED;
++#else
+     PyObject* window_list;
+
+     window_list = PyList_New(0);
+@@ -475,6 +493,7 @@ PyImaging_ListWindowsWin32(PyObject* self, PyObject* args)
+     }
+
+     return window_list;
++#endif
+ }
+
+ /* -------------------------------------------------------------------- */
+@@ -483,6 +502,9 @@ PyImaging_ListWindowsWin32(PyObject* self, PyObject* args)
+ PyObject*
+ PyImaging_GrabClipboardWin32(PyObject* self, PyObject* args)
+ {
++#ifdef MS_APP
++    Py_RETURN_NOTIMPLEMENTED;
++#else
+     int clip;
+     HANDLE handle;
+     int size;
+@@ -511,11 +533,12 @@ PyImaging_GrabClipboardWin32(PyObject* self, PyObject* args)
+     CloseClipboard();
+
+     return result;
++#endif
+ }
+
+ /* -------------------------------------------------------------------- */
+ /* Windows class */
+-
++#ifdef MS_DESKTOP
+ #ifndef WM_MOUSEWHEEL
+ #define WM_MOUSEWHEEL 522
+ #endif
+@@ -647,10 +670,14 @@ windowCallback(HWND wnd, UINT message, WPARAM wParam, LPARAM lParam)
+
+     return status;
+ }
++#endif
+
+ PyObject*
+ PyImaging_CreateWindowWin32(PyObject* self, PyObject* args)
+ {
++#ifdef MS_APP
++    Py_RETURN_NOTIMPLEMENTED;
++#else
+     HWND wnd;
+     WNDCLASS windowClass;
+
+@@ -703,11 +730,15 @@ PyImaging_CreateWindowWin32(PyObject* self, PyObject* args)
+     Py_END_ALLOW_THREADS
+
+     return Py_BuildValue(F_HANDLE, wnd);
++#endif
+ }
+
+ PyObject*
+ PyImaging_EventLoopWin32(PyObject* self, PyObject* args)
+ {
++#ifdef MS_APP
++    Py_RETURN_NOTIMPLEMENTED;
++#else
+     MSG msg;
+
+     Py_BEGIN_ALLOW_THREADS
+@@ -719,6 +750,7 @@ PyImaging_EventLoopWin32(PyObject* self, PyObject* args)
+
+     Py_INCREF(Py_None);
+     return Py_None;
++#endif
+ }
+
+ /* -------------------------------------------------------------------- */
+@@ -729,6 +761,9 @@ PyImaging_EventLoopWin32(PyObject* self, PyObject* args)
+ PyObject *
+ PyImaging_DrawWmf(PyObject* self, PyObject* args)
+ {
++#ifdef MS_APP
++    Py_RETURN_NOTIMPLEMENTED;
++#else
+     HBITMAP bitmap;
+     HENHMETAFILE meta;
+     BITMAPCOREHEADER core;
+@@ -823,6 +858,7 @@ error:
+     DeleteDC(dc);
+
+     return buffer;
++#endif
+ }
+
+ #endif /* _WIN32 */
+--- a/src/libImaging/Dib.c
++++ b/src/libImaging/Dib.c
+@@ -30,6 +30,9 @@
+ char*
+ ImagingGetModeDIB(int size_out[2])
+ {
++#ifdef MS_APP
++    return "RGB";
++#else
+     /* Get device characteristics */
+
+     HDC dc;
+@@ -52,12 +55,17 @@ ImagingGetModeDIB(int size_out[2])
+     DeleteDC(dc);
+
+     return mode;
++#endif
+ }
+
+
+ ImagingDIB
+ ImagingNewDIB(const char *mode, int xsize, int ysize)
+ {
++#ifdef MS_APP
++    Py_INCREF(Py_NotImplemented);
++    return (ImagingDIB)Py_NotImplemented;
++#else
+     /* Create a Windows bitmap */
+
+     ImagingDIB dib;
+@@ -213,6 +221,7 @@ ImagingNewDIB(const char *mode, int xsize, int ysize)
+     }
+
+     return dib;
++#endif
+ }
+
+ void
+@@ -232,16 +241,19 @@ ImagingPasteDIB(ImagingDIB dib, Imaging im, int xy[4])
+ void
+ ImagingExposeDIB(ImagingDIB dib, void *dc)
+ {
++#ifdef MS_DESKTOP
+     /* Copy bitmap to display */
+
+     if (dib->palette != 0)
+         SelectPalette((HDC) dc, dib->palette, FALSE);
+     BitBlt((HDC) dc, 0, 0, dib->xsize, dib->ysize, dib->dc, 0, 0, SRCCOPY);
++#endif
+ }
+
+ void
+ ImagingDrawDIB(ImagingDIB dib, void *dc, int dst[4], int src[4])
+ {
++#ifdef MS_DESKTOP
+     /* Copy bitmap to printer/display */
+
+     if (GetDeviceCaps((HDC) dc, RASTERCAPS) & RC_STRETCHDIB) {
+@@ -257,11 +269,15 @@ ImagingDrawDIB(ImagingDIB dib, void *dc, int dst[4], int src[4])
+                    dib->dc, src[0], src[1], src[2]-src[0], src[3]-src[1],
+                    SRCCOPY);
+     }
++#endif
+ }
+
+ int
+ ImagingQueryPaletteDIB(ImagingDIB dib, void *dc)
+ {
++#ifdef MS_APP
++    return 0;
++#else
+     /* Install bitmap palette */
+
+     int n;
+@@ -279,11 +295,13 @@ ImagingQueryPaletteDIB(ImagingDIB dib, void *dc)
+         n = 0;
+
+     return n; /* number of colours that was changed */
++#endif
+ }
+
+ void
+ ImagingDeleteDIB(ImagingDIB dib)
+ {
++#ifdef MS_DESKTOP
+     /* Clean up */
+
+     if (dib->palette)
+@@ -295,6 +313,7 @@ ImagingDeleteDIB(ImagingDIB dib)
+     if (dib->dc)
+         DeleteDC(dib->dc);
+     free(dib->info);
++#endif
+ }
+
+ #endif /* _WIN32 */
+--- a/src/map.c
++++ b/src/map.c
+@@ -44,6 +44,31 @@ typedef struct {
+
+ static PyTypeObject ImagingMapperType;
+
++static wchar_t* to_utf16(const char* str, size_t length)
++{
++    if (length == 0)
++        length = strlen(str);
++
++    int result = MultiByteToWideChar(CP_UTF8, 0, str, length, NULL, 0);
++    if (result == 0)
++        return NULL;
++
++    length = result + 1;
++    wchar_t* dirPath = malloc(length * 2);
++    result = MultiByteToWideChar(CP_UTF8, 0, str, result, dirPath, length);
++
++    if (result == 0)
++    {
++        free(dirPath);
++        return NULL;
++    }
++
++    if (dirPath[length - 1] != '\0')
++        dirPath[length - 1] = '\0';
++
++    return dirPath;
++}
++
+ ImagingMapperObject*
+ PyImaging_MapperNew(const char* filename, int readonly)
+ {
+@@ -64,20 +89,31 @@ PyImaging_MapperNew(const char* filename, int readonly)
+     mapper->hMap  = (HANDLE)-1;
+
+     /* FIXME: currently supports readonly mappings only */
+-    mapper->hFile = CreateFile(
+-        filename,
++    wchar_t* filenameW = to_utf16(filename, -1);
++#ifdef MS_APP
++    mapper->hFile = CreateFile2(
++        filenameW,
++        GENERIC_READ,
++        FILE_SHARE_READ,
++        OPEN_EXISTING,
++        NULL);
++#else
++    mapper->hFile = CreateFileW(
++        filenameW,
+         GENERIC_READ,
+         FILE_SHARE_READ,
+         NULL, OPEN_EXISTING,
+         FILE_ATTRIBUTE_NORMAL,
+         NULL);
++#endif
++    free(filenameW);
+     if (mapper->hFile == (HANDLE)-1) {
+         PyErr_SetString(PyExc_IOError, "cannot open file");
+         Py_DECREF(mapper);
+         return NULL;
+     }
+
+-    mapper->hMap = CreateFileMapping(
++    mapper->hMap = CreateFileMappingW(
+         mapper->hFile, NULL,
+         PAGE_READONLY,
+         0, 0, NULL);
+@@ -93,7 +129,7 @@ PyImaging_MapperNew(const char* filename, int readonly)
+         FILE_MAP_READ,
+         0, 0, 0);
+
+-    mapper->size = GetFileSize(mapper->hFile, 0);
++    mapper->size = GetFileSizeEx(mapper->hFile, 0);
+ #endif
+
+     return mapper;

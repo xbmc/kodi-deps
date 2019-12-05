@@ -1,26 +1,3 @@
-diff --git a/.gitignore b/.gitignore
-index 6ebf6247f6..a61d81935e 100644
---- a/.gitignore
-+++ b/.gitignore
-@@ -63,9 +63,9 @@ PCbuild/*-pgo
- PCbuild/*.VC.db
- PCbuild/*.VC.opendb
- PCbuild/.vs/
--PCbuild/amd64/
-+PCbuild/amd64*/
- PCbuild/obj/
--PCbuild/win32/
-+PCbuild/win32*/
- .purify
- Parser/pgen
- Parser/pgen.exe
-@@ -110,3 +110,6 @@ Tools/ssl/win32
- .vs/
- .vscode/
- gmon.out
-+*.obj
-+*.lib
-+*.exp
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 new file mode 100644
 index 0000000000..eeefb1893b
@@ -941,13 +918,13 @@ index 9a497a6836..1dc1da2931 100644
 --- a/Include/pyatomic.h
 +++ b/Include/pyatomic.h
 @@ -13,9 +13,12 @@
- 
+
  #if defined(_MSC_VER)
  #include <intrin.h>
 +#if defined(_M_IX86) || defined(_M_X64)
  #include <immintrin.h>
  #endif
- 
+
 +#endif
 +
  /* This is modeled after the atomics interface from C1x, according to
@@ -959,7 +936,7 @@ index 27e51b42c6..d9358875f7 100644
 +++ b/Include/pyport.h
 @@ -406,7 +406,7 @@ extern "C" {
  #endif
- 
+
  /* get and set x87 control word for VisualStudio/x86 */
 -#if defined(_MSC_VER) && !defined(_WIN64) /* x87 not supported in 64-bit */
 +#if defined(_MSC_VER) && defined(_M_IX86) /* x87 not supported in 64-bit */
@@ -971,9 +948,9 @@ index 66a16a6839..9af3f85dac 100644
 --- a/Lib/importlib/_bootstrap_external.py
 +++ b/Lib/importlib/_bootstrap_external.py
 @@ -639,70 +639,6 @@ def spec_from_file_location(name, location=None, *, loader=None,
- 
+
  # Loaders #####################################################################
- 
+
 -class WindowsRegistryFinder:
 -
 -    """Meta path finder for modules declared in the Windows registry."""
@@ -1039,12 +1016,12 @@ index 66a16a6839..9af3f85dac 100644
 -
 -
  class _LoaderBasics:
- 
+
      """Base class of common code needed by both SourceLoader and
 @@ -1540,18 +1476,11 @@ def _setup(_bootstrap_module):
      weakref_module = _bootstrap._builtin_from_name('_weakref')
      setattr(self_module, '_weakref', weakref_module)
- 
+
 -    # Directly load the winreg module (needed during bootstrap).
 -    if builtin_os == 'nt':
 -        winreg_module = _bootstrap._builtin_from_name('winreg')
@@ -1057,8 +1034,8 @@ index 66a16a6839..9af3f85dac 100644
          SOURCE_SUFFIXES.append('.pyw')
 -        if '_d.pyd' in EXTENSION_SUFFIXES:
 -            WindowsRegistryFinder.DEBUG_BUILD = True
- 
- 
+
+
  def _install(_bootstrap_module):
 diff --git a/Lib/importlib/abc.py b/Lib/importlib/abc.py
 index 4b2d3de6d9..37922bbada 100644
@@ -1066,12 +1043,12 @@ index 4b2d3de6d9..37922bbada 100644
 +++ b/Lib/importlib/abc.py
 @@ -81,7 +81,7 @@ class MetaPathFinder(Finder):
          """
- 
+
  _register(MetaPathFinder, machinery.BuiltinImporter, machinery.FrozenImporter,
 -          machinery.PathFinder, machinery.WindowsRegistryFinder)
 +          machinery.PathFinder)
- 
- 
+
+
  class PathEntryFinder(Finder):
 diff --git a/Lib/importlib/machinery.py b/Lib/importlib/machinery.py
 index 1b2b5c9b4f..3fb7d62e6e 100644
@@ -1097,20 +1074,20 @@ index bcf522835f..98a07b9d83 100644
 +        _winreg = None
  except ImportError:
      _winreg = None
- 
+
 diff --git a/Lib/test/test_importlib/test_abc.py b/Lib/test/test_importlib/test_abc.py
 index f1e1db3562..94e949f56c 100644
 --- a/Lib/test/test_importlib/test_abc.py
 +++ b/Lib/test/test_importlib/test_abc.py
 @@ -55,8 +55,7 @@ class InheritanceTests:
- 
+
  class MetaPathFinder(InheritanceTests):
      superclass_names = ['Finder']
 -    subclass_names = ['BuiltinImporter', 'FrozenImporter', 'PathFinder',
 -                      'WindowsRegistryFinder']
 +    subclass_names = ['BuiltinImporter', 'FrozenImporter', 'PathFinder']
- 
- 
+
+
  (Frozen_MetaPathFinderInheritanceTests,
 diff --git a/Modules/_ctypes/_ctypes.c b/Modules/_ctypes/_ctypes.c
 index f186e5082a..74ad1e44a9 100644
@@ -1118,7 +1095,7 @@ index f186e5082a..74ad1e44a9 100644
 +++ b/Modules/_ctypes/_ctypes.c
 @@ -105,8 +105,11 @@ bytes(cdata)
  #include "structmember.h"
- 
+
  #include <ffi.h>
 -#ifdef MS_WIN32
 -#include <windows.h>
@@ -1136,7 +1113,7 @@ index f186e5082a..74ad1e44a9 100644
      PyObject *result;
 -    PyObject *item = PyDict_GetItem(dict, key);
 +    PyObject *item = PyDict_GetItemWithError(dict, key);
- 
+
      if (item == NULL)
          return NULL;
 @@ -403,24 +406,35 @@ static PyCArgObject *
@@ -1145,7 +1122,7 @@ index f186e5082a..74ad1e44a9 100644
      PyCArgObject *parg;
 +    CDataObject *copied_self;
      StgDictObject *stgdict;
- 
+
 +    if (self->b_size > sizeof(void*)) {
 +        void *new_ptr = PyMem_Malloc(self->b_size);
 +        if (new_ptr == NULL)
@@ -1165,7 +1142,7 @@ index f186e5082a..74ad1e44a9 100644
 +        Py_DECREF(copied_self);
          return NULL;
 +    }
- 
+
      parg->tag = 'V';
 -    stgdict = PyObject_stgdict((PyObject *)self);
 +    stgdict = PyObject_stgdict((PyObject *)copied_self);
@@ -1184,19 +1161,19 @@ index f186e5082a..74ad1e44a9 100644
 +    parg->obj = (PyObject *)copied_self;
      return parg;
  }
- 
+
 @@ -430,6 +444,8 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
      PyTypeObject *result;
      PyObject *fields;
      StgDictObject *dict;
 +    _Py_IDENTIFIER(_abstract_);
 +    _Py_IDENTIFIER(_fields_);
- 
+
      /* create the new instance (which is a class,
         since we are a metatype!) */
 @@ -438,8 +454,12 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
          return NULL;
- 
+
      /* keep this for bw compatibility */
 -    if (PyDict_GetItemString(result->tp_dict, "_abstract_"))
 +    if (_PyDict_GetItemIdWithError(result->tp_dict, &PyId__abstract_))
@@ -1205,13 +1182,13 @@ index f186e5082a..74ad1e44a9 100644
 +        Py_DECREF(result);
 +        return NULL;
 +    }
- 
+
      dict = (StgDictObject *)_PyObject_CallNoArg((PyObject *)&PyCStgDict_Type);
      if (!dict) {
 @@ -462,8 +482,19 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
- 
+
      dict->paramfunc = StructUnionType_paramfunc;
- 
+
 -    fields = PyDict_GetItemString((PyObject *)dict, "_fields_");
 -    if (!fields) {
 +    fields = _PyDict_GetItemIdWithError((PyObject *)dict, &PyId__fields_);
@@ -1228,7 +1205,7 @@ index f186e5082a..74ad1e44a9 100644
 +    }
 +    else {
          StgDictObject *basedict = PyType_stgdict((PyObject *)result->tp_base);
- 
+
          if (basedict == NULL)
 @@ -477,12 +508,6 @@ StructUnionType_new(PyTypeObject *type, PyObject *args, PyObject *kwds, int isSt
          basedict->flags |= DICTFLAG_FINAL; /* set the 'final' flag in the baseclass dict */
@@ -1241,11 +1218,11 @@ index f186e5082a..74ad1e44a9 100644
 -    }
 -    return (PyObject *)result;
  }
- 
+
  static PyObject *
 @@ -667,7 +692,9 @@ CDataType_in_dll(PyObject *type, PyObject *args)
      }
- 
+
  #ifdef MS_WIN32
 +    Py_BEGIN_ALLOW_THREADS
      address = (void *)GetProcAddress(handle, name);
@@ -1264,7 +1241,7 @@ index f186e5082a..74ad1e44a9 100644
 @@ -730,7 +758,9 @@ CDataType_from_param(PyObject *type, PyObject *value)
          return NULL;
      }
- 
+
 -    as_parameter = PyObject_GetAttrString(value, "_as_parameter_");
 +    if (_PyObject_LookupAttrId(value, &PyId__as_parameter_, &as_parameter) < 0) {
 +        return NULL;
@@ -1277,13 +1254,13 @@ index f186e5082a..74ad1e44a9 100644
      PyObject *proto;
      PyObject *typedict;
 +    _Py_IDENTIFIER(_type_);
- 
+
      typedict = PyTuple_GetItem(args, 2);
      if (!typedict)
 @@ -984,15 +1015,15 @@ PyCPointerType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
      stgdict->paramfunc = PyCPointerType_paramfunc;
      stgdict->flags |= TYPEFLAG_ISPOINTER;
- 
+
 -    proto = PyDict_GetItemString(typedict, "_type_"); /* Borrowed ref */
 -    if (proto && -1 == PyCPointerType_SetProto(stgdict, proto)) {
 -        Py_DECREF((PyObject *)stgdict);
@@ -1311,7 +1288,7 @@ index f186e5082a..74ad1e44a9 100644
 +        Py_DECREF((PyObject *)stgdict);
 +        return NULL;
 +    }
- 
+
      /* create the new instance (which is a class,
         since we are a metatype!) */
 @@ -1038,6 +1073,7 @@ static PyObject *
@@ -1319,17 +1296,17 @@ index f186e5082a..74ad1e44a9 100644
  {
      StgDictObject *dict;
 +    _Py_IDENTIFIER(_type_);
- 
+
      dict = PyType_stgdict((PyObject *)self);
      if (!dict) {
 @@ -1049,7 +1085,7 @@ PyCPointerType_set_type(PyTypeObject *self, PyObject *type)
      if (-1 == PyCPointerType_SetProto(dict, type))
          return NULL;
- 
+
 -    if (-1 == PyDict_SetItemString((PyObject *)dict, "_type_", type))
 +    if (-1 == _PyDict_SetItemId((PyObject *)dict, &PyId__type_, type))
          return NULL;
- 
+
      Py_RETURN_NONE;
 @@ -1094,11 +1130,7 @@ PyCPointerType_from_param(PyObject *type, PyObject *value)
          */
@@ -1356,7 +1333,7 @@ index f186e5082a..74ad1e44a9 100644
 @@ -1416,14 +1450,29 @@ PyCArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
      stgdict = NULL;
      type_attr = NULL;
- 
+
 -    length_attr = PyObject_GetAttrString((PyObject *)result, "_length_");
 -    if (!length_attr || !PyLong_Check(length_attr)) {
 +    if (_PyObject_LookupAttrId((PyObject *)result, &PyId__length_, &length_attr) < 0) {
@@ -1391,7 +1368,7 @@ index f186e5082a..74ad1e44a9 100644
 @@ -1434,7 +1483,9 @@ PyCArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
          goto error;
      }
- 
+
 -    type_attr = PyObject_GetAttrString((PyObject *)result, "_type_");
 +    if (_PyObject_LookupAttrId((PyObject *)result, &PyId__type_, &type_attr) < 0) {
 +        goto error;
@@ -1401,7 +1378,7 @@ index f186e5082a..74ad1e44a9 100644
                          "class must define a '_type_' attribute");
 @@ -1470,7 +1521,7 @@ PyCArrayType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
      }
- 
+
      itemsize = itemdict->size;
 -    if (itemsize != 0 && length > PY_SSIZE_T_MAX / itemsize) {
 +    if (length * itemsize < 0) {
@@ -1419,7 +1396,7 @@ index f186e5082a..74ad1e44a9 100644
 @@ -1627,7 +1679,9 @@ c_wchar_p_from_param(PyObject *type, PyObject *value)
          }
      }
- 
+
 -    as_parameter = PyObject_GetAttrString(value, "_as_parameter_");
 +    if (_PyObject_LookupAttrId(value, &PyId__as_parameter_, &as_parameter) < 0) {
 +        return NULL;
@@ -1438,7 +1415,7 @@ index f186e5082a..74ad1e44a9 100644
 @@ -1691,7 +1746,9 @@ c_char_p_from_param(PyObject *type, PyObject *value)
          }
      }
- 
+
 -    as_parameter = PyObject_GetAttrString(value, "_as_parameter_");
 +    if (_PyObject_LookupAttrId(value, &PyId__as_parameter_, &as_parameter) < 0) {
 +        return NULL;
@@ -1457,7 +1434,7 @@ index f186e5082a..74ad1e44a9 100644
 @@ -1827,7 +1885,9 @@ c_void_p_from_param(PyObject *type, PyObject *value)
          }
      }
- 
+
 -    as_parameter = PyObject_GetAttrString(value, "_as_parameter_");
 +    if (_PyObject_LookupAttrId(value, &PyId__as_parameter_, &as_parameter) < 0) {
 +        return NULL;
@@ -1476,7 +1453,7 @@ index f186e5082a..74ad1e44a9 100644
 @@ -1962,13 +2023,15 @@ PyCSimpleType_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
      if (result == NULL)
          return NULL;
- 
+
 -    proto = PyObject_GetAttrString((PyObject *)result, "_type_"); /* new ref */
 +    if (_PyObject_LookupAttrId((PyObject *)result, &PyId__type_, &proto) < 0) {
 +        return NULL;
@@ -1502,7 +1479,7 @@ index f186e5082a..74ad1e44a9 100644
 @@ -2173,7 +2237,9 @@ PyCSimpleType_from_param(PyObject *type, PyObject *value)
      PyErr_Clear();
      Py_DECREF(parg);
- 
+
 -    as_parameter = PyObject_GetAttrString(value, "_as_parameter_");
 +    if (_PyObject_LookupAttrId(value, &PyId__as_parameter_, &as_parameter) < 0) {
 +        return NULL;
@@ -1520,7 +1497,7 @@ index f186e5082a..74ad1e44a9 100644
      Py_ssize_t nArgs;
 @@ -2272,22 +2339,22 @@ converters_from_argtypes(PyObject *ob)
      */
- 
+
      for (i = 0; i < nArgs; ++i) {
 +        PyObject *cnv;
          PyObject *tp = PyTuple_GET_ITEM(ob, i);
@@ -1550,7 +1527,7 @@ index f186e5082a..74ad1e44a9 100644
 -                 i+1);
 -    return NULL;
  }
- 
+
  static int
 @@ -2295,6 +2362,10 @@ make_funcptrtype_dict(StgDictObject *stgdict)
  {
@@ -1560,13 +1537,13 @@ index f186e5082a..74ad1e44a9 100644
 +    _Py_IDENTIFIER(_argtypes_);
 +    _Py_IDENTIFIER(_restype_);
 +    _Py_IDENTIFIER(_check_retval_);
- 
+
      stgdict->align = _ctypes_get_fielddesc("P")->pffi_type->alignment;
      stgdict->length = 1;
 @@ -2303,26 +2374,31 @@ make_funcptrtype_dict(StgDictObject *stgdict)
      stgdict->getfunc = NULL;
      stgdict->ffi_type_pointer = ffi_type_pointer;
- 
+
 -    ob = PyDict_GetItemString((PyObject *)stgdict, "_flags_");
 +    ob = _PyDict_GetItemIdWithError((PyObject *)stgdict, &PyId__flags_);
      if (!ob || !PyLong_Check(ob)) {
@@ -1580,7 +1557,7 @@ index f186e5082a..74ad1e44a9 100644
      }
 -    stgdict->flags = PyLong_AS_LONG(ob) | TYPEFLAG_ISPOINTER;
 +    stgdict->flags = PyLong_AsUnsignedLongMask(ob) | TYPEFLAG_ISPOINTER;
- 
+
      /* _argtypes_ is optional... */
 -    ob = PyDict_GetItemString((PyObject *)stgdict, "_argtypes_");
 +    ob = _PyDict_GetItemIdWithError((PyObject *)stgdict, &PyId__argtypes_);
@@ -1596,7 +1573,7 @@ index f186e5082a..74ad1e44a9 100644
 +    else if (PyErr_Occurred()) {
 +        return -1;
 +    }
- 
+
 -    ob = PyDict_GetItemString((PyObject *)stgdict, "_restype_");
 +    ob = _PyDict_GetItemIdWithError((PyObject *)stgdict, &PyId__restype_);
      if (ob) {
@@ -1639,7 +1616,7 @@ index f186e5082a..74ad1e44a9 100644
 -    return -1;
 -
  }
- 
+
  static PyCArgObject *
 @@ -2667,11 +2746,10 @@ PyCData_reduce(PyObject *myself, PyObject *args)
                          "ctypes objects containing pointers cannot be pickled");
@@ -1656,7 +1633,7 @@ index f186e5082a..74ad1e44a9 100644
 +                         PyObject_GetAttrString(myself, "__dict__"),
                           PyBytes_FromStringAndSize(self->b_ptr, self->b_size));
  }
- 
+
 @@ -3088,9 +3166,13 @@ PyCFuncPtr_get_errcheck(PyCFuncPtrObject *self, void *Py_UNUSED(ignored))
  static int
  PyCFuncPtr_set_restype(PyCFuncPtrObject *self, PyObject *ob, void *Py_UNUSED(ignored))
@@ -1689,7 +1666,7 @@ index f186e5082a..74ad1e44a9 100644
 +    Py_XDECREF(oldchecker);
      return 0;
  }
- 
+
 @@ -3175,18 +3260,23 @@ static PyGetSetDef PyCFuncPtr_getsets[] = {
  #ifdef MS_WIN32
  static PPROC FindAddress(void *handle, const char *name, PyObject *type)
@@ -1709,7 +1686,7 @@ index f186e5082a..74ad1e44a9 100644
      char *mangled_name;
      int i;
      StgDictObject *dict;
- 
+
 +    Py_BEGIN_ALLOW_THREADS
      address = (PPROC)GetProcAddress(handle, name);
 +    Py_END_ALLOW_THREADS
@@ -1738,7 +1715,7 @@ index f186e5082a..74ad1e44a9 100644
 +        return NULL;
 +    }
  */
- 
+
      dict = PyType_stgdict((PyObject *)type);
 @@ -3611,10 +3706,16 @@ _get_arg(int *pindex, PyObject *name, PyObject *defval, PyObject *inargs, PyObje
          Py_INCREF(v);
@@ -1769,7 +1746,7 @@ index f186e5082a..74ad1e44a9 100644
 +        unsigned int flag;
          PyObject *name = NULL;
          PyObject *defval = NULL;
- 
+
 @@ -3699,7 +3800,7 @@ _build_callargs(PyCFuncPtrObject *self, PyObject *argtypes,
             calls below. */
          /* We HAVE already checked that the tuple can be parsed with "i|ZO", so... */
@@ -1778,7 +1755,7 @@ index f186e5082a..74ad1e44a9 100644
 +        flag = PyLong_AsUnsignedLongMask(PyTuple_GET_ITEM(item, 0));
          name = tsize > 1 ? PyTuple_GET_ITEM(item, 1) : NULL;
          defval = tsize > 2 ? PyTuple_GET_ITEM(item, 2) : NULL;
- 
+
 @@ -3779,7 +3880,7 @@ _build_callargs(PyCFuncPtrObject *self, PyObject *argtypes,
              break;
          default:
@@ -1793,12 +1770,12 @@ index f186e5082a..74ad1e44a9 100644
      PyObject *fields;
      Py_ssize_t i;
 +    _Py_IDENTIFIER(_fields_);
- 
+
      if (PyType_stgdict((PyObject *)type->tp_base)) {
          index = _init_pos_args(self, type->tp_base,
 @@ -4152,9 +4254,13 @@ _init_pos_args(PyObject *self, PyTypeObject *type,
      }
- 
+
      dict = PyType_stgdict((PyObject *)type);
 -    fields = PyDict_GetItemString((PyObject *)dict, "_fields_");
 -    if (fields == NULL)
@@ -1809,7 +1786,7 @@ index f186e5082a..74ad1e44a9 100644
 +        }
          return index;
 +    }
- 
+
      for (i = 0;
           i < dict->length && (i+index) < PyTuple_GET_SIZE(args);
 @@ -4170,13 +4276,20 @@ _init_pos_args(PyObject *self, PyTypeObject *type,
@@ -1838,7 +1815,7 @@ index f186e5082a..74ad1e44a9 100644
 +                return -1;
 +            }
          }
- 
+
          res = PyObject_SetAttr(self, name, val);
 @@ -4376,8 +4489,7 @@ Array_subscript(PyObject *myself, PyObject *item)
          StgDictObject *stgdict, *itemdict;
@@ -1847,7 +1824,7 @@ index f186e5082a..74ad1e44a9 100644
 -        Py_ssize_t start, stop, step, slicelen, i;
 -        size_t cur;
 +        Py_ssize_t start, stop, step, slicelen, cur, i;
- 
+
          if (PySlice_Unpack(item, &start, &stop, &step) < 0) {
              return NULL;
 @@ -4517,8 +4629,7 @@ Array_ass_subscript(PyObject *myself, PyObject *item, PyObject *value)
@@ -1857,7 +1834,7 @@ index f186e5082a..74ad1e44a9 100644
 -        Py_ssize_t start, stop, step, slicelen, otherlen, i;
 -        size_t cur;
 +        Py_ssize_t start, stop, step, slicelen, otherlen, i, cur;
- 
+
          if (PySlice_Unpack(item, &start, &stop, &step) < 0) {
              return -1;
 @@ -4649,6 +4760,10 @@ PyCArrayType_from_ctype(PyObject *itemtype, Py_ssize_t length)
@@ -1868,7 +1845,7 @@ index f186e5082a..74ad1e44a9 100644
 +        Py_DECREF(key);
 +        return NULL;
 +    }
- 
+
      if (!PyType_Check(itemtype)) {
          PyErr_SetString(PyExc_TypeError,
 @@ -5023,8 +5138,7 @@ Pointer_subscript(PyObject *myself, PyObject *item)
@@ -1878,7 +1855,7 @@ index f186e5082a..74ad1e44a9 100644
 -        Py_ssize_t i, len;
 -        size_t cur;
 +        Py_ssize_t i, len, cur;
- 
+
          /* Since pointers have no length, and we want to apply
             different semantics to negative indices than normal
 @@ -5619,4 +5733,4 @@ PyInit__ctypes(void)
@@ -1893,13 +1870,13 @@ index f59abcc451..b389dd2501 100644
 --- a/Modules/_ctypes/_ctypes_test.c
 +++ b/Modules/_ctypes/_ctypes_test.c
 @@ -2,6 +2,8 @@
- 
+
  #ifdef MS_WIN32
  #include <windows.h>
 +#include <wtypes.h>
 +#include <Unknwn.h>
  #endif
- 
+
  #if defined(MS_WIN32) || defined(__CYGWIN__)
 diff --git a/Modules/_ctypes/callbacks.c b/Modules/_ctypes/callbacks.c
 index a3d1c386b7..dd7f87525d 100644
@@ -1912,11 +1889,11 @@ index a3d1c386b7..dd7f87525d 100644
 -    int *space;
 +    int *space = NULL;
      PyGILState_STATE state = PyGILState_Ensure();
- 
+
      nArgs = PySequence_Length(converters);
 @@ -233,13 +233,13 @@ if (x == NULL) _PyTraceback_Add(what, "_ctypes/callbacks.c", __LINE__ - 1), PyEr
      CHECK("'calling callback function'", result);
- 
+
  #ifdef MS_WIN32
 -    if (flags & FUNCFLAG_USE_LASTERROR) {
 +    if (flags & FUNCFLAG_USE_LASTERROR && space != NULL) {
@@ -1932,7 +1909,7 @@ index a3d1c386b7..dd7f87525d 100644
          errno = temp;
 @@ -375,7 +375,7 @@ CThunkObject *_ctypes_alloc_callback(PyObject *callable,
      }
- 
+
      cc = FFI_DEFAULT_ABI;
 -#if defined(MS_WIN32) && !defined(_WIN32_WCE) && !defined(MS_WIN64)
 +#if defined(MS_WIN32) && defined(_M_IX86) && !defined(_WIN32_WCE)
@@ -1984,7 +1961,7 @@ index 5861042398..38137ed0aa 100644
                         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), /* Default language */
 @@ -705,8 +706,11 @@ static int ConvParam(PyObject *obj, Py_ssize_t index, struct argument *pa)
  #endif
- 
+
      {
 +        _Py_IDENTIFIER(_as_parameter_);
          PyObject *arg;
@@ -1998,7 +1975,7 @@ index 5861042398..38137ed0aa 100644
 @@ -725,7 +729,6 @@ static int ConvParam(PyObject *obj, Py_ssize_t index, struct argument *pa)
      }
  }
- 
+
 -
  ffi_type *_ctypes_get_ffi_type(PyObject *obj)
  {
@@ -2036,7 +2013,7 @@ index 5861042398..38137ed0aa 100644
      if (restype == NULL) {
 @@ -789,7 +790,7 @@ static int _call_function_pointer(int flags,
      }
- 
+
      cc = FFI_DEFAULT_ABI;
 -#if defined(MS_WIN32) && !defined(MS_WIN64) && !defined(_WIN32_WCE)
 +#if defined(MS_WIN32) && defined(_M_IX86) && !defined(_WIN32_WCE)
@@ -2120,11 +2097,11 @@ index 5861042398..38137ed0aa 100644
      if ((flags & FUNCFLAG_PYTHONAPI) && PyErr_Occurred())
          return -1;
 @@ -983,6 +954,7 @@ error:
- 
- 
+
+
  #ifdef MS_WIN32
 +#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
- 
+
  static PyObject *
  GetComError(HRESULT errcode, GUID *riid, IUnknown *pIunk)
 @@ -1052,6 +1024,7 @@ GetComError(HRESULT errcode, GUID *riid, IUnknown *pIunk)
@@ -2132,11 +2109,11 @@ index 5861042398..38137ed0aa 100644
  }
  #endif
 +#endif
- 
+
  #if (defined(__x86_64__) && (defined(__MINGW64__) || defined(__CYGWIN__))) || \
      defined(__aarch64__) || defined(__riscv)
 @@ -1209,9 +1182,11 @@ PyObject *_ctypes_callproc(PPROC pProc,
- 
+
  #ifdef MS_WIN32
      if (iid && pIunk) {
 +#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
@@ -2150,7 +2127,7 @@ index 5861042398..38137ed0aa 100644
 @@ -1282,7 +1257,14 @@ static PyObject *load_library(PyObject *self, PyObject *args)
      if (!name)
          return NULL;
- 
+
 -    hMod = LoadLibraryW(name);
 +	Py_BEGIN_ALLOW_THREADS
 +#ifdef MS_DESKTOP
@@ -2183,7 +2160,7 @@ index 5861042398..38137ed0aa 100644
 @@ -1705,11 +1693,14 @@ POINTER(PyObject *self, PyObject *cls)
      PyObject *key;
      char *buf;
- 
+
 -    result = PyDict_GetItem(_ctypes_ptrtype_cache, cls);
 +    result = PyDict_GetItemWithError(_ctypes_ptrtype_cache, cls);
      if (result) {
@@ -2199,7 +2176,7 @@ index 5861042398..38137ed0aa 100644
 @@ -1765,12 +1756,16 @@ pointer(PyObject *self, PyObject *arg)
      PyObject *result;
      PyObject *typ;
- 
+
 -    typ = PyDict_GetItem(_ctypes_ptrtype_cache, (PyObject *)Py_TYPE(arg));
 -    if (typ)
 +    typ = PyDict_GetItemWithError(_ctypes_ptrtype_cache, (PyObject *)Py_TYPE(arg));
@@ -2230,7 +2207,7 @@ index 5d3b966338..09017bb86c 100644
 @@ -11,6 +11,14 @@
  #define PARAMFLAG_FLCID 0x4
  #endif
- 
+
 +#ifdef MS_WINDOWS
 +#ifndef WIN32_LEAN_AND_MEAN
 +#define WIN32_LEAN_AND_MEAN
@@ -2253,7 +2230,7 @@ index af12d314ab..44687ecd4d 100644
 -                int length = dict->length;
 +                int length = (int)dict->length;
                  StgDictObject *edict;
- 
+
                  edict = PyType_stgdict(dict->proto);
 diff --git a/Modules/_io/bufferedio.c b/Modules/_io/bufferedio.c
 index 358a654a98..0d130b1f0d 100644
@@ -2266,7 +2243,7 @@ index 358a654a98..0d130b1f0d 100644
 -    PyObject *res = NULL, *exc = NULL, *val, *tb;
 +    PyObject *res = NULL, *exc = NULL, *val = NULL, *tb = NULL;
      int r;
- 
+
      CHECK_INITIALIZED(self)
 @@ -2227,7 +2227,7 @@ bufferedrwpair_writable(rwpair *self, PyObject *args)
  static PyObject *
@@ -2310,7 +2287,7 @@ index bf5b10b494..f688eabc17 100644
 @@ -44,6 +44,12 @@
     of less than one character */
  #define SMALLBUF 4
- 
+
 +#ifdef MS_WINDOWS
 +/* defined in fileutils.c */
 +PyAPI_FUNC(HANDLE) _Py_win_create_file(LPCWSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES,
@@ -2319,7 +2296,7 @@ index bf5b10b494..f688eabc17 100644
 +
  char _get_console_type(HANDLE handle) {
      DWORD mode, peek_count;
- 
+
 @@ -200,7 +206,7 @@ _io__WindowsConsoleIO_close_impl(winconsoleio *self)
  /*[clinic end generated code: output=27ef95b66c29057b input=185617e349ae4c7b]*/
  {
@@ -2341,13 +2318,13 @@ index bf5b10b494..f688eabc17 100644
 +            self->handle = _Py_win_create_file(name, access,
                  FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
          Py_END_ALLOW_THREADS
- 
+
 diff --git a/Modules/_json.c b/Modules/_json.c
 index ac6e017a4e..b9d41b187b 100644
 --- a/Modules/_json.c
 +++ b/Modules/_json.c
 @@ -1,7 +1,9 @@
- 
+
  /* Core extension modules are built-in on some platforms (e.g. Windows). */
  #ifdef Py_BUILD_CORE
 +#ifndef Py_BUILD_CORE_BUILTIN
@@ -2355,14 +2332,14 @@ index ac6e017a4e..b9d41b187b 100644
 +#endif
  #undef Py_BUILD_CORE
  #endif
- 
+
 diff --git a/Modules/_localemodule.c b/Modules/_localemodule.c
 index f946898118..44f2b496fa 100644
 --- a/Modules/_localemodule.c
 +++ b/Modules/_localemodule.c
 @@ -388,34 +388,37 @@ exit:
  #endif
- 
+
  #if defined(MS_WINDOWS)
 +int
 +PyOS_snwprintf(wchar_t*, size_t, const wchar_t*, ...);
@@ -2374,10 +2351,10 @@ index f946898118..44f2b496fa 100644
 -    char locale[100];
 +    wchar_t encoding[100];
 +    wchar_t locale[100];
- 
+
 -    PyOS_snprintf(encoding, sizeof(encoding), "cp%u", GetACP());
 +    PyOS_snwprintf(encoding, sizeof(encoding), L"cp%u", GetACP());
- 
+
 -    if (GetLocaleInfo(LOCALE_USER_DEFAULT,
 +    if (GetLocaleInfoW(LOCALE_USER_DEFAULT,
                        LOCALE_SISO639LANGNAME,
@@ -2394,11 +2371,11 @@ index f946898118..44f2b496fa 100644
 +                          locale+i, (int)(sizeof(locale)-i) / sizeof(wchar_t)))
 +            return Py_BuildValue("uu", locale, encoding);
      }
- 
+
      /* If we end up here, this windows version didn't know about
         ISO639/ISO3166 names (it's probably Windows 95).  Return the
         Windows language identifier instead (a hexadecimal number) */
- 
+
 -    locale[0] = '0';
 -    locale[1] = 'x';
 -    if (GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_IDEFAULTLANGUAGE,
@@ -2409,14 +2386,14 @@ index f946898118..44f2b496fa 100644
 -        return Py_BuildValue("ss", locale, encoding);
 +        return Py_BuildValue("uu", locale, encoding);
      }
- 
+
      /* cannot determine the language code (very unlikely) */
 diff --git a/Modules/_pickle.c b/Modules/_pickle.c
 index dd45772595..729fad07db 100644
 --- a/Modules/_pickle.c
 +++ b/Modules/_pickle.c
 @@ -1,7 +1,9 @@
- 
+
  /* Core extension modules are built-in on some platforms (e.g. Windows). */
  #ifdef Py_BUILD_CORE
 +#ifndef Py_BUILD_CORE_BUILTIN
@@ -2424,11 +2401,11 @@ index dd45772595..729fad07db 100644
 +#endif
  #undef Py_BUILD_CORE
  #endif
- 
+
 @@ -26,6 +28,11 @@ enum {
      DEFAULT_PROTOCOL = 3
  };
- 
+
 +#ifdef UNICODE
 +#define REDEFINE_UNICODE 1
 +#undef UNICODE
@@ -2440,7 +2417,7 @@ index dd45772595..729fad07db 100644
 @@ -102,6 +109,11 @@ enum opcode {
      FRAME            = '\x95'
  };
- 
+
 +#ifdef REDEFINE_UNICODE
 +#define UNICODE 1
 +#undef REDEFINE_UNICODE
@@ -2454,7 +2431,7 @@ index 1a76ba99ab..0fa7bf9b0d 100644
 --- a/Modules/_randommodule.c
 +++ b/Modules/_randommodule.c
 @@ -68,6 +68,12 @@
- 
+
  #include "Python.h"
  #include <time.h>               /* for seeding to current time */
 +#ifdef MS_WINDOWS
@@ -2469,10 +2446,10 @@ index 1a76ba99ab..0fa7bf9b0d 100644
 @@ -222,7 +228,7 @@ random_seed_time_pid(RandomObject *self)
      key[0] = (PY_UINT32_T)(now & 0xffffffffU);
      key[1] = (PY_UINT32_T)(now >> 32);
- 
+
 -    key[2] = (PY_UINT32_T)getpid();
 +    key[2] = (PY_UINT32_T)GetCurrentProcessId();
- 
+
      now = _PyTime_GetMonotonicClock();
      key[3] = (PY_UINT32_T)(now & 0xffffffffU);
 diff --git a/Modules/_ssl.c b/Modules/_ssl.c
@@ -2488,12 +2465,12 @@ index a94dbbaec8..01a043ce49 100644
 +#ifdef MS_WINDOWS
 +#include <wincrypt.h>
 +#endif
- 
+
  #ifndef HAVE_X509_VERIFY_PARAM_SET1_HOST
  #  ifdef LIBRESSL_VERSION_NUMBER
 @@ -1144,7 +1149,7 @@ _create_tuple_for_attribute(ASN1_OBJECT *name, ASN1_STRING *value)
  }
- 
+
  static PyObject *
 -_create_tuple_for_X509_NAME (X509_NAME *xname)
 +_create_tuple_for_X509_NAME (struct X509_name_st *xname)
@@ -2507,7 +2484,7 @@ index 036464d9ab..288e9800c9 100644
 @@ -37,8 +37,11 @@
  #include "Python.h"
  #include "structmember.h"
- 
+
 +#ifndef WINDOWS_LEAN_AND_MEAN
  #define WINDOWS_LEAN_AND_MEAN
 -#include "windows.h"
@@ -2516,11 +2493,11 @@ index 036464d9ab..288e9800c9 100644
 +#include <winioctl.h>
  #include <crtdbg.h>
  #include "winreparse.h"
- 
+
 @@ -61,24 +64,6 @@
- 
+
  #define T_HANDLE T_POINTER
- 
+
 -/* Grab CancelIoEx dynamically from kernel32 */
 -static int has_CancelIoEx = -1;
 -static BOOL (CALLBACK *Py_CancelIoEx)(HANDLE, LPOVERLAPPED);
@@ -2544,7 +2521,7 @@ index 036464d9ab..288e9800c9 100644
   * for overlapped I/O
 @@ -106,9 +91,7 @@ overlapped_dealloc(OverlappedObject *self)
      int err = GetLastError();
- 
+
      if (self->pending) {
 -        if (check_CancelIoEx() &&
 -            Py_CancelIoEx(self->handle, &self->overlapped) &&
@@ -2554,7 +2531,7 @@ index 036464d9ab..288e9800c9 100644
              /* The operation is no longer pending -- nothing to do. */
          }
 @@ -265,10 +248,7 @@ _winapi_Overlapped_cancel_impl(OverlappedObject *self)
- 
+
      if (self->pending) {
          Py_BEGIN_ALLOW_THREADS
 -        if (check_CancelIoEx())
@@ -2564,11 +2541,11 @@ index 036464d9ab..288e9800c9 100644
 +		res = CancelIo(self->handle);
          Py_END_ALLOW_THREADS
      }
- 
+
 @@ -427,6 +407,17 @@ _winapi_ConnectNamedPipe_impl(PyObject *module, HANDLE handle,
      Py_RETURN_NONE;
  }
- 
+
 +HANDLE
 +_Py_win_create_file(
 +	_In_ LPCWSTR lpFileName,
@@ -2582,10 +2559,10 @@ index 036464d9ab..288e9800c9 100644
 +
  /*[clinic input]
  _winapi.CreateFile -> HANDLE
- 
+
 @@ -441,7 +432,7 @@ _winapi.CreateFile -> HANDLE
  [clinic start generated code]*/
- 
+
  static HANDLE
 -_winapi_CreateFile_impl(PyObject *module, LPCTSTR file_name,
 +_winapi_CreateFile_impl(PyObject *module, LPCWSTR file_name,
@@ -2595,7 +2572,7 @@ index 036464d9ab..288e9800c9 100644
 @@ -450,11 +441,11 @@ _winapi_CreateFile_impl(PyObject *module, LPCTSTR file_name,
  {
      HANDLE handle;
- 
+
 -    Py_BEGIN_ALLOW_THREADS
 -    handle = CreateFile(file_name, desired_access,
 -                        share_mode, security_attributes,
@@ -2607,7 +2584,7 @@ index 036464d9ab..288e9800c9 100644
 +		creation_disposition,
 +		flags_and_attributes, template_file);
      Py_END_ALLOW_THREADS
- 
+
      if (handle == INVALID_HANDLE_VALUE)
 @@ -476,6 +467,9 @@ _winapi_CreateJunction_impl(PyObject *module, LPWSTR src_path,
                              LPWSTR dst_path)
@@ -2621,11 +2598,11 @@ index 036464d9ab..288e9800c9 100644
      TOKEN_PRIVILEGES tp;
 @@ -598,6 +592,7 @@ cleanup:
          return PyErr_SetFromWindowsErr(ret);
- 
+
      Py_RETURN_NONE;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -858,7 +853,7 @@ cleanup:
      Py_XDECREF(value_fast);
@@ -2639,15 +2616,15 @@ index 036464d9ab..288e9800c9 100644
 @@ -1091,6 +1086,8 @@ cleanup:
      return ret;
  }
- 
+
 +#endif
 +
  /*[clinic input]
  _winapi.DuplicateHandle -> HANDLE
- 
+
 @@ -1289,7 +1286,16 @@ _winapi_GetVersion_impl(PyObject *module)
  #pragma warning(disable:4996)
- 
+
  {
 -    return GetVersion();
 +	OSVERSIONINFOW version_info;
@@ -2658,10 +2635,10 @@ index 036464d9ab..288e9800c9 100644
 +			(version_info.dwMajorVersion << 8) |
 +			(version_info.dwBuildNumber << 16);
 +	}
-+	
++
 +	return 0;
  }
- 
+
  #pragma warning(pop)
 @@ -1722,8 +1728,10 @@ static PyMethodDef winapi_functions[] = {
      _WINAPI_CREATEFILE_METHODDEF
@@ -2707,7 +2684,7 @@ index f4d884237b..0575c2d389 100644
 +++ b/Modules/clinic/_winapi.c.h
 @@ -131,7 +131,7 @@ PyDoc_STRVAR(_winapi_CreateFile__doc__,
      {"CreateFile", (PyCFunction)_winapi_CreateFile, METH_FASTCALL, _winapi_CreateFile__doc__},
- 
+
  static HANDLE
 -_winapi_CreateFile_impl(PyObject *module, LPCTSTR file_name,
 +_winapi_CreateFile_impl(PyObject *module, LPCWSTR file_name,
@@ -2726,7 +2703,7 @@ index f4d884237b..0575c2d389 100644
 @@ -150,7 +150,7 @@ _winapi_CreateFile(PyObject *module, PyObject *const *args, Py_ssize_t nargs)
      HANDLE template_file;
      HANDLE _return_value;
- 
+
 -    if (!_PyArg_ParseStack(args, nargs, "skk" F_POINTER "kk" F_HANDLE ":CreateFile",
 +    if (!_PyArg_ParseStack(args, nargs, "ukk" F_POINTER "kk" F_HANDLE ":CreateFile",
          &file_name, &desired_access, &share_mode, &security_attributes, &creation_disposition, &flags_and_attributes, &template_file)) {
@@ -2735,7 +2712,7 @@ index f4d884237b..0575c2d389 100644
 @@ -278,6 +278,7 @@ exit:
      return return_value;
  }
- 
+
 +#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
  PyDoc_STRVAR(_winapi_CreateProcess__doc__,
  "CreateProcess($module, application_name, command_line, proc_attrs,\n"
@@ -2745,7 +2722,7 @@ index f4d884237b..0575c2d389 100644
      return return_value;
  }
 +#endif
- 
+
  PyDoc_STRVAR(_winapi_DuplicateHandle__doc__,
  "DuplicateHandle($module, source_process_handle, source_handle,\n"
 diff --git a/Modules/faulthandler.c b/Modules/faulthandler.c
@@ -2755,7 +2732,7 @@ index 97c64f6330..1eea16f78e 100644
 @@ -471,7 +471,7 @@ faulthandler_enable(void)
          handler->enabled = 1;
      }
- 
+
 -#ifdef MS_WINDOWS
 +#if defined(MS_WINDOWS) && defined(MS_DESKTOP)
      assert(fatal_error.exc_handler == NULL);
@@ -2777,7 +2754,7 @@ index 97c64f6330..1eea16f78e 100644
 -#ifdef MS_WINDOWS
 +#if defined(MS_WINDOWS) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
      UINT mode;
- 
+
      /* Configure Windows to not display the Windows Error Reporting dialog */
 diff --git a/Modules/mmapmodule.c b/Modules/mmapmodule.c
 index 37a5c3dade..dc86221c1b 100644
@@ -2790,10 +2767,10 @@ index 37a5c3dade..dc86221c1b 100644
 -    char *      tagname;
 +    wchar_t *      tagname;
  #endif
- 
+
  #ifdef UNIX
 @@ -408,20 +408,17 @@ mmap_size_method(mmap_object *self,
- 
+
  #ifdef MS_WINDOWS
      if (self->file_handle != INVALID_HANDLE_VALUE) {
 -        DWORD low,high;
@@ -2828,7 +2805,7 @@ index 37a5c3dade..dc86221c1b 100644
              NULL,
              PAGE_READWRITE,
 @@ -687,7 +684,7 @@ mmap__sizeof__method(mmap_object *self, void *unused)
- 
+
      res = _PyObject_SIZE(Py_TYPE(self));
      if (self->tagname)
 -        res += strlen(self->tagname) + 1;
@@ -2860,7 +2837,7 @@ index 37a5c3dade..dc86221c1b 100644
                  Py_DECREF(m_obj);
                  return PyErr_SetFromWindowsErr(dwErr);
              }
- 
+
 -            size = (((long long) high) << 32) + low;
 +			size = sizeStruct.QuadPart;
              if (size == 0) {
@@ -2898,9 +2875,9 @@ index 596ee33027..f939961cf8 100644
 --- a/Modules/overlapped.c
 +++ b/Modules/overlapped.c
 @@ -37,6 +37,10 @@
- 
+
  #define T_HANDLE T_POINTER
- 
+
 +#if !defined(HasOverlappedIoCompleted)
 +#define HasOverlappedIoCompleted(lpOverlapped) (lpOverlapped)->Internal != STATUS_PENDING
 +#endif
@@ -2913,7 +2890,7 @@ index 596ee33027..f939961cf8 100644
  static LPFN_DISCONNECTEX Py_DisconnectEx = NULL;
  static LPFN_TRANSMITFILE Py_TransmitFile = NULL;
 -static BOOL (CALLBACK *Py_CancelIoEx)(HANDLE, LPOVERLAPPED) = NULL;
- 
+
  #define GET_WSA_POINTER(s, x)                                           \
      (SOCKET_ERROR != WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,    \
 @@ -104,7 +107,6 @@ initialize_function_pointers(void)
@@ -2923,17 +2900,17 @@ index 596ee33027..f939961cf8 100644
 -    HINSTANCE hKernel32;
      SOCKET s;
      DWORD dwBytes;
- 
+
 @@ -126,9 +128,6 @@ initialize_function_pointers(void)
- 
+
      closesocket(s);
- 
+
 -    /* On WinXP we will have Py_CancelIoEx == NULL */
 -    hKernel32 = GetModuleHandle("KERNEL32");
 -    *(FARPROC *)&Py_CancelIoEx = GetProcAddress(hKernel32, "CancelIoEx");
      return 0;
  }
- 
+
 @@ -259,6 +258,9 @@ PyDoc_STRVAR(
  static PyObject *
  overlapped_RegisterWaitWithQueue(PyObject *self, PyObject *args)
@@ -2946,11 +2923,11 @@ index 596ee33027..f939961cf8 100644
      ULONG Milliseconds;
 @@ -290,6 +292,7 @@ overlapped_RegisterWaitWithQueue(PyObject *self, PyObject *args)
      }
- 
+
      return Py_BuildValue(F_HANDLE, NewWaitObject);
 +#endif
  }
- 
+
  PyDoc_STRVAR(
 @@ -300,6 +303,9 @@ PyDoc_STRVAR(
  static PyObject *
@@ -2961,14 +2938,14 @@ index 596ee33027..f939961cf8 100644
 +#else
      HANDLE WaitHandle;
      BOOL ret;
- 
+
 @@ -313,6 +319,7 @@ overlapped_UnregisterWait(PyObject *self, PyObject *args)
      if (!ret)
          return SetFromWindowsErr(0);
      Py_RETURN_NONE;
 +#endif
  }
- 
+
  PyDoc_STRVAR(
 @@ -323,6 +330,9 @@ PyDoc_STRVAR(
  static PyObject *
@@ -2979,14 +2956,14 @@ index 596ee33027..f939961cf8 100644
 +#else
      HANDLE WaitHandle, Event;
      BOOL ret;
- 
+
 @@ -336,6 +346,7 @@ overlapped_UnregisterWaitEx(PyObject *self, PyObject *args)
      if (!ret)
          return SetFromWindowsErr(0);
      Py_RETURN_NONE;
 +#endif
  }
- 
+
  /*
 @@ -595,9 +606,6 @@ Overlapped_dealloc(OverlappedObject *self)
      if (!HasOverlappedIoCompleted(&self->overlapped) &&
@@ -2999,7 +2976,7 @@ index 596ee33027..f939961cf8 100644
          ret = GetOverlappedResult(self->handle, &self->overlapped,
                                    &bytes, wait);
 @@ -642,10 +650,7 @@ Overlapped_cancel(OverlappedObject *self)
- 
+
      if (!HasOverlappedIoCompleted(&self->overlapped)) {
          Py_BEGIN_ALLOW_THREADS
 -        if (Py_CancelIoEx)
@@ -3009,11 +2986,11 @@ index 596ee33027..f939961cf8 100644
 +		ret = CancelIo(self->handle);
          Py_END_ALLOW_THREADS
      }
- 
+
 @@ -1312,6 +1317,17 @@ PyDoc_STRVAR(
      "ConnectPipe(addr) -> pipe_handle\n\n"
      "Connect to the pipe for asynchronous I/O (overlapped).");
- 
+
 +PyAPI_FUNC(HANDLE)
 +_Py_win_create_file(
 +	_In_ LPCWSTR lpFileName,
@@ -3030,7 +3007,7 @@ index 596ee33027..f939961cf8 100644
  {
 @@ -1327,7 +1343,7 @@ ConnectPipe(OverlappedObject *self, PyObject *args)
          return NULL;
- 
+
      Py_BEGIN_ALLOW_THREADS
 -    PipeHandle = CreateFileW(Address,
 +    PipeHandle = _Py_win_create_file(Address,
@@ -3079,12 +3056,12 @@ index 58cb9b0d46..0e367d7903 100644
 +											struct _Py_stat_struct* result, BOOL set_ino);
 +
  #endif
- 
+
  #ifdef MS_WINDOWS
 @@ -1554,7 +1562,7 @@ win32_wchdir(LPCWSTR path)
  }
  #endif
- 
+
 -#ifdef MS_WINDOWS
 +#if defined(MS_WINDOWS)
  /* The CRT of Windows has a number of flaws wrt. its stat() implementation:
@@ -3093,7 +3070,7 @@ index 58cb9b0d46..0e367d7903 100644
 @@ -1564,27 +1572,8 @@ win32_wchdir(LPCWSTR path)
  #define HAVE_STAT_NSEC 1
  #define HAVE_STRUCT_STAT_ST_FILE_ATTRIBUTES 1
- 
+
 -static void
 -find_data_to_file_info(WIN32_FIND_DATAW *pFileData,
 -                       BY_HANDLE_FILE_INFORMATION *info,
@@ -3127,7 +3104,7 @@ index 58cb9b0d46..0e367d7903 100644
 +    _Py_find_data_to_stat(&FileData, result);
      return TRUE;
  }
- 
+
 @@ -1633,25 +1622,27 @@ static int
  win32_xstat_impl(const wchar_t *path, struct _Py_stat_struct *result,
                   BOOL traverse)
@@ -3139,7 +3116,7 @@ index 58cb9b0d46..0e367d7903 100644
      ULONG reparse_tag = 0;
 -    wchar_t *target_path;
      const wchar_t *dot;
- 
+
 -    hFile = CreateFileW(
 +	DWORD attributes =
 +		/* FILE_FLAG_BACKUP_SEMANTICS is required to open a directory */
@@ -3165,7 +3142,7 @@ index 58cb9b0d46..0e367d7903 100644
 -            FILE_FLAG_OPEN_REPARSE_POINT,
 +		attributes,
          NULL);
- 
+
      if (hFile == INVALID_HANDLE_VALUE) {
 @@ -1664,59 +1655,17 @@ win32_xstat_impl(const wchar_t *path, struct _Py_stat_struct *result,
              return -1;
@@ -3227,12 +3204,12 @@ index 58cb9b0d46..0e367d7903 100644
 +		CloseHandle(hFile);
      }
 -    _Py_attribute_data_to_stat(&info, reparse_tag, result);
- 
+
      /* Set S_IEXEC if it is an .exe, .bat, ... */
      dot = wcsrchr(path, '.');
 @@ -3317,9 +3266,7 @@ posix_getcwd(int use_bytes)
              break;
- 
+
          buf = tmpbuf;
 -#ifdef MS_WINDOWS
 -        cwd = getcwd(buf, (int)buflen);
@@ -3243,7 +3220,7 @@ index 58cb9b0d46..0e367d7903 100644
      } while (cwd == NULL && errno == ERANGE);
 @@ -3424,12 +3371,16 @@ os_link_impl(PyObject *module, path_t *src, path_t *dst, int src_dir_fd,
  #endif
- 
+
  #ifdef MS_WINDOWS
 +#ifdef MS_APP
 +	Py_RETURN_NOTIMPLEMENTED;
@@ -3251,7 +3228,7 @@ index 58cb9b0d46..0e367d7903 100644
      Py_BEGIN_ALLOW_THREADS
      result = CreateHardLinkW(dst->wide, src->wide, NULL);
      Py_END_ALLOW_THREADS
- 
+
      if (!result)
          return path_error2(src, dst);
 +#endif
@@ -3260,7 +3237,7 @@ index 58cb9b0d46..0e367d7903 100644
  #ifdef HAVE_LINKAT
 @@ -3752,7 +3703,7 @@ os__getfinalpathname_impl(PyObject *module, path_t *path)
      PyObject *result;
- 
+
      Py_BEGIN_ALLOW_THREADS
 -    hFile = CreateFileW(
 +    hFile = _Py_win_create_file(
@@ -3283,10 +3260,10 @@ index 58cb9b0d46..0e367d7903 100644
      return result;
 +#endif
  }
- 
+
  #endif /* MS_WINDOWS */
 @@ -4730,7 +4685,7 @@ os_utime_impl(PyObject *module, path_t *path, PyObject *times, PyObject *ns,
- 
+
  #ifdef MS_WINDOWS
      Py_BEGIN_ALLOW_THREADS
 -    hFile = CreateFileW(path->wide, FILE_WRITE_ATTRIBUTES, 0,
@@ -3310,7 +3287,7 @@ index 58cb9b0d46..0e367d7903 100644
          return Py_BuildValue(_Py_PARSE_INTPTR, spawnval);
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -6119,7 +6078,7 @@ static PyObject *
  os_getpid_impl(PyObject *module)
@@ -3320,7 +3297,7 @@ index 58cb9b0d46..0e367d7903 100644
 +    return PyLong_FromPid(GetCurrentProcessId());
  }
  #endif /* HAVE_GETPID */
- 
+
 @@ -6429,6 +6388,9 @@ os_setpgrp_impl(PyObject *module)
  static PyObject*
  win32_getppid()
@@ -3333,12 +3310,12 @@ index 58cb9b0d46..0e367d7903 100644
      PyObject* result = NULL;
 @@ -6462,6 +6424,7 @@ win32_getppid()
      CloseHandle(snapshot);
- 
+
      return result;
 +#endif
  }
  #endif /*MS_WINDOWS*/
- 
+
 @@ -6501,6 +6464,7 @@ os_getlogin_impl(PyObject *module)
  {
      PyObject *result = NULL;
@@ -3346,7 +3323,7 @@ index 58cb9b0d46..0e367d7903 100644
 +#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
      wchar_t user_name[UNLEN + 1];
      DWORD num_chars = Py_ARRAY_LENGTH(user_name);
- 
+
 @@ -6510,6 +6474,9 @@ os_getlogin_impl(PyObject *module)
      }
      else
@@ -3358,7 +3335,7 @@ index 58cb9b0d46..0e367d7903 100644
      char *name;
      int old_errno = errno;
 @@ -7230,7 +7197,7 @@ win_readlink(PyObject *self, PyObject *args, PyObject *kwargs)
- 
+
      /* First get a handle to the reparse point */
      Py_BEGIN_ALLOW_THREADS
 -    reparse_point_handle = CreateFileW(
@@ -3384,7 +3361,7 @@ index 58cb9b0d46..0e367d7903 100644
 +	return FALSE;
 +#endif
  }
- 
+
  /* Remove the last portion of the path - return 0 on success */
 @@ -10770,6 +10734,9 @@ static HINSTANCE (CALLBACK *Py_ShellExecuteW)(HWND, LPCWSTR, LPCWSTR, LPCWSTR,
  static int
@@ -3394,7 +3371,7 @@ index 58cb9b0d46..0e367d7903 100644
 +	return FALSE;
 +#else
      HINSTANCE hShell32;
- 
+
      /* only recheck */
 @@ -10790,6 +10757,7 @@ check_ShellExecute()
          }
@@ -3402,8 +3379,8 @@ index 58cb9b0d46..0e367d7903 100644
      return has_ShellExecute;
 +#endif
  }
- 
- 
+
+
 @@ -11398,6 +11366,7 @@ os_cpu_count_impl(PyObject *module)
  {
      int ncpu = 0;
@@ -3430,18 +3407,18 @@ index 58cb9b0d46..0e367d7903 100644
  {
 +#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
      DWORD flags;
- 
+
      if (!GetHandleInformation((HANDLE)handle, &flags)) {
 @@ -11503,6 +11478,9 @@ os_get_handle_inheritable_impl(PyObject *module, intptr_t handle)
      }
- 
+
      return flags & HANDLE_FLAG_INHERIT;
 +#else
 +	return 0;
 +#endif
  }
- 
- 
+
+
 @@ -11520,12 +11498,16 @@ os_set_handle_inheritable_impl(PyObject *module, intptr_t handle,
                                 int inheritable)
  /*[clinic end generated code: output=021d74fe6c96baa3 input=7a7641390d8364fc]*/
@@ -3458,7 +3435,7 @@ index 58cb9b0d46..0e367d7903 100644
 +#endif
  }
  #endif /* MS_WINDOWS */
- 
+
 @@ -11981,8 +11963,6 @@ static PyObject *
  DirEntry_from_find_data(path_t *path, WIN32_FIND_DATAW *dataW)
  {
@@ -3466,24 +3443,24 @@ index 58cb9b0d46..0e367d7903 100644
 -    BY_HANDLE_FILE_INFORMATION file_info;
 -    ULONG reparse_tag;
      wchar_t *joined_path;
- 
+
      entry = PyObject_New(DirEntry, &DirEntryType);
 @@ -12017,8 +11997,7 @@ DirEntry_from_find_data(path_t *path, WIN32_FIND_DATAW *dataW)
              goto error;
      }
- 
+
 -    find_data_to_file_info(dataW, &file_info, &reparse_tag);
 -    _Py_attribute_data_to_stat(&file_info, reparse_tag, &entry->win32_lstat);
 +    _Py_find_data_to_stat(dataW, &entry->win32_lstat);
- 
+
      return (PyObject *)entry;
- 
+
 diff --git a/Modules/selectmodule.c b/Modules/selectmodule.c
 index 93d896a37c..1beece8fa1 100644
 --- a/Modules/selectmodule.c
 +++ b/Modules/selectmodule.c
 @@ -53,7 +53,7 @@ extern void bzero(void *, int);
- 
+
  #ifdef MS_WINDOWS
  #  define WIN32_LEAN_AND_MEAN
 -#  include <winsock.h>
@@ -3497,7 +3474,7 @@ index a0722b731c..aa35c662d2 100644
 +++ b/Modules/signalmodule.c
 @@ -303,7 +303,7 @@ signal_handler(int sig_num)
      int save_errno = errno;
- 
+
      /* See NOTES section above */
 -    if (getpid() == main_pid)
 +    if (GetCurrentProcessId() == main_pid)
@@ -3506,11 +3483,11 @@ index a0722b731c..aa35c662d2 100644
      }
 @@ -1216,7 +1216,7 @@ PyInit__signal(void)
      int i;
- 
+
      main_thread = PyThread_get_thread_ident();
 -    main_pid = getpid();
 +    main_pid = GetCurrentProcessId();
- 
+
      /* Create the module and add the functions */
      m = PyModule_Create(&signalmodule);
 diff --git a/Modules/socketmodule.c b/Modules/socketmodule.c
@@ -3531,11 +3508,11 @@ index a9ef7e2083..635110caaa 100644
      }
 +#endif
  }
- 
+
  #endif
 @@ -2554,11 +2556,13 @@ sock_accept(PySocketSockObject *s)
      newfd = ctx.result;
- 
+
  #ifdef MS_WINDOWS
 +#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
      if (!SetHandleInformation((HANDLE)newfd, HANDLE_FLAG_INHERIT, 0)) {
@@ -3545,11 +3522,11 @@ index a9ef7e2083..635110caaa 100644
      }
 +#endif
  #else
- 
+
  #if defined(HAVE_ACCEPT4) && defined(SOCK_CLOEXEC)
 @@ -5040,11 +5044,13 @@ sock_initobj(PyObject *self, PyObject *args, PyObject *kwds)
          }
- 
+
          if (!support_wsa_no_inherit) {
 +#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
              if (!SetHandleInformation((HANDLE)fd, HANDLE_FLAG_INHERIT, 0)) {
@@ -3573,7 +3550,7 @@ index a9ef7e2083..635110caaa 100644
 @@ -5721,11 +5727,13 @@ socket_dup(PyObject *self, PyObject *fdobj)
      if (newfd == INVALID_SOCKET)
          return set_error();
- 
+
 +#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
      if (!SetHandleInformation((HANDLE)newfd, HANDLE_FLAG_INHERIT, 0)) {
          closesocket(newfd);
@@ -3585,7 +3562,7 @@ index a9ef7e2083..635110caaa 100644
      /* On UNIX, dup can be used to duplicate the file descriptor of a socket */
      newfd = _Py_dup(fd);
 @@ -6806,7 +6814,11 @@ PyInit__socket(void)
- 
+
  #ifdef MS_WINDOWS
      if (support_wsa_no_inherit == -1) {
 +#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
@@ -3595,7 +3572,7 @@ index a9ef7e2083..635110caaa 100644
 +#endif
      }
  #endif
- 
+
 diff --git a/Modules/socketmodule.h b/Modules/socketmodule.h
 index 0b2edc1587..9ab3436b61 100644
 --- a/Modules/socketmodule.h
@@ -3759,11 +3736,11 @@ index 04764c9e5a..3d8d132e46 100644
 --- a/PC/getpathp.c
 +++ b/PC/getpathp.c
 @@ -90,6 +90,7 @@
- 
+
  #include <windows.h>
  #include <shlwapi.h>
 +#include <PathCch.h>
- 
+
  #ifdef HAVE_SYS_TYPES_H
  #include <sys/types.h>
 @@ -244,6 +245,7 @@ static PPathCchCombineEx _PathCchCombineEx;
@@ -3784,20 +3761,20 @@ index 04764c9e5a..3d8d132e46 100644
 +	}
 +#endif
  }
- 
+
 +#ifdef MS_DESKTOP
  static int _PathCchCanonicalizeEx_Initialized = 0;
  typedef HRESULT(__stdcall *PPathCchCanonicalizeEx) (PWSTR pszPathOut, size_t cchPathOut,
      PCWSTR pszPathIn, unsigned long dwFlags);
  static PPathCchCanonicalizeEx _PathCchCanonicalizeEx;
 +#endif
- 
+
  static _PyInitError canonicalize(wchar_t *buffer, const wchar_t *path)
  {
 @@ -277,6 +286,7 @@ static _PyInitError canonicalize(wchar_t *buffer, const wchar_t *path)
          return _Py_INIT_NO_MEMORY();
      }
- 
+
 +#ifdef MS_DESKTOP
      if (_PathCchCanonicalizeEx_Initialized == 0) {
          HMODULE pathapi = LoadLibraryW(L"api-ms-win-core-path-l1-1-0.dll");
@@ -3813,7 +3790,7 @@ index 04764c9e5a..3d8d132e46 100644
 +#endif
      return _Py_INIT_OK();
  }
- 
+
 @@ -352,9 +367,11 @@ extern const char *PyWin_DLLVersionString;
     work on Win16, where the buffer sizes werent available
     in advance.  It could be simplied now Win16/Win32s is dead!
@@ -3835,7 +3812,7 @@ index 04764c9e5a..3d8d132e46 100644
 +#endif
  }
  #endif /* Py_ENABLE_SHARED */
- 
+
 @@ -1047,7 +1067,7 @@ done:
     Return whether the DLL was found.
  */
@@ -3882,7 +3859,7 @@ index c4113e54c2..73a2eb05d3 100644
      return _kbhit();
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -240,12 +244,16 @@ static int
  msvcrt_getch_impl(PyObject *module)
@@ -3892,14 +3869,14 @@ index c4113e54c2..73a2eb05d3 100644
 +  return 0;
 +#else
      int ch;
- 
+
      Py_BEGIN_ALLOW_THREADS
      ch = _getch();
      Py_END_ALLOW_THREADS
      return ch;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -258,12 +266,16 @@ static wchar_t
  msvcrt_getwch_impl(PyObject *module)
@@ -3909,14 +3886,14 @@ index c4113e54c2..73a2eb05d3 100644
 +  return 0;
 +#else
      wchar_t ch;
- 
+
      Py_BEGIN_ALLOW_THREADS
      ch = _getwch();
      Py_END_ALLOW_THREADS
      return ch;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -276,12 +288,16 @@ static int
  msvcrt_getche_impl(PyObject *module)
@@ -3926,14 +3903,14 @@ index c4113e54c2..73a2eb05d3 100644
 +  return 0;
 +#else
      int ch;
- 
+
      Py_BEGIN_ALLOW_THREADS
      ch = _getche();
      Py_END_ALLOW_THREADS
      return ch;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -294,12 +310,16 @@ static wchar_t
  msvcrt_getwche_impl(PyObject *module)
@@ -3943,14 +3920,14 @@ index c4113e54c2..73a2eb05d3 100644
 +  return 0;
 +#else
      wchar_t ch;
- 
+
      Py_BEGIN_ALLOW_THREADS
      ch = _getwche();
      Py_END_ALLOW_THREADS
      return ch;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -315,10 +335,14 @@ static PyObject *
  msvcrt_putch_impl(PyObject *module, char char_value)
@@ -3965,7 +3942,7 @@ index c4113e54c2..73a2eb05d3 100644
      Py_RETURN_NONE;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -334,10 +358,14 @@ static PyObject *
  msvcrt_putwch_impl(PyObject *module, int unicode_char)
@@ -3979,9 +3956,9 @@ index c4113e54c2..73a2eb05d3 100644
      _Py_END_SUPPRESS_IPH
      Py_RETURN_NONE;
 +#endif
- 
+
  }
- 
+
 @@ -358,6 +386,9 @@ static PyObject *
  msvcrt_ungetch_impl(PyObject *module, char char_value)
  /*[clinic end generated code: output=c6942a0efa119000 input=22f07ee9001bbf0f]*/
@@ -3990,7 +3967,7 @@ index c4113e54c2..73a2eb05d3 100644
 +  Py_RETURN_NOTIMPLEMENTED;
 +#else
      int res;
- 
+
      _Py_BEGIN_SUPPRESS_IPH
 @@ -367,6 +398,7 @@ msvcrt_ungetch_impl(PyObject *module, char char_value)
      if (res == EOF)
@@ -3998,7 +3975,7 @@ index c4113e54c2..73a2eb05d3 100644
      Py_RETURN_NONE;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -382,6 +414,9 @@ static PyObject *
  msvcrt_ungetwch_impl(PyObject *module, int unicode_char)
@@ -4008,7 +3985,7 @@ index c4113e54c2..73a2eb05d3 100644
 +  Py_RETURN_NOTIMPLEMENTED;
 +#else
      int res;
- 
+
      _Py_BEGIN_SUPPRESS_IPH
 @@ -391,6 +426,7 @@ msvcrt_ungetwch_impl(PyObject *module, int unicode_char)
      if (res == WEOF)
@@ -4016,7 +3993,7 @@ index c4113e54c2..73a2eb05d3 100644
      Py_RETURN_NONE;
 +#endif
  }
- 
+
  #ifdef _DEBUG
 @@ -576,10 +612,12 @@ PyInit_msvcrt(void)
      insertint(d, "LK_NBRLCK", _LK_NBRLCK);
@@ -4037,19 +4014,19 @@ index 6e33f12e0d..bcd1c48d8e 100644
 +++ b/PC/pyconfig.h
 @@ -57,6 +57,10 @@ WIN32 is still required for the locale module.
  #define HAVE_STRERROR
- 
+
  #include <io.h>
 +#ifndef WIN32_LEAN_AND_MEAN
 +#define WIN32_LEAN_AND_MEAN
 +#endif
 +#include <winapifamily.h>
- 
+
  #define HAVE_HYPOT
  #define HAVE_STRFTIME
 @@ -76,6 +80,16 @@ WIN32 is still required for the locale module.
  #define USE_SOCKET
  #endif
- 
+
 +#ifdef MS_WINDOWS
 +#	if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
 +#		define MS_DESKTOP
@@ -4060,11 +4037,11 @@ index 6e33f12e0d..bcd1c48d8e 100644
 +#	endif
 +#endif
 +
- 
+
  /* Compiler specific defines */
- 
+
 @@ -133,8 +147,13 @@ WIN32 is still required for the locale module.
- 
+
  /* set the version macros for the windows headers */
  /* Python 3.5+ requires Windows Vista or greater */
 -#define Py_WINVER 0x0600 /* _WIN32_WINNT_VISTA */
@@ -4076,12 +4053,12 @@ index 6e33f12e0d..bcd1c48d8e 100644
 +#define PY_WINVER 0x0A00 /* _WIN32_WINNT_WIN10 */
 +#define PyNTDDI NTDDI_WIN10
 +#endif
- 
+
  /* We only set these values when building Python - we don't want to force
     these values on extensions, as that will affect the prototypes and
 @@ -263,7 +282,7 @@ Py_NO_ENABLE_SHARED to find out.  Also support MS_NO_COREDLL for b/w compat */
  #define HAVE_DECLSPEC_DLL
- 
+
  /* For an MSVC DLL, we can nominate the .lib files used by extensions */
 -#ifdef MS_COREDLL
 +#if 0
@@ -4091,14 +4068,14 @@ index 6e33f12e0d..bcd1c48d8e 100644
 @@ -314,11 +333,6 @@ Py_NO_ENABLE_SHARED to find out.  Also support MS_NO_COREDLL for b/w compat */
  #       endif
  #endif
- 
+
 -#ifdef _DEBUG
 -#       define Py_DEBUG
 -#endif
 -
 -
  #ifdef MS_WIN32
- 
+
  #define SIZEOF_SHORT 2
 diff --git a/PC/python3.def b/PC/python3.def
 index 9e0348b625..1ee3a0d0b2 100644
@@ -5746,7 +5723,7 @@ index 16a10c7232..ca8aeedff6 100644
      PyObject_DEL(ob);
 +#endif
  }
- 
+
  static int
 @@ -395,6 +397,9 @@ PyHKEY_New(HKEY hInit)
  BOOL
@@ -5757,14 +5734,14 @@ index 16a10c7232..ca8aeedff6 100644
 +#else
      LONG rc;
      PyHKEYObject *key;
- 
+
 @@ -408,6 +413,7 @@ PyHKEY_Close(PyObject *ob_handle)
      if (rc != ERROR_SUCCESS)
          PyErr_SetFromWindowsErrWithFunction(rc, "RegCloseKey");
      return rc == ERROR_SUCCESS;
 +#endif
  }
- 
+
  BOOL
 @@ -471,6 +477,9 @@ PyHKEY_FromHKEY(HKEY h)
  BOOL
@@ -5782,12 +5759,12 @@ index 16a10c7232..ca8aeedff6 100644
      return ok;
 +#endif
  }
- 
- 
+
+
 @@ -796,28 +806,6 @@ Reg2Py(BYTE *retDataBuf, DWORD retDataSize, DWORD typ)
- 
+
  /* The Python methods */
- 
+
 -/*[clinic input]
 -winreg.CloseKey
 -
@@ -5812,7 +5789,7 @@ index 16a10c7232..ca8aeedff6 100644
 -
  /*[clinic input]
  winreg.ConnectRegistry -> HKEY
- 
+
 @@ -839,6 +827,9 @@ winreg_ConnectRegistry_impl(PyObject *module,
                              const Py_UNICODE *computer_name, HKEY key)
  /*[clinic end generated code: output=cd4f70fb9ec901fb input=5f98a891a347e68e]*/
@@ -5829,7 +5806,7 @@ index 16a10c7232..ca8aeedff6 100644
      return retKey;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -875,6 +867,9 @@ static HKEY
  winreg_CreateKey_impl(PyObject *module, HKEY key, const Py_UNICODE *sub_key)
@@ -5840,14 +5817,14 @@ index 16a10c7232..ca8aeedff6 100644
 +#else
      HKEY retKey;
      long rc;
- 
+
 @@ -884,6 +879,7 @@ winreg_CreateKey_impl(PyObject *module, HKEY key, const Py_UNICODE *sub_key)
          return NULL;
      }
      return retKey;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -916,6 +912,9 @@ winreg_CreateKeyEx_impl(PyObject *module, HKEY key,
                          REGSAM access)
@@ -5858,7 +5835,7 @@ index 16a10c7232..ca8aeedff6 100644
 +#else
      HKEY retKey;
      long rc;
- 
+
 @@ -926,6 +925,33 @@ winreg_CreateKeyEx_impl(PyObject *module, HKEY key,
          return NULL;
      }
@@ -5891,7 +5868,7 @@ index 16a10c7232..ca8aeedff6 100644
 +    Py_RETURN_NONE;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -950,11 +976,15 @@ static PyObject *
  winreg_DeleteKey_impl(PyObject *module, HKEY key, const Py_UNICODE *sub_key)
@@ -5907,7 +5884,7 @@ index 16a10c7232..ca8aeedff6 100644
      Py_RETURN_NONE;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -987,6 +1017,9 @@ winreg_DeleteKeyEx_impl(PyObject *module, HKEY key,
                          int reserved)
@@ -5925,7 +5902,7 @@ index 16a10c7232..ca8aeedff6 100644
      Py_RETURN_NONE;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -1028,6 +1062,9 @@ static PyObject *
  winreg_DeleteValue_impl(PyObject *module, HKEY key, const Py_UNICODE *value)
@@ -5943,7 +5920,7 @@ index 16a10c7232..ca8aeedff6 100644
      Py_RETURN_NONE;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -1058,6 +1096,9 @@ static PyObject *
  winreg_EnumKey_impl(PyObject *module, HKEY key, int index)
@@ -5954,14 +5931,14 @@ index 16a10c7232..ca8aeedff6 100644
 +#else
      long rc;
      PyObject *retStr;
- 
+
 @@ -1078,6 +1119,7 @@ winreg_EnumKey_impl(PyObject *module, HKEY key, int index)
- 
+
      retStr = PyUnicode_FromWideChar(tmpbuf, len);
      return retStr;  /* can be NULL */
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -1109,6 +1151,9 @@ static PyObject *
  winreg_EnumValue_impl(PyObject *module, HKEY key, int index)
@@ -5979,7 +5956,7 @@ index 16a10c7232..ca8aeedff6 100644
      return retVal;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -1197,6 +1243,9 @@ winreg_ExpandEnvironmentStrings_impl(PyObject *module,
                                       const Py_UNICODE *string)
@@ -5997,7 +5974,7 @@ index 16a10c7232..ca8aeedff6 100644
      return o;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -1247,6 +1297,9 @@ static PyObject *
  winreg_FlushKey_impl(PyObject *module, HKEY key)
@@ -6015,8 +5992,8 @@ index 16a10c7232..ca8aeedff6 100644
      Py_RETURN_NONE;
 +#endif
  }
- 
- 
+
+
 @@ -1291,6 +1345,9 @@ winreg_LoadKey_impl(PyObject *module, HKEY key, const Py_UNICODE *sub_key,
                      const Py_UNICODE *file_name)
  /*[clinic end generated code: output=65f89f2548cb27c7 input=e3b5b45ade311582]*/
@@ -6025,7 +6002,7 @@ index 16a10c7232..ca8aeedff6 100644
 +    Py_RETURN_NOTIMPLEMENTED;
 +#else
      long rc;
- 
+
      Py_BEGIN_ALLOW_THREADS
 @@ -1299,6 +1356,7 @@ winreg_LoadKey_impl(PyObject *module, HKEY key, const Py_UNICODE *sub_key,
      if (rc != ERROR_SUCCESS)
@@ -6033,7 +6010,7 @@ index 16a10c7232..ca8aeedff6 100644
      Py_RETURN_NONE;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -1325,6 +1383,9 @@ winreg_OpenKey_impl(PyObject *module, HKEY key, const Py_UNICODE *sub_key,
                      int reserved, REGSAM access)
@@ -6044,14 +6021,14 @@ index 16a10c7232..ca8aeedff6 100644
 +#else
      HKEY retKey;
      long rc;
- 
+
 @@ -1336,6 +1397,7 @@ winreg_OpenKey_impl(PyObject *module, HKEY key, const Py_UNICODE *sub_key,
          return NULL;
      }
      return retKey;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -1375,6 +1437,9 @@ static PyObject *
  winreg_QueryInfoKey_impl(PyObject *module, HKEY key)
@@ -6069,7 +6046,7 @@ index 16a10c7232..ca8aeedff6 100644
    return ret;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -1421,6 +1487,9 @@ static PyObject *
  winreg_QueryValue_impl(PyObject *module, HKEY key, const Py_UNICODE *sub_key)
@@ -6087,8 +6064,8 @@ index 16a10c7232..ca8aeedff6 100644
      return retStr;
 +#endif
  }
- 
- 
+
+
 @@ -1488,6 +1558,9 @@ static PyObject *
  winreg_QueryValueEx_impl(PyObject *module, HKEY key, const Py_UNICODE *name)
  /*[clinic end generated code: output=f1b85b1c3d887ec7 input=cf366cada4836891]*/
@@ -6105,7 +6082,7 @@ index 16a10c7232..ca8aeedff6 100644
      return result;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -1561,6 +1635,9 @@ static PyObject *
  winreg_SaveKey_impl(PyObject *module, HKEY key, const Py_UNICODE *file_name)
@@ -6115,7 +6092,7 @@ index 16a10c7232..ca8aeedff6 100644
 +    Py_RETURN_NOTIMPLEMENTED;
 +#else
      LPSECURITY_ATTRIBUTES pSA = NULL;
- 
+
      long rc;
 @@ -1574,6 +1651,7 @@ winreg_SaveKey_impl(PyObject *module, HKEY key, const Py_UNICODE *file_name)
      if (rc != ERROR_SUCCESS)
@@ -6123,7 +6100,7 @@ index 16a10c7232..ca8aeedff6 100644
      Py_RETURN_NONE;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -1609,6 +1687,9 @@ winreg_SetValue_impl(PyObject *module, HKEY key, const Py_UNICODE *sub_key,
                       Py_ssize_clean_t value_length)
@@ -6133,7 +6110,7 @@ index 16a10c7232..ca8aeedff6 100644
 +    Py_RETURN_NOTIMPLEMENTED;
 +#else
      long rc;
- 
+
      if (type != REG_SZ) {
 @@ -1623,6 +1704,7 @@ winreg_SetValue_impl(PyObject *module, HKEY key, const Py_UNICODE *sub_key,
      if (rc != ERROR_SUCCESS)
@@ -6141,7 +6118,7 @@ index 16a10c7232..ca8aeedff6 100644
      Py_RETURN_NONE;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -1675,6 +1757,9 @@ winreg_SetValueEx_impl(PyObject *module, HKEY key,
                         DWORD type, PyObject *value)
@@ -6152,14 +6129,14 @@ index 16a10c7232..ca8aeedff6 100644
 +#else
      BYTE *data;
      DWORD len;
- 
+
 @@ -1695,6 +1780,7 @@ winreg_SetValueEx_impl(PyObject *module, HKEY key,
          return PyErr_SetFromWindowsErrWithFunction(rc,
                                                     "RegSetValueEx");
      Py_RETURN_NONE;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -1717,6 +1803,9 @@ static PyObject *
  winreg_DisableReflectionKey_impl(PyObject *module, HKEY key)
@@ -6177,7 +6154,7 @@ index 16a10c7232..ca8aeedff6 100644
      Py_RETURN_NONE;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -1760,6 +1850,9 @@ static PyObject *
  winreg_EnableReflectionKey_impl(PyObject *module, HKEY key)
@@ -6195,7 +6172,7 @@ index 16a10c7232..ca8aeedff6 100644
      Py_RETURN_NONE;
 +#endif
  }
- 
+
  /*[clinic input]
 @@ -1801,6 +1895,9 @@ static PyObject *
  winreg_QueryReflectionKey_impl(PyObject *module, HKEY key)
@@ -6213,10 +6190,10 @@ index 16a10c7232..ca8aeedff6 100644
      return PyBool_FromLong(result);
 +#endif
  }
- 
+
  static struct PyMethodDef winreg_methods[] = {
 @@ -1891,6 +1989,9 @@ static struct PyModuleDef winregmodule = {
- 
+
  PyMODINIT_FUNC PyInit_winreg(void)
  {
 +#ifdef MS_APP
@@ -6237,14 +6214,14 @@ index 16a10c7232..ca8aeedff6 100644
      return m;
 +#endif
  }
- 
- 
+
+
 diff --git a/PCbuild/_freeze_importlib.vcxproj b/PCbuild/_freeze_importlib.vcxproj
 index c73266301e..b91ad540dc 100644
 --- a/PCbuild/_freeze_importlib.vcxproj
 +++ b/PCbuild/_freeze_importlib.vcxproj
 @@ -104,8 +104,8 @@
-     
+
      <Warning Text="@(_Updated->'%(Filename)%(Extension)',', ') updated. You will need to rebuild pythoncore to see the changes."
               Condition="'@(_Updated)' != '' and $(Configuration) == 'Debug'" />
 -    <Error Text="@(_Updated->'%(Filename)%(Extension)',', ') updated. You will need to rebuild pythoncore to see the changes."
@@ -6260,7 +6237,7 @@ index 0000000000..b76a4442e9
 --- /dev/null
 +++ b/PCbuild/python.natvis
 @@ -0,0 +1,140 @@
-+<?xml version="1.0" encoding="utf-8"?> 
++<?xml version="1.0" encoding="utf-8"?>
 +<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 +  <Type Name="_object">
 +    <Intrinsic Name="IsLong" Expression="ob_type-&gt;tp_flags &amp; (1 &lt;&lt; 24)" />
@@ -6525,11 +6502,11 @@ index 58b0802f46..20b66c093a 100644
  #    include <sys/stat.h>
 @@ -31,6 +35,7 @@ static int _Py_HashSecret_Initialized = 0;
  #endif
- 
+
  #ifdef MS_WINDOWS
 +#ifdef MS_DESKTOP
  static HCRYPTPROV hCryptProv = 0;
- 
+
  static int
 @@ -49,12 +54,19 @@ error:
      }
@@ -6541,7 +6518,7 @@ index 58b0802f46..20b66c093a 100644
 +int
 +uwp_urandom(unsigned char* buffer, Py_ssize_t size, int raise);
 +#endif
- 
+
  /* Fill buffer with size pseudo-random bytes generated by the Windows CryptoGen
     API. Return 0 on success, or raise an exception and return -1 on error. */
  static int
@@ -6549,7 +6526,7 @@ index 58b0802f46..20b66c093a 100644
  {
 +#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
      Py_ssize_t chunk;
- 
+
      if (hCryptProv == 0)
 @@ -79,6 +91,9 @@ win32_urandom(unsigned char *buffer, Py_ssize_t size, int raise)
          size -= chunk;
@@ -6559,7 +6536,7 @@ index 58b0802f46..20b66c093a 100644
 +	return uwp_urandom(buffer, size, raise);
 +#endif
  }
- 
+
  #else /* !MS_WINDOWS */
 @@ -621,10 +636,12 @@ void
  _Py_HashRandomization_Fini(void)
@@ -6580,7 +6557,7 @@ index 51325be658..d81eba2d5d 100644
 +++ b/Python/dynload_win.c
 @@ -19,7 +19,7 @@ void _Py_DeactivateActCtx(ULONG_PTR cookie);
  #endif
- 
+
  #ifdef _DEBUG
 -#define PYD_DEBUG_SUFFIX "_d"
 +#define PYD_DEBUG_SUFFIX ""
@@ -6592,24 +6569,24 @@ index 51325be658..d81eba2d5d 100644
      char funcname[258], *import_python;
      const wchar_t *wpathname;
 +    const wchar_t* prefix_length;
- 
+
  #ifndef _DEBUG
      _Py_CheckPython3();
 @@ -204,13 +205,15 @@ dl_funcptr _PyImport_FindSharedFuncptrWindows(const char *prefix,
- 
+
      {
          HINSTANCE hDLL = NULL;
 -        unsigned int old_mode;
  #if HAVE_SXS
          ULONG_PTR cookie = 0;
  #endif
- 
+
          /* Don't display a message box when Python can't load a DLL */
 +#ifdef MS_DESKTOP
 +        unsigned int old_mode;
          old_mode = SetErrorMode(SEM_FAILCRITICALERRORS);
 +#endif
- 
+
  #if HAVE_SXS
          cookie = _Py_ActivateActCtx();
 @@ -218,14 +221,30 @@ dl_funcptr _PyImport_FindSharedFuncptrWindows(const char *prefix,
@@ -6637,17 +6614,17 @@ index 51325be658..d81eba2d5d 100644
  #if HAVE_SXS
          _Py_DeactivateActCtx(cookie);
  #endif
- 
+
          /* restore old error mode settings */
 +#ifdef MS_DESKTOP
          SetErrorMode(old_mode);
 +#endif
- 
+
          if (hDLL==NULL){
              PyObject *message;
 @@ -284,11 +303,7 @@ dl_funcptr _PyImport_FindSharedFuncptrWindows(const char *prefix,
              char buffer[256];
- 
+
              PyOS_snprintf(buffer, sizeof(buffer),
 -#ifdef _DEBUG
 -                          "python%d%d_d.dll",
@@ -6657,7 +6634,7 @@ index 51325be658..d81eba2d5d 100644
 +                          "python%d.%d.dll",
                            PY_MAJOR_VERSION,PY_MINOR_VERSION);
              import_python = GetPythonImport(hDLL);
- 
+
 diff --git a/Python/fileutils.c b/Python/fileutils.c
 index b2c634db23..1ebc029a69 100644
 --- a/Python/fileutils.c
@@ -6665,7 +6642,7 @@ index b2c634db23..1ebc029a69 100644
 @@ -743,6 +743,18 @@ FILE_TIME_to_time_t_nsec(FILETIME *in_ptr, time_t *time_out, int* nsec_out)
      *time_out = Py_SAFE_DOWNCAST((in / 10000000) - secs_between_epochs, __int64, time_t);
  }
- 
+
 +static void
 +LARGE_INTEGER_to_time_t_nsec(LARGE_INTEGER *in_ptr, time_t *time_out, int* nsec_out)
 +{
@@ -6684,7 +6661,7 @@ index b2c634db23..1ebc029a69 100644
 @@ -753,6 +765,65 @@ _Py_time_t_to_FILE_TIME(time_t time_in, int nsec_in, FILETIME *out_ptr)
      memcpy(out_ptr, &out, sizeof(out));
  }
- 
+
 +PyAPI_FUNC(HANDLE)
 +_Py_win_create_file(
 +	_In_ LPCWSTR lpFileName,
@@ -6749,7 +6726,7 @@ index b2c634db23..1ebc029a69 100644
  #error Unsupported C library
 @@ -773,29 +844,76 @@ attributes_to_mode(DWORD attr)
  }
- 
+
  void
 -_Py_attribute_data_to_stat(BY_HANDLE_FILE_INFORMATION *info, ULONG reparse_tag,
 +_Py_attribute_data_to_stat(FILE_BASIC_INFO *basic_info,
@@ -6809,7 +6786,7 @@ index b2c634db23..1ebc029a69 100644
 +	result->st_file_attributes = find_data->dwFileAttributes;
  }
  #endif
- 
+
 +int
 +_Py_stat_from_file_handle(HANDLE h, struct _Py_stat_struct* result, BOOL set_ino)
 +{
@@ -6832,7 +6809,7 @@ index b2c634db23..1ebc029a69 100644
 +}
 +
  /* Return information about a file.
- 
+
     On POSIX, use fstat().
 @@ -812,7 +930,6 @@ int
  _Py_fstat_noraise(int fd, struct _Py_stat_struct *status)
@@ -6841,11 +6818,11 @@ index b2c634db23..1ebc029a69 100644
 -    BY_HANDLE_FILE_INFORMATION info;
      HANDLE h;
      int type;
- 
+
 @@ -846,17 +963,7 @@ _Py_fstat_noraise(int fd, struct _Py_stat_struct *status)
          return 0;
      }
- 
+
 -    if (!GetFileInformationByHandle(h, &info)) {
 -        /* The Win32 error is already set, but we also set errno for
 -           callers who expect it */
@@ -6868,32 +6845,32 @@ index b2c634db23..1ebc029a69 100644
 +#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
      HANDLE handle;
      DWORD flags;
- 
+
 @@ -967,6 +1075,9 @@ get_inheritable(int fd, int raise)
      }
- 
+
      return (flags & HANDLE_FLAG_INHERIT);
 +#else
 +	return 0;
 +#endif
  #else
      int flags;
- 
+
 @@ -1033,21 +1144,25 @@ set_inheritable(int fd, int inheritable, int raise, int *atomic_flag_works)
          return -1;
      }
- 
+
 +#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
      if (inheritable)
          flags = HANDLE_FLAG_INHERIT;
      else
 +#endif
          flags = 0;
- 
+
      /* This check can be removed once support for Windows 7 ends. */
  #define CONSOLE_PSEUDOHANDLE(handle) (((ULONG_PTR)(handle) & 0x3) == 0x3 && \
          GetFileType(handle) == FILE_TYPE_CHAR)
- 
+
 +#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
      if (!CONSOLE_PSEUDOHANDLE(handle) &&
          !SetHandleInformation(handle, HANDLE_FLAG_INHERIT, flags)) {
@@ -6904,7 +6881,7 @@ index b2c634db23..1ebc029a69 100644
 +#endif
  #undef CONSOLE_PSEUDOHANDLE
      return 0;
- 
+
 diff --git a/Python/importlib_external.h b/Python/importlib_external.h
 index 73775cd37b..90974d92f8 100644
 --- a/Python/importlib_external.h
@@ -11505,7 +11482,7 @@ index 0e94131741..d41b1659ed 100644
  #include <windows.h>
 +#include <WinSock2.h>
  #endif
- 
+
  #if defined(__APPLE__)
 @@ -666,11 +667,14 @@ pygettimeofday(_PyTime_t *tp, _Py_clock_info_t *info, int raise)
         days). */
@@ -11515,7 +11492,7 @@ index 0e94131741..d41b1659ed 100644
          DWORD timeAdjustment, timeIncrement;
          BOOL isTimeAdjustmentDisabled, ok;
 +#endif
- 
+
          info->implementation = "GetSystemTimeAsFileTime()";
          info->monotonic = 0;
 +#ifdef MS_DESKTOP
@@ -11528,11 +11505,11 @@ index 0e94131741..d41b1659ed 100644
          info->adjustable = 1;
 +#endif
      }
- 
+
  #else   /* MS_WINDOWS */
 @@ -785,10 +790,13 @@ pymonotonic(_PyTime_t *tp, _Py_clock_info_t *info, int raise)
      *tp = t * MS_TO_NS;
- 
+
      if (info) {
 +#ifdef MS_DESKTOP
          DWORD timeAdjustment, timeIncrement;
@@ -11551,7 +11528,7 @@ index 0e94131741..d41b1659ed 100644
 +#endif
          info->adjustable = 0;
      }
- 
+
 diff --git a/Python/sysmodule.c b/Python/sysmodule.c
 index b953a00097..77e55ad83a 100644
 --- a/Python/sysmodule.c
@@ -11569,12 +11546,12 @@ index b953a00097..77e55ad83a 100644
      LPVOID verblock;
      DWORD verblock_size;
 +#endif
- 
+
      ver.dwOSVersionInfoSize = sizeof(ver);
 -    if (!GetVersionEx((OSVERSIONINFO*) &ver))
 +    if (!GetVersionExW((LPOSVERSIONINFOW)&ver))
          return PyErr_SetFromWindowsErr(0);
- 
+
      version = PyStructSequence_New(&WindowsVersionType);
 @@ -1097,7 +1099,7 @@ sys_getwindowsversion(PyObject *self)
      PyStructSequence_SET_ITEM(version, pos++, PyLong_FromLong(ver.dwMinorVersion));
@@ -11588,7 +11565,7 @@ index b953a00097..77e55ad83a 100644
 @@ -1107,6 +1109,7 @@ sys_getwindowsversion(PyObject *self)
      realMinor = ver.dwMinorVersion;
      realBuild = ver.dwBuildNumber;
- 
+
 +#ifdef MS_DESKTOP
      // GetVersion will lie if we are running in a compatibility mode.
      // We need to read the version info from a system file resource
@@ -11601,9 +11578,6 @@ index b953a00097..77e55ad83a 100644
      PyStructSequence_SET_ITEM(version, pos++, Py_BuildValue("(kkk)",
          realMajor,
          realMinor,
-diff --git a/cmake/python-config.cmake b/cmake/python-config.cmake
-new file mode 100644
-index 0000000000..cdbdc4dcae
 --- /dev/null
 +++ b/cmake/python-config.cmake
 @@ -0,0 +1 @@
