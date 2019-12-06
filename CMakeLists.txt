@@ -593,7 +593,7 @@ ExternalProject_Add(libxml2
 add_dependency_project_package(libxml2 2.9.4)
 
 ExternalProject_Add(libxslt
-	DEPENDS libiconv
+	DEPENDS libiconv libxml2
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL ftp://xmlsoft.org/libxml2/libxslt-1.1.29.tar.gz
 	URL_HASH SHA256=b5976e3857837e7617b29f2249ebb5eeac34e249208d31f1fbf7a6ba7a4090ce
