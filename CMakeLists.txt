@@ -557,15 +557,14 @@ ExternalProject_Add(libbdplus
 add_dependency_project_package(libbdplus 45c76dd)
 
 ExternalProject_Add(libmicrohttpd
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-0.9.55.tar.gz
-	URL_HASH SHA256=0c1cab8dc9f2588bd3076a28f77a7f8de9560cbf2d80e53f9a8696ada80ed0f8
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	GIT_REPOSITORY https://github.com/Paxxi/libmicrohttpd
+	GIT_TAG c45155fb2eaab0b3dcd474f86d7da5e35a4dbeca
+	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
-add_dependency_project_package(libmicrohttpd 0.9.55)
+add_dependency_project_package(libmicrohttpd 0.9.68)
 
 ExternalProject_Add(libnfs
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
