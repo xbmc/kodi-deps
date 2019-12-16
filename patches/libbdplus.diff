@@ -448,20 +448,6 @@ index d4d1328..5ff7d7e 100644
  
  #ifdef HAVE_LIBAACS
  #include <libaacs/aacs.h>
-diff --git a/src/file/configfile.c b/src/file/configfile.c
-index 6462aeb..42a2b08 100644
---- a/src/file/configfile.c
-+++ b/src/file/configfile.c
-@@ -36,6 +36,9 @@
- 
- #ifdef _WIN32
- # define mkdir(p,m) win32_mkdir(p)
-+#ifndef S_ISDIR
-+# define S_ISDIR(mode)  (((mode) & S_IFMT) == S_IFDIR)
-+#endif
- #endif
- 
- 
 diff --git a/src/file/dirs_win32.c b/src/file/dirs_win32.c
 index d73796a..9bfa974 100644
 --- a/src/file/dirs_win32.c

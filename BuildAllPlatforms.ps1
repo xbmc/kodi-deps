@@ -10,6 +10,7 @@ Param(
     'easyhook',
     'expat',
     'flatc',
+    'fmt',
     'freetype',
     'fstrcmp',
     'lcms2',
@@ -21,7 +22,6 @@ Param(
     'libcec',
     'libffi',
     'libfribidi',
-    'libgrypt',
     'libgpg-error',
     'libgcrypt',
     'libjpeg-turbo',
@@ -29,14 +29,15 @@ Param(
     'libmicrohttpd',
     'libnfs',
     'libplist',
+    'libudfread',
     'libwebp',
     'libxml2',
     'libxslt',
-    'libyajl',
     'lzo2',
     'mariadb-connector-c',
     'openssl',
     'pcre',
+    'platform',
     'python',
     'pillow',
     'pycryptodome',
@@ -46,54 +47,10 @@ Param(
     'tinyxml',
     'winflexbison',
     'xz',
-    'zlib'
+    'zlib',
+    'uwp_compat'
   )]
-  [string[]] $Packages = @(
-    'bzip2',
-    'crossguid',
-    'curl',
-    'dnssd',
-    'easyhook',
-    'expat',
-    'flatc',
-    'freetype',
-    'fstrcmp',
-    'lcms2',
-    'libaacs',
-    'libass',
-    'libbdplus',
-    'libbluray',
-    'libcdio',
-    'libcec',
-    'libffi',
-    'libfribidi',
-    'libgrypt',
-    'libgpg-error',
-    'libgcrypt',
-    'libjpeg-turbo',
-    'libiconv',
-    'libmicrohttpd',
-    'libnfs',
-    'libplist',
-    'libwebp',
-    'libxml2',
-    'libxslt',
-    'libyajl',
-    'lzo2',
-    'mariadb-connector-c',
-    'openssl',
-    'pcre',
-    'python',
-    'pillow',
-    'pycryptodome',
-    'shairplay',
-    'sqlite',
-    'taglib',
-    'tinyxml',
-    'winflexbison',
-    'xz',
-    'zlib'
-  ),
+  [string[]] $Packages = @('$all'),
   [switch] $GenerateProjects,
   [switch] $Rel = $false,
   [switch] $Deb = $false,
@@ -104,8 +61,9 @@ Param(
   [string[]] $Platforms = @( 'arm', 'win32', 'x64', 'arm64' ),
   [ValidateSet('10.0.17763.0', '10.0.18362.0')]
   [string] $SdkVersion = '10.0.17763.0',
-  [ValidateRange(15, 16)]
-  [int] $VsVersion = 15
+  [ValidateSet(15, 16)]
+  [int] $VsVersion = 16,
+  [switch] $Zip = $false
 )
 
 $ErrorActionPreference = "Stop"
@@ -115,7 +73,9 @@ $ExcludedFromUwp = @(
   'dnssd',
   'easyhook',
   'libplist',
-  'shairplay'
+  'shairplay',
+  'platform',
+  'libcec'
 )
 
 if ($GenerateProjects) {
@@ -138,23 +98,121 @@ if ($GenerateProjects) {
   }
 }
 
-if ($null -ne $Packages) {
-  $cleanFirst
-  if ($Rebuild) {
-    $cleanFirst = "--clean-first"
+$cleanFirst
+if ($Rebuild) {
+  $cleanFirst = "--clean-first"
+}
+foreach ($package in $Packages) {
+  if ('$all' -eq $package) {
+    $package = ''
+  }
+
+  foreach ($platform in $platforms) {
+    if ($Desktop) {
+      $path = "$PsScriptRoot\Build\$platform"
+      if ($Deb) {
+        cmake --build $path --config Debug -t $package $cleanFirst -- -m
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "Some packages failed to build, $package"
+           return;
+        }
+      }
+
+      if ($Rel) {
+        cmake --build $path --config RelWithDebInfo -t $package $cleanFirst -- -m
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "Some packages failed to build, $package"
+           return;
+        }
+      }
+    }
+
+    if ($App) {
+      if ($package -in $ExcludedFromUwp) {
+        Write-Warning "Ignoring $package as it isn't used for uwp"
+        continue
+      }
+
+      $storePath = "$PsScriptRoot\Build\win10-$Platform"
+      if ($Deb) {
+        cmake --build $storePath --config Debug -t $package $cleanFirst -- -m
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "Some packages failed to build, $package"
+           return;
+        }
+      }
+
+      if ($Rel) {
+        cmake --build $storePath --config RelWithDebInfo -t $package $cleanFirst -- -m
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "Some packages failed to build, $package"
+           return;
+        }
+      }
+    }
+  }
+}
+
+if ($Zip) {
+  if (($Packages.Count -eq 1) -and ($Packages[0] -eq '$all')) {
+    $Packages = @(
+      'bzip2',
+      'crossguid',
+      'curl',
+      'dnssd',
+      'easyhook',
+      'expat',
+      'flatc',
+      'fmt',
+      'freetype',
+      'fstrcmp',
+      'lcms2',
+      'libaacs',
+      'libass',
+      'libbdplus',
+      'libbluray',
+      'libcdio',
+      'libcec',
+      'libffi',
+      'libfribidi',
+      'libgpg-error',
+      'libgcrypt',
+      'libjpeg-turbo',
+      'libiconv',
+      'libmicrohttpd',
+      'libnfs',
+      'libplist',
+      'libudfread',
+      'libwebp',
+      'libxml2',
+      'libxslt',
+      'lzo2',
+      'mariadb-connector-c',
+      'openssl',
+      'pcre',
+      'platform',
+      'python',
+      'pillow',
+      'pycryptodome',
+      'shairplay',
+      'sqlite',
+      'taglib',
+      'tinyxml',
+      'winflexbison',
+      'xz',
+      'zlib',
+      'uwp_compat'
+    )
   }
   foreach ($package in $Packages) {
     foreach ($platform in $platforms) {
       if ($Desktop) {
         $path = "$PsScriptRoot\Build\$platform"
-        if ($Deb) {
-          cmake --build $path --config Debug -t $package $cleanFirst
-          if ($LASTEXITCODE -ne 0) { return; }
-        }
 
-        if ($Rel) {
-          cmake --build $path --config RelWithDebInfo -t $package $cleanFirst
-          if ($LASTEXITCODE -ne 0) { return; }
+        cmake --build $path --config RelWithDebInfo -t "$package-zip" -- -m
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "Some packages failed to build, $package"
+           return;
         }
       }
 
@@ -165,16 +223,14 @@ if ($null -ne $Packages) {
         }
 
         $storePath = "$PsScriptRoot\Build\win10-$Platform"
-        if ($Deb) {
-          cmake --build $storePath --config Debug -t $package $cleanFirst
-          if ($LASTEXITCODE -ne 0) { return; }
-        }
-
-        if ($Rel) {
-          cmake --build $storePath --config RelWithDebInfo -t $package $cleanFirst
-          if ($LASTEXITCODE -ne 0) { return; }
+        cmake --build $storePath --config RelWithDebInfo -t "$package-zip" -- -m
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "Some packages failed to build, $package"
+          return;
         }
       }
     }
   }
 }
+
+Write-Host "All done"

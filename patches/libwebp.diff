@@ -9,7 +9,7 @@
  
  # Options for coder / decoder executables.
  option(WEBP_BUILD_CWEBP "Build the cwebp command line tool." OFF)
-@@ -187,3 +187,41 @@
+@@ -187,3 +187,42 @@
      ${WEBP_DEP_LIBRARIES} ${WEBP_DEP_IMG_LIBRARIES}
    )
  endif()
@@ -31,8 +31,9 @@
 +install(FILES src/webp/decode.h src/webp/demux.h src/webp/encode.h src/webp/types.h DESTINATION include/webp)
 +
 +if(MSVC)
-+  set_target_properties(webp PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME webp)
-+  install(FILES "${CMAKE_BINARY_DIR}/RelWithDebInfo/webp.pdb" DESTINATION lib)
++  set_target_properties(webp PROPERTIES COMPILE_PDB_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR} COMPILE_PDB_NAME webp COMPILE_PDB_NAME_DEBUG webpd)
++  install(FILES "${CMAKE_BINARY_DIR}/RelWithDebInfo/webp.pdb" DESTINATION lib CONFIGURATIONS RelWithDebInfo)
++  install(FILES "${CMAKE_BINARY_DIR}/Debug/webpd.pdb" DESTINATION lib CONFIGURATIONS Debug)
 +endif()
 +
 +install(EXPORT ${PROJECT_NAME}

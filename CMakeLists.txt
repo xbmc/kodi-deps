@@ -63,11 +63,12 @@ function(add_dependency_project_package name version)
 	# it's possible to pack dependency only if it was installed in separate folder
 	if(FOLDER_PER_TARGET)
 		set(dep_name "${name}-${version}")
+		string(TIMESTAMP date "%Y%m%d")
 		if(NOT ANY IN_LIST ARGN)
 			if(CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
 				set(dep_name "${dep_name}-win10")
 			endif()
-			set(dep_name "${dep_name}-$(Platform)-$(PlatformToolset)")
+			set(dep_name "${dep_name}-$(Platform)-$(PlatformToolset)-${date}")
 		endif()
 		file(TO_NATIVE_PATH "${PREFIX}/${dep_name}" COPY_DESTINATION)
 
@@ -78,7 +79,7 @@ function(add_dependency_project_package name version)
 			COMMAND ${CMAKE_COMMAND} -E tar "cf" "${PREFIX}/../${dep_name}.7z" --format=7zip -- "${COPY_DESTINATION}"
 			COMMAND ${CMAKE_COMMAND} -E remove_directory "${COPY_DESTINATION}"
 			WORKING_DIRECTORY ${PREFIX}
-			ALWAYS FALSE
+			ALWAYS TRUE
 			EXCLUDE_FROM_MAIN TRUE
 		)
 		ExternalProject_Add_StepDependencies(${name} zip ${name})
@@ -94,6 +95,7 @@ ExternalProject_Add(flatc
 	URL https://github.com/google/flatbuffers/archive/v1.9.0.tar.gz
 	URL_HASH SHA256=5ca5491e4260cacae30f1a5786d109230db3f3a6e5a0eb45d0d0608293d247e3
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	UPDATE_DISCONNECTED ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
@@ -106,11 +108,24 @@ add_dependency_project_package(flatc 1.9.0)
 
 # dependencies required by others
 
+ExternalProject_Add(uwp_compat
+	GIT_REPOSITORY https://github.com/Paxxi/uwp_compat
+	GIT_TAG feb56bc2c4573b8657bba2b40648f0b2e2ecf72b
+	GIT_SHALLOW ON
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DBUILD_SHARED_LIBS:BOOL=OFF
+)
+add_dependency_project_package(uwp_compat 0.1)
+
+
 ExternalProject_Add(bzip2
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://mirrors.kodi.tv/build-deps/sources/bzip2-1.0.6.tar.gz
 	URL_HASH SHA256=a2848f34fcd5d6cf47def00461fcb528a0484d8edef8208d6d2e2909dc61d9cd
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	UPDATE_DISCONNECTED ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
@@ -122,6 +137,7 @@ ExternalProject_Add(expat
 	URL https://github.com/libexpat/libexpat/archive/R_2_2_9.tar.gz
 	URL_HASH SHA256=c341ac8c79e021cc3392a6d76e138e62d1dd287592cb455148540331756a2208
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	UPDATE_DISCONNECTED ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
@@ -135,13 +151,14 @@ ExternalProject_Add(expat
 add_dependency_project_package(expat 2.2.9)
 
 ExternalProject_Add(libiconv
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.16.tar.gz
-	URL_HASH SHA256=e6a1b1b589654277ee790cce3734f07876ac4ccfaecbee8afa0b649cf529cc04
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	GIT_REPOSITORY https://github.com/Paxxi/libiconv
+	GIT_TAG 88316873fbaa24c7dee0bbb739dbfaa2a51ddf20
+	GIT_SHALLOW ON
+	UPDATE_DISCONNECTED ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DBUILD_SHARED_LIBS:BOOL=OFF
 )
 add_dependency_project_package(libiconv 1.16)
 
@@ -199,18 +216,16 @@ ExternalProject_Add(crossguid
 )
 add_dependency_project_package(crossguid fef89a4)
 
-if(NOT CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
+if(NOT WINDOWS_STORE)
 ExternalProject_Add(easyhook
-	DOWNLOAD_NAME easyhook-2.7.6035.0.tar.gz
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://github.com/EasyHook/EasyHook/archive/v2.7.6035.0.tar.gz
-	URL_HASH SHA256=db5dafbc08ccd181dc8f2e11a7adf63b3e90b6bea974c326ce15fc4ba70d96b4
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	GIT_REPOSITORY https://github.com/Paxxi/EasyHook
+	GIT_TAG 85de041cd57b7d058ec15ff11ca37738a1478646
+	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
-add_dependency_project_package(easyhook 2.7.6035.0)
+add_dependency_project_package(easyhook 2.7.6789.0)
 endif()
 
 ExternalProject_Add(flatbuffers
@@ -229,9 +244,9 @@ ExternalProject_Add(flatbuffers
 add_dependency_project_package(flatbuffers 1.9.0 ANY)
 
 ExternalProject_Add(fmt
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://github.com/fmtlib/fmt/releases/download/3.0.1/fmt-3.0.1.zip
-	URL_HASH SHA256=4c9af0dc919a8ae7022b44e1a03c435e42d65c866f44667d8d920d342b098550
+	GIT_REPOSITORY https://github.com/Paxxi/fmt
+	GIT_TAG 45d9ed88ef467cdb05c22bd0729659339cab7070
+	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
@@ -264,12 +279,12 @@ add_dependency_project_package(fstrcmp 0.7)
 
 ExternalProject_Add(libcdio
 	DEPENDS libiconv
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://ftp.gnu.org/gnu/libcdio/libcdio-0.94.tar.gz
-	URL_HASH SHA256=96e2c903f866ae96f9f5b9048fa32db0921464a2286f5b586c0f02699710025a
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	GIT_REPOSITORY https://github.com/Paxxi/libcdio
+	GIT_TAG 1a0d301021805dd3fbe6b8a861ebaa916d532421
+	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
+		-DBUILD_SHARED_LIBS:BOOL=ON
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libiconv
 )
@@ -285,20 +300,6 @@ ExternalProject_Add(libfribidi
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
 add_dependency_project_package(libfribidi 0.19.7)
-
-ExternalProject_Add(libyajl
-	DOWNLOAD_NAME yajl-2.1.0.tar.gz
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://github.com/lloyd/yajl/archive/2.1.0.tar.gz
-	URL_HASH SHA256=3fb73364a5a30efe615046d07e6db9d09fd2b41c763c5f7d3bfb121cd5c5ac5a
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
-	CMAKE_ARGS
-		${ADDITIONAL_ARGS}
-		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DBUILD_BIN:BOOL=OFF
-		-DBUILD_EXAMPLE:BOOL=OFF
-		-DBUILD_TEST:BOOL=OFF
-)
 
 ExternalProject_Add(lzo2
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -447,6 +448,7 @@ add_custom_target(DependenciesDllRequired
 )
 
 
+if(NOT WINDOWS_STORE)
 ExternalProject_Add(dnssd
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
 	URL https://opensource.apple.com/tarballs/mDNSResponder/mDNSResponder-765.50.9.tar.gz
@@ -458,6 +460,7 @@ ExternalProject_Add(dnssd
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
 add_dependency_project_package(dnssd 765.50.9)
+endif()
 
 ExternalProject_Add(lcms2
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -471,27 +474,31 @@ ExternalProject_Add(lcms2
 )
 add_dependency_project_package(lcms2 2.8)
 
+if(NOT WINDOWS_STORE)
 ExternalProject_Add(platform
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://github.com/Pulse-Eight/platform/archive/platform-2.1.0.tar.gz
-	URL_HASH SHA256=ae730b5fe34c50df57db44e6925f462061e1a5b6619a20041a7aedfdda8243ef
+	GIT_REPOSITORY https://github.com/Paxxi/platform
+	GIT_TAG 5f7ede279db7be840610eb6bc126068a735d7440
+	GIT_SHALLOW ON
+	GIT_SUBMODULES
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(platform 2.1.0)
 
 ExternalProject_Add(libcec
 	DEPENDS platform
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://github.com/Pulse-Eight/libcec/archive/libcec-4.0.2.tar.gz
-	URL_HASH SHA256=b8b8dd31f3ebdd5472f03ab7d401600ea0d959b1288b9ca24bf457ef60e2ba27
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	GIT_REPOSITORY https://github.com/Paxxi/libcec
+	GIT_TAG 59ab401c5a89e9ea20269b4e4747240632665811
+	GIT_SHALLOW ON
+	GIT_SUBMODULES
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/platform
 )
 add_dependency_project_package(libcec 4.0.2)
+endif()
 
 ExternalProject_Add(libgpg-error
 	DEPENDS libiconv
@@ -504,18 +511,19 @@ ExternalProject_Add(libgpg-error
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libiconv
 )
+add_dependency_project_package(libgpg-error 1.36.0)
 
 ExternalProject_Add(libgcrypt
 	DEPENDS libgpg-error libiconv
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.7.6.tar.bz2
-	URL_HASH SHA256=626aafee84af9d2ce253d2c143dc1c0902dda045780cc241f39970fc60be05bc
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	GIT_REPOSITORY https://github.com/Paxxi/libgcrypt
+	GIT_TAG 054175f38a3fab100e67c64ba86c6a0a3f0be778
+	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgpg-error%3B%3B${PREFIX}/libiconv
 )
+add_dependency_project_package(libgcrypt 1.7.6)
 
 ExternalProject_Add(winflexbison
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -526,14 +534,13 @@ ExternalProject_Add(winflexbison
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
+add_dependency_project_package(winflexbison 2.5.9)
 
 ExternalProject_Add(libaacs
-	DOWNLOAD_NAME libaacs-295df3f.tar.gz
 	DEPENDS libgcrypt libgpg-error winflexbison libiconv
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL ftp://ftp.videolan.org/pub/videolan/libaacs/0.9.0/libaacs-0.9.0.tar.bz2
-	URL_HASH SHA512=b9c658db22a0966486070d3b762509a7c0120469ab29d1e57c1b624cad309701de8b92455ec649db4d731be4a5c29c38fb4f99bb7617dbb4254270284a1903f6
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	GIT_REPOSITORY https://github.com/Paxxi/libaacs
+	GIT_TAG f52f6b07d302b00885f50de7de6a00fcc5d24191
+	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DBUILD_SHARED_LIBS:BOOL=ON
@@ -543,22 +550,20 @@ ExternalProject_Add(libaacs
 add_dependency_project_package(libaacs 0.9.0)
 
 ExternalProject_Add(libbdplus
-	DOWNLOAD_NAME libbdplus-45c76dd.tar.gz
-	DEPENDS libgcrypt libgpg-error libiconv
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://github.com/ace20022/libbdplus/archive/45c76dd.tar.gz
-	URL_HASH SHA256=843081a7fb05567f5d0ca8bbe69996f3cf18bf94e76871519aa8f2e598210f7f
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	DEPENDS libgcrypt libgpg-error libiconv uwp_compat
+	GIT_REPOSITORY https://github.com/Paxxi/libbdplus
+	GIT_TAG 810781623e2948052b3d47540b18448c75c6dba8
+	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgcrypt%3B%3B${PREFIX}/libgpg-error%3B%3B${PREFIX}/libiconv
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgcrypt%3B%3B${PREFIX}/libgpg-error%3B%3B${PREFIX}/libiconv%3B%3B${PREFIX}/uwp_compat
 )
-add_dependency_project_package(libbdplus 45c76dd)
+add_dependency_project_package(libbdplus 0.1.2)
 
 ExternalProject_Add(libmicrohttpd
-	GIT_REPOSITORY https://github.com/Paxxi/libmicrohttpd
-	GIT_TAG c45155fb2eaab0b3dcd474f86d7da5e35a4dbeca
+	GIT_REPOSITORY file://c:/code/libmicrohttpd
+	GIT_TAG db38c38163af517c805b9e6b276d315872d5b21a
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -592,19 +597,19 @@ ExternalProject_Add(libxml2
 add_dependency_project_package(libxml2 2.9.4)
 
 ExternalProject_Add(libxslt
-	DEPENDS libiconv libxml2
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL ftp://xmlsoft.org/libxml2/libxslt-1.1.29.tar.gz
-	URL_HASH SHA256=b5976e3857837e7617b29f2249ebb5eeac34e249208d31f1fbf7a6ba7a4090ce
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff COMMAND
+	DEPENDS libiconv libxml2 uwp_compat
+	GIT_REPOSITORY https://github.com/Paxxi/libxslt
+	GIT_TAG f63869008f803398f86697031201f83812d65732
+	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libiconv%3B%3B${PREFIX}/libxml2
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libiconv%3B%3B${PREFIX}/libxml2%3B%3B${PREFIX}/uwp_compat
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
-add_dependency_project_package(libxslt 1.1.29)
+add_dependency_project_package(libxslt 1.1.34)
 
+if(NOT WINDOWS_STORE)
 ExternalProject_Add(libplist
 	DEPENDS libiconv libxml2
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -618,6 +623,7 @@ ExternalProject_Add(libplist
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
 add_dependency_project_package(libplist 1.12)
+endif()
 
 ExternalProject_Add(libwebp
 	DOWNLOAD_NAME libwebp-0.6.0.tar.gz
@@ -630,12 +636,13 @@ ExternalProject_Add(libwebp
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
 
+add_dependency_project_package(libwebp 0.6.0)
+
 ExternalProject_Add(mariadb-connector-c
 	DEPENDS openssl
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://downloads.mariadb.com/Connectors/c/connector-c-3.0.6/mariadb-connector-c-3.0.6-src.tar.gz
-	URL_HASH SHA256=2b2d18dc969dc385f7f740e4db112300e11bc626c9ba9aa05c284704095b9e48
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	GIT_REPOSITORY https://github.com/Paxxi/mariadb-connector-c
+	GIT_TAG 3404396e10c6559bb258a998b93a76cfd10b877b
+	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
@@ -647,11 +654,10 @@ ExternalProject_Add(mariadb-connector-c
 		-DPLUGIN_PVIO_NPIPE:STRING=STATIC
 		-DPLUGIN_PVIO_SHMEM:STRING=STATIC
 		-DPLUGIN_SHA256_PASSWORD:STRING=STATIC
-		-DSKIP_TESTS:BOOL=ON
 		-DWITH_CURL:BOOL=OFF
 		-DWITH_MYSQLCOMPAT:BOOL=ON
 		-DWITH_SSL:STRING=OPENSSL
-		-DWITH_UNITTEST:BOOL=OFF
+		-DWITH_UNIT_TESTS:BOOL=OFF
 )
 add_dependency_project_package(mariadb-connector-c 3.0.6)
 
@@ -668,11 +674,9 @@ add_dependency_project_package(libffi 3.3.0)
 
 ExternalProject_Add(python
 	DEPENDS bzip2 openssl sqlite zlib expat libffi xz
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://www.python.org/ftp/python/3.7.5/Python-3.7.5.tgz
-	URL_HASH MD5=1cd071f78ff6d9c7524c95303a3057aa
-	PATCH_COMMAND
-		COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	GIT_REPOSITORY https://github.com/Paxxi/cpython
+	GIT_TAG c3252a00add077cfd58cd71b9ec328dc76dfb098
+	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
@@ -695,12 +699,13 @@ ExternalProject_Add(libjpeg-turbo
 		-DWITH_CRT_DLL:BOOL=ON
 )
 
+add_dependency_project_package(libjpeg-turbo 1.5.2)
+
 ExternalProject_Add(pillow
 	DEPENDS freetype libjpeg-turbo python zlib
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://github.com/python-pillow/Pillow/archive/6.2.1.tar.gz
-	URL_HASH SHA256=7bf2d6bdb68fa6ccec15c0fd9aa20fac9641cd20dc6079344f5a6534e13a70f9
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	GIT_REPOSITORY https://github.com/Paxxi/pillow
+	GIT_TAG 330db77e29f434117c37a1c2f2ef9033ccc44c57
+	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
@@ -724,6 +729,7 @@ ExternalProject_Add(pycryptodome
 )
 add_dependency_project_package(pycryptodome 3.9.4)
 
+if(NOT WINDOWS_STORE)
 ExternalProject_Add(shairplay
 	DOWNLOAD_NAME shairplay-ce80e00.tar.gz
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -736,16 +742,27 @@ ExternalProject_Add(shairplay
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
 add_dependency_project_package(shairplay ce80e00)
+endif()
 
-ExternalProject_Add(libbluray
-	DEPENDS freetype libiconv libxml2
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL ftp://ftp.videolan.org/pub/videolan/libbluray/1.0.2/libbluray-1.0.2.tar.bz2
-	URL_HASH SHA512=e1360ad08aa6cc67a80efa81a09004faebbe31105f1961494f82f655e3e7378b198ee3bc534b0d0c2bfec726939b11b545cc8bbfa30794fc647432dadf71089b
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+ExternalProject_Add(libudfread
+	GIT_REPOSITORY https://github.com/Paxxi/libudfread
+	GIT_TAG 365693e50acf794a8fb8e8496511a9299132ce5d
+	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype%3B%3B${PREFIX}/libiconv%3B%3B${PREFIX}/libxml2
+)
+add_dependency_project_package(libudfread 1.0.0)
+
+
+ExternalProject_Add(libbluray
+	DEPENDS freetype libiconv libxml2 libudfread
+	GIT_REPOSITORY https://github.com/Paxxi/libbluray
+	GIT_TAG dd733aa0050b0b7d087840371afd2b43bd8ab05f
+	GIT_SHALLOW ON
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype%3B%3B${PREFIX}/libiconv%3B%3B${PREFIX}/libxml2%3B%3B${PREFIX}/libudfread
 )
 add_dependency_project_package(libbluray 1.0.1)

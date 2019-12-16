@@ -71,12 +71,12 @@ index 0000000..99da25c
 +
 +configure_file(
 +  config.h.cmake
-+  ${CMAKE_CURRENT_BINARY_DIR}/config.h
++  ${CMAKE_CURRENT_BINARY_DIR}/include/config.h
 +)
 +add_library(${PROJECT_NAME}
 +  xzlib.h
 +  buf.h
-+  config.h
++  ${CMAKE_CURRENT_BINARY_DIR}/include/config.h
 +  elfgcchack.h
 +  enc.h
 +  libxml.h

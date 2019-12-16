@@ -234,7 +234,7 @@ index 00000000..27464866
 +
 +  target_link_libraries(${CRYPTO_LIB}
 +    PRIVATE
-+      python::pythoncore
++      python::python
 +      tomcrypt
 +      $<$<CONFIG:Debug>:vccorlibd.lib>
 +      $<$<CONFIG:RelWithDebInfo>:vccorlib.lib>
