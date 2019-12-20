@@ -3,6 +3,7 @@
 Param(
   [Parameter()]
   [ValidateSet(
+    'brotli',
     'bzip2',
     'crossguid',
     'curl',
@@ -10,6 +11,7 @@ Param(
     'easyhook',
     'expat',
     'flatc',
+    'flatbuffers',
     'fmt',
     'freetype',
     'fstrcmp',
@@ -41,6 +43,7 @@ Param(
     'python',
     'pillow',
     'pycryptodome',
+    'rapidjson',
     'shairplay',
     'sqlite',
     'taglib',
@@ -50,7 +53,7 @@ Param(
     'zlib',
     'uwp_compat'
   )]
-  [string[]] $Packages = @('$all'),
+  [string[]] $Packages = @(''),
   [switch] $GenerateProjects,
   [switch] $Rel = $false,
   [switch] $Deb = $false,
@@ -75,24 +78,19 @@ $ExcludedFromUwp = @(
   'libplist',
   'shairplay',
   'platform',
-  'libcec'
+  'libcec',
+  'flatc'
 )
 
 if ($GenerateProjects) {
   foreach ($platform in $platforms) {
-    if ($Desktop) {
+    if ($Desktop -and ($platform -notmatch 'arm')) {
       $path = "$PsScriptRoot\Build\$platform"
-      if (!(Test-Path $path)) {
-        New-Item $path -ItemType Directory
-      }
       cmake -G "Visual Studio $VsVersion" -A $platform -Thost=x64 -DPATCH="C:\Program Files\Git\usr\bin\patch.exe" -S $PsScriptRoot -B $path
     }
 
     if ($App) {
       $path = "$PsScriptRoot\Build\win10-$Platform"
-      if (!(Test-Path $path)) {
-        New-Item $path -ItemType Directory
-      }
       cmake -G "Visual Studio $VsVersion" -A $platform -Thost=x64 -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION="$SdkVersion" -DPATCH="C:\Program Files\Git\usr\bin\patch.exe" -S $PsScriptRoot -B $path
     }
   }
@@ -102,132 +100,75 @@ $cleanFirst
 if ($Rebuild) {
   $cleanFirst = "--clean-first"
 }
-foreach ($package in $Packages) {
-  if ('$all' -eq $package) {
-    $package = ''
-  }
+$desktopPackages = $Packages
+$appPackages = [string[]]($Packages | Where-Object { $_ -notin $ExcludedFromUwp })
 
-  foreach ($platform in $platforms) {
-    if ($Desktop) {
-      $path = "$PsScriptRoot\Build\$platform"
-      if ($Deb) {
-        cmake --build $path --config Debug -t $package $cleanFirst -- -m
-        if ($LASTEXITCODE -ne 0) {
-          Write-Error "Some packages failed to build, $package"
-           return;
-        }
-      }
-
-      if ($Rel) {
-        cmake --build $path --config RelWithDebInfo -t $package $cleanFirst -- -m
-        if ($LASTEXITCODE -ne 0) {
-          Write-Error "Some packages failed to build, $package"
-           return;
-        }
+foreach ($platform in $platforms) {
+  if ($Desktop -and ($platform -notmatch 'arm')) {
+    $path = "$PsScriptRoot\Build\$platform"
+    if ($Deb) {
+      cmake --build $path --config Debug -t @desktopPackages $cleanFirst -- -m
+      if ($LASTEXITCODE -ne 0) {
+        Write-Error "Some packages failed to build, $desktopPackages"
+        return;
       }
     }
 
-    if ($App) {
-      if ($package -in $ExcludedFromUwp) {
-        Write-Warning "Ignoring $package as it isn't used for uwp"
-        continue
+    if ($Rel) {
+      cmake --build $path --config RelWithDebInfo -t @desktopPackages $cleanFirst -- -m
+      if ($LASTEXITCODE -ne 0) {
+        Write-Error "Some packages failed to build, $desktopPackages"
+        return;
       }
+    }
+  }
 
-      $storePath = "$PsScriptRoot\Build\win10-$Platform"
-      if ($Deb) {
-        cmake --build $storePath --config Debug -t $package $cleanFirst -- -m
-        if ($LASTEXITCODE -ne 0) {
-          Write-Error "Some packages failed to build, $package"
-           return;
-        }
+  if ($App) {
+    $storePath = "$PsScriptRoot\Build\win10-$Platform"
+    if ($Deb) {
+      cmake --build $storePath --config Debug -t @appPackages $cleanFirst -- -m
+      if ($LASTEXITCODE -ne 0) {
+        Write-Error "Some packages failed to build, $appPackages"
+        return;
       }
+    }
 
-      if ($Rel) {
-        cmake --build $storePath --config RelWithDebInfo -t $package $cleanFirst -- -m
-        if ($LASTEXITCODE -ne 0) {
-          Write-Error "Some packages failed to build, $package"
-           return;
-        }
+    if ($Rel) {
+      cmake --build $storePath --config RelWithDebInfo -t @appPackages $cleanFirst -- -m
+      if ($LASTEXITCODE -ne 0) {
+        Write-Error "Some packages failed to build, $appPackages"
+        return;
       }
     }
   }
 }
 
 if ($Zip) {
-  if (($Packages.Count -eq 1) -and ($Packages[0] -eq '$all')) {
-    $Packages = @(
-      'bzip2',
-      'crossguid',
-      'curl',
-      'dnssd',
-      'easyhook',
-      'expat',
-      'flatc',
-      'fmt',
-      'freetype',
-      'fstrcmp',
-      'lcms2',
-      'libaacs',
-      'libass',
-      'libbdplus',
-      'libbluray',
-      'libcdio',
-      'libcec',
-      'libffi',
-      'libfribidi',
-      'libgpg-error',
-      'libgcrypt',
-      'libjpeg-turbo',
-      'libiconv',
-      'libmicrohttpd',
-      'libnfs',
-      'libplist',
-      'libudfread',
-      'libwebp',
-      'libxml2',
-      'libxslt',
-      'lzo2',
-      'mariadb-connector-c',
-      'openssl',
-      'pcre',
-      'platform',
-      'python',
-      'pillow',
-      'pycryptodome',
-      'shairplay',
-      'sqlite',
-      'taglib',
-      'tinyxml',
-      'winflexbison',
-      'xz',
-      'zlib',
-      'uwp_compat'
-    )
+  if ($desktopPackages.Count -ge 0) {
+    $desktopPackages = [string[]]($desktopPackages | foreach-Object { "$_-zip"})
+    $appPackages = [string[]]($appPackages | foreach-Object { "$_-zip" })
+  } elseif ($desktopPackages.Count -eq 0) {
+    $desktopPackages += 'zip'
+    $appPackages += 'zip'
   }
-  foreach ($package in $Packages) {
-    foreach ($platform in $platforms) {
-      if ($Desktop) {
-        $path = "$PsScriptRoot\Build\$platform"
 
-        cmake --build $path --config RelWithDebInfo -t "$package-zip" -- -m
-        if ($LASTEXITCODE -ne 0) {
-          Write-Error "Some packages failed to build, $package"
-           return;
-        }
+  foreach ($platform in $platforms) {
+    if ($Desktop -and ($platform -notmatch 'arm')) {
+      $path = "$PsScriptRoot\Build\$platform"
+
+      cmake --build $path --config RelWithDebInfo -t @desktopPackages -- -m
+      if ($LASTEXITCODE -ne 0) {
+        Write-Error "Some packages failed to package"
+        return;
       }
+    }
 
-      if ($App) {
-        if ($package -in $ExcludedFromUwp) {
-          Write-Warning "Ignoring $package as it isn't used for uwp"
-          continue
-        }
-
-        $storePath = "$PsScriptRoot\Build\win10-$Platform"
-        cmake --build $storePath --config RelWithDebInfo -t "$package-zip" -- -m
-        if ($LASTEXITCODE -ne 0) {
-          Write-Error "Some packages failed to build, $package"
-          return;
-        }
+    if ($App) {
+      $storePath = "$PsScriptRoot\Build\win10-$Platform"
+      cmake --build $storePath --config RelWithDebInfo -t @appPackages -- -m
+      if ($LASTEXITCODE -ne 0) {
+        Write-Error "Some packages failed to package"
+        return;
       }
     }
   }
