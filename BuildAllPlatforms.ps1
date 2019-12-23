@@ -53,7 +53,7 @@ Param(
     'zlib',
     'uwp_compat'
   )]
-  [string[]] $Packages = @(''),
+  [string[]] $Packages = @(),
   [switch] $GenerateProjects,
   [switch] $Rel = $false,
   [switch] $Deb = $false,
@@ -71,6 +71,17 @@ Param(
 
 $ErrorActionPreference = "Stop"
 
+# JAVA_HOME might be set to the JRE so let's check that and
+# set it to the JDK to make things a little easier
+if (!(Test-Path 'HKLM:\SOFTWARE\JavaSoft\Java Development Kit\1.8')) {
+  Write-Error "No JDK found. libbluray require JDK 1.8 from Oracle"
+  return
+}
+
+$jdkRegistryPath = Get-ItemPropertyValue 'HKLM:\SOFTWARE\JavaSoft\Java Development Kit\1.8' -Name JavaHome
+if ($env:JAVA_HOME -ne $jdkRegistryPath) {
+  $env:JAVA_HOME = $jdkRegistryPath
+}
 
 $ExcludedFromUwp = @(
   'dnssd',
@@ -144,12 +155,12 @@ foreach ($platform in $platforms) {
 }
 
 if ($Zip) {
-  if ($desktopPackages.Count -ge 0) {
+  if ($desktopPackages.Count -gt 0) {
     $desktopPackages = [string[]]($desktopPackages | foreach-Object { "$_-zip"})
     $appPackages = [string[]]($appPackages | foreach-Object { "$_-zip" })
   } elseif ($desktopPackages.Count -eq 0) {
-    $desktopPackages += 'zip'
-    $appPackages += 'zip'
+    $desktopPackages = @('zip')
+    $appPackages = @('zip')
   }
 
   foreach ($platform in $platforms) {

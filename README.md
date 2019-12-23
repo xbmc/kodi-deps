@@ -2,12 +2,17 @@
 
 ## Requirements ##
 
+in `vsconfigs` there are configurations that can be imported in the Visual Studio Installer.
+Click More->Import Configuration and pick the one matching the VS version. This should
+install everything required in the VS installer, everything else still need to be installed
+manually
+
 ### Common
 
 - git
 - perl
 - windows driver kit (wdk)
-- jdk
+- jdk (Use SE 8 from oracle, using AdoptOpenJDK produced a build that didn't work)
 - ant
 - windows sdk 10.0.17763.0
 - cmake 3.16 or higher
@@ -28,6 +33,7 @@
 - mfc spectre mitigrations
 - build tools for x86, x64, arm, arm64
 - crt libraries with spectre mitigations
+
 
 ## Build and release
 

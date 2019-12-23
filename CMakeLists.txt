@@ -66,11 +66,12 @@ function(add_dependency_project_package name version)
 		set(dep_name "${name}-${version}")
 		string(TIMESTAMP date "%Y%m%d")
 		if(NOT ANY IN_LIST ARGN)
-			if(CMAKE_SYSTEM_NAME STREQUAL WindowsStore)
+			if(WINDOWS_STORE)
 				set(dep_name "${dep_name}-win10")
 			endif()
-			set(dep_name "${dep_name}-$(Platform)-$(PlatformToolset)-${date}")
+			set(dep_name "${dep_name}-$(Platform)-$(PlatformToolset)")
 		endif()
+		set(dep_name "${dep_name}-${date}")
 		file(TO_NATIVE_PATH "${PREFIX}/${dep_name}" COPY_DESTINATION)
 
 		ExternalProject_Add_StepTargets(${name} zip)
@@ -165,15 +166,14 @@ add_dependency_project_package(libiconv 1.16)
 
 ExternalProject_Add(openssl
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://www.openssl.org/source/openssl-1.1.1.tar.gz
-	URL_HASH SHA256=2836875a0f89c03d0fdf483941512613a50cfb421d6fd94b9f41d7279d586a3d
+	URL https://www.openssl.org/source/openssl-1.1.1d.tar.gz
+	URL_HASH SHA256=1e3a91bc1f9dfce01af26026f856e064eab4c8ee0a8f457b5ae30b40b8b711f2
 	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
-	INSTALL_COMMAND
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
-add_dependency_project_package(openssl 1.1.1)
+add_dependency_project_package(openssl 1.1.1d)
 
 ExternalProject_Add(zlib
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -410,7 +410,6 @@ ExternalProject_Add(libass
 	GIT_REPOSITORY https://github.com/Paxxi/libass
 	GIT_TAG 589761f828d38fb7099e3b859d6097f00bf68455
 	GIT_SHALLOW ON
-	INSTALL_COMMAND
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
@@ -423,7 +422,6 @@ ExternalProject_Add(brotli
 	GIT_REPOSITORY https://github.com/Paxxi/brotli
 	GIT_TAG 40b4519d55acc3ac76b2a6f573cca91ae2e12e45
 	GIT_SHALLOW ON
-	INSTALL_COMMAND
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
@@ -433,7 +431,7 @@ add_dependency_project_package(brotli 1.0.7)
 ExternalProject_Add(curl
 	DEPENDS openssl zlib brotli
 	GIT_REPOSITORY https://github.com/Paxxi/curl
-	GIT_TAG 4bd46b12de382b070a4a6b351a6009e6eb7aa2b5
+	GIT_TAG c7a0b88ea2ec7393817dc71eca2baa36e5b47070
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -531,7 +529,7 @@ add_dependency_project_package(libgpg-error 1.36.0)
 
 ExternalProject_Add(libgcrypt
 	DEPENDS libgpg-error libiconv
-	GIT_REPOSITORY file:///c:/code/libgcrypt
+	GIT_REPOSITORY https://github.com/Paxxi/libgcrypt
 	GIT_TAG db592119e0e86ae1043b5c92f1e7a64c8c4759ca
 	GIT_SHALLOW ON
 	CMAKE_ARGS
@@ -542,9 +540,10 @@ ExternalProject_Add(libgcrypt
 add_dependency_project_package(libgcrypt 1.8.5)
 
 ExternalProject_Add(winflexbison
-	GIT_REPOSITORY https://github.com/Paxxi/winflexbison
-	GIT_TAG 6f08666d49ece9db71d1c69f4df0566df6c0d862
-	GIT_SHALLOW
+	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+	URL https://github.com/lexxmark/winflexbison/releases/download/v2.5.20/win_flex_bison-2.5.20.zip
+	URL_HASH SHA256=8d751f31eb8d79251d809f37bb0d853d72f58a21c5f672d5e31f35b4d97b31fe
+	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/winflexbison.diff
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
@@ -639,7 +638,7 @@ endif()
 
 ExternalProject_Add(libwebp
 	DEPENDS zlib
-	GIT_REPOSITORY file:///c:/code/libwebp
+	GIT_REPOSITORY https://github.com/Paxxi/libwebp
 	GIT_TAG 9b8da9837f804149394960b9a4e3226762960723
 	GIT_SHALLOW ON
 	CMAKE_ARGS
@@ -778,7 +777,7 @@ add_dependency_project_package(libudfread 1.0.0)
 ExternalProject_Add(libbluray
 	DEPENDS freetype libiconv libxml2 libudfread libaacs
 	GIT_REPOSITORY https://github.com/Paxxi/libbluray
-	GIT_TAG 027d87289e2e5058299a68b4ec1f3b3bb2b5656c
+	GIT_TAG 0c734aa71d37e94b92c56ec11c2d6f2e92d0c4b5
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
