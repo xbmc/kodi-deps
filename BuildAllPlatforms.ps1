@@ -15,6 +15,7 @@ Param(
     'fmt',
     'freetype',
     'fstrcmp',
+    'giflib',
     'lcms2',
     'libaacs',
     'libass',
@@ -31,12 +32,14 @@ Param(
     'libmicrohttpd',
     'libnfs',
     'libplist',
+    'libpng',
     'libudfread',
     'libwebp',
     'libxml2',
     'libxslt',
     'lzo2',
     'mariadb-connector-c',
+    'nghttp2',
     'openssl',
     'pcre',
     'platform',
@@ -46,6 +49,7 @@ Param(
     'rapidjson',
     'shairplay',
     'sqlite',
+    'swig',
     'taglib',
     'tinyxml',
     'winflexbison',
@@ -86,11 +90,12 @@ if ($env:JAVA_HOME -ne $jdkRegistryPath) {
 $ExcludedFromUwp = @(
   'dnssd',
   'easyhook',
-  'libplist',
-  'shairplay',
-  'platform',
+  'flatc',
   'libcec',
-  'flatc'
+  'libplist',
+  'platform',
+  'shairplay',
+  'swig'
 )
 
 if ($GenerateProjects) {

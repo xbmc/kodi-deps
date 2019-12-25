@@ -107,7 +107,6 @@ ExternalProject_Add(flatc
 add_dependency_project_package(flatc 1.11.0)
 endif()
 
-
 # dependencies required by others
 
 ExternalProject_Add(uwp_compat
@@ -207,14 +206,14 @@ add_dependency_project_package(xz 5.2.4)
 
 ExternalProject_Add(crossguid
 	GIT_REPOSITORY https://github.com/Paxxi/crossguid
-	GIT_TAG f3ff9fee50bbc1aa4f044810449375995a18345b
+	GIT_TAG 501320c7d43e232fbac11fe43741727a6e95754f
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DXG_TESTS:BOOL=OFF
 )
-add_dependency_project_package(crossguid 2.0.3)
+add_dependency_project_package(crossguid 0.2.2)
 
 if(NOT WINDOWS_STORE)
 ExternalProject_Add(easyhook
@@ -299,7 +298,7 @@ ExternalProject_Add(libcdio
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libiconv
 )
-add_dependency_project_package(libcdio 0.94)
+add_dependency_project_package(libcdio 2.1.0)
 
 ExternalProject_Add(libfribidi
 	GIT_REPOSITORY https://github.com/Paxxi/fribidi
@@ -323,7 +322,7 @@ add_dependency_project_package(lzo2 2.10)
 
 ExternalProject_Add(pcre
 	GIT_REPOSITORY https://github.com/Paxxi/pcre
-	GIT_TAG 6fcd6d5a8f8302a7523ab43ae15630ee9e862466
+	GIT_TAG 68aa97b197be74d866a94ba8679e11e3688b97a0
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -428,15 +427,33 @@ ExternalProject_Add(brotli
 )
 add_dependency_project_package(brotli 1.0.7)
 
-ExternalProject_Add(curl
-	DEPENDS openssl zlib brotli
-	GIT_REPOSITORY https://github.com/Paxxi/curl
-	GIT_TAG c7a0b88ea2ec7393817dc71eca2baa36e5b47070
+ExternalProject_Add(nghttp2
+	DEPENDS openssl zlib
+	GIT_REPOSITORY https://github.com/Paxxi/nghttp2
+	GIT_TAG a3c6b3bbe7d56cebf4b019ca6f3f11f9ee0f83b2
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/openssl%3B%3B${PREFIX}/zlib%3B%3B${PREFIX}/brotli
+		-DENABLE_APP:BOOL=OFF
+		-DENABLE_HPACK_TOOLS:BOOL=OFF
+		-DENABLE_EXAMPLES:BOOL=OFF
+		-DENABLE_LIB_ONLY:BOOL=ON
+		-DENABLE_STATIC_LIB:BOOL=ON
+		-DENABLE_SHARED_LIB:BOOL=OFF
+		-DENABLE_DOC:BOOL=OFF
+)
+add_dependency_project_package(nghttp2 1.40.0)
+
+ExternalProject_Add(curl
+	DEPENDS openssl zlib brotli nghttp2
+	GIT_REPOSITORY https://github.com/Paxxi/curl
+	GIT_TAG 1b0fb07ad15eee4e8ec4afeb96a484c7d1c74ab6
+	GIT_SHALLOW ON
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/openssl%3B%3B${PREFIX}/zlib%3B%3B${PREFIX}/brotli%3B%3B${PREFIX}/nghttp2
 		-DBUILD_CURL_EXE:BOOL=OFF
 		-DBUILD_CURL_TESTS:BOOL=OFF
 		-DBUILD_SHARED_LIBS:BOOL=ON
@@ -453,6 +470,7 @@ ExternalProject_Add(curl
 		-DCURL_DISABLE_TELNET:BOOL=ON
 		-DCURL_BROTLI:BOOL=ON
 		-DENABLE_MANUAL:BOOL=OFF
+		-DUSE_NGHTTP2:BOOL=ON
 )
 add_dependency_project_package(curl 7.67.0)
 
@@ -511,7 +529,7 @@ ExternalProject_Add(libcec
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/platform
 )
-add_dependency_project_package(libcec 4.0.2)
+add_dependency_project_package(libcec 4.0.4)
 endif()
 
 ExternalProject_Add(libgpg-error
@@ -550,6 +568,20 @@ ExternalProject_Add(winflexbison
 )
 add_dependency_project_package(winflexbison 2.5.20)
 
+if(NOT WINDOWS_STORE)
+ExternalProject_Add(swig
+	DEPENDS pcre winflexbison
+	GIT_REPOSITORY https://github.com/Paxxi/swig
+	GIT_TAG f2494f5eddfa7063a554b85208da9324a6863f7c
+	GIT_SHALLOW ON
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/pcre%3B%3B${PREFIX}/winflexbison
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+add_dependency_project_package(swig 4.0.1)
+endif()
+
 ExternalProject_Add(libaacs
 	DEPENDS libgcrypt libgpg-error winflexbison libiconv
 	GIT_REPOSITORY https://github.com/Paxxi/libaacs
@@ -577,13 +609,13 @@ add_dependency_project_package(libbdplus 0.1.2)
 
 ExternalProject_Add(libmicrohttpd
 	GIT_REPOSITORY https://github.com/Paxxi/libmicrohttpd
-	GIT_TAG 9c2e909f86c51725839965d5d659514fa6f553b4
+	GIT_TAG 3ef6844ec76d867a2188a345938643653f837209
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
-add_dependency_project_package(libmicrohttpd 0.9.68)
+add_dependency_project_package(libmicrohttpd 0.9.69)
 
 ExternalProject_Add(libnfs
 	GIT_REPOSITORY https://github.com/Paxxi/libnfs
@@ -636,6 +668,31 @@ ExternalProject_Add(libplist
 add_dependency_project_package(libplist 2.1.0)
 endif()
 
+ExternalProject_Add(giflib
+	GIT_REPOSITORY https://github.com/Paxxi/giflib
+	GIT_TAG d891d439cc48632bcd0ca144408c115458fd9970
+	GIT_SHALLOW ON
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+
+add_dependency_project_package(giflib 5.2.1)
+
+ExternalProject_Add(libpng
+	GIT_REPOSITORY https://github.com/Paxxi/libpng
+	GIT_TAG b5fb94fb56b312c8a01fd42c29574bbae39a81bd
+	GIT_SHALLOW ON
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/zlib
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DPNG_TESTS:BOOL=OFF
+		-DPNG_SHARED:BOOL=OFF
+)
+
+add_dependency_project_package(libpng 1.6.37)
+
 ExternalProject_Add(libwebp
 	DEPENDS zlib
 	GIT_REPOSITORY https://github.com/Paxxi/libwebp
@@ -661,7 +718,7 @@ add_dependency_project_package(libwebp 1.0.3)
 ExternalProject_Add(mariadb-connector-c
 	DEPENDS openssl uwp_compat
 	GIT_REPOSITORY https://github.com/Paxxi/mariadb-connector-c
-	GIT_TAG 86cce7f986f774c4a90b54ba34ab7df2293dd768
+	GIT_TAG 763a9872a7aa531365c476fec7ce2ba681a65835
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -681,7 +738,7 @@ ExternalProject_Add(mariadb-connector-c
 		-DWITH_SSL:STRING=OPENSSL
 		-DWITH_UNIT_TESTS:BOOL=OFF
 )
-add_dependency_project_package(mariadb-connector-c 3.0.6)
+add_dependency_project_package(mariadb-connector-c 3.1.6)
 
 ExternalProject_Add(libffi
 	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
