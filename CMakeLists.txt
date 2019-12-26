@@ -175,10 +175,9 @@ ExternalProject_Add(openssl
 add_dependency_project_package(openssl 1.1.1d)
 
 ExternalProject_Add(zlib
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL http://zlib.net/zlib-1.2.11.tar.gz
-	URL_HASH SHA256=c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	GIT_REPOSITORY https://github.com/Paxxi/zlib
+	GIT_TAG 99e83a462f8eeb7f45a3178d4812f4a384448621
+	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
@@ -670,7 +669,7 @@ endif()
 
 ExternalProject_Add(giflib
 	GIT_REPOSITORY https://github.com/Paxxi/giflib
-	GIT_TAG d891d439cc48632bcd0ca144408c115458fd9970
+	GIT_TAG 9dfce00d4de675ee813d4bb95b59a5b189bb1f1c
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -681,7 +680,7 @@ add_dependency_project_package(giflib 5.2.1)
 
 ExternalProject_Add(libpng
 	GIT_REPOSITORY https://github.com/Paxxi/libpng
-	GIT_TAG b5fb94fb56b312c8a01fd42c29574bbae39a81bd
+	GIT_TAG e49a9a21ddbd39f84b7819f78317b60c89c9b0e8
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
