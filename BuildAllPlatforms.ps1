@@ -159,6 +159,24 @@ foreach ($platform in $platforms) {
   }
 }
 
+function Add-Hash {
+  [CmdletBinding()]
+  Param (
+    [string]$Platform,
+    [switch]$App
+  )
+
+  Push-Location "$PsScriptRoot\package\"
+  get-childitem "*.7z" |
+  Foreach-Object {
+    if ($_.Name -match $platform -and (($false -eq $App) -or ($_ -notmatch 'win10'))) {
+      $hashandfile = (cmake -E sha512sum $_.Name) -split ' ';
+      '"' + $hashandfile[2] + ':' + $hashandfile[0] + '"' | out-file $PSScriptRoot\package\hashes.txt -Append
+    }
+  }
+  Pop-Location
+}
+
 if ($Zip) {
   if ($desktopPackages.Count -gt 0) {
     $desktopPackages = [string[]]($desktopPackages | foreach-Object { "$_-zip"})
@@ -177,6 +195,7 @@ if ($Zip) {
         Write-Error "Some packages failed to package"
         return;
       }
+      Add-Hash -Platform $platform
     }
 
     if ($App) {
@@ -186,6 +205,7 @@ if ($Zip) {
         Write-Error "Some packages failed to package"
         return;
       }
+      Add-Hash -Platform $platform -App
     }
   }
 }

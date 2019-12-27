@@ -176,7 +176,7 @@ add_dependency_project_package(openssl 1.1.1d)
 
 ExternalProject_Add(zlib
 	GIT_REPOSITORY https://github.com/Paxxi/zlib
-	GIT_TAG 99e83a462f8eeb7f45a3178d4812f4a384448621
+	GIT_TAG 1b8fe34fdd7b08da4629783d865df13dd2217bc8
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -242,7 +242,7 @@ add_dependency_project_package(flatbuffers 1.11.0 ANY)
 
 ExternalProject_Add(fmt
 	GIT_REPOSITORY https://github.com/Paxxi/fmt
-	GIT_TAG 4917db1b535b5d7062961d125db6347e43d215cc
+	GIT_TAG f12fbf1448b5a257047d507d31266e8e5529f25c
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -321,7 +321,7 @@ add_dependency_project_package(lzo2 2.10)
 
 ExternalProject_Add(pcre
 	GIT_REPOSITORY https://github.com/Paxxi/pcre
-	GIT_TAG 68aa97b197be74d866a94ba8679e11e3688b97a0
+	GIT_TAG 3addcafbdc621cec9b15d35caa78b14fe993b0b9
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -571,7 +571,7 @@ if(NOT WINDOWS_STORE)
 ExternalProject_Add(swig
 	DEPENDS pcre winflexbison
 	GIT_REPOSITORY https://github.com/Paxxi/swig
-	GIT_TAG f2494f5eddfa7063a554b85208da9324a6863f7c
+	GIT_TAG 1d5780a5d82c2414086af8bb952fbd38cf76a2ad
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
