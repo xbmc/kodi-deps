@@ -201,7 +201,15 @@ ExternalProject_Add(xz
 add_dependency_project_package(xz 5.2.4)
 
 
-# Required dependencies
+ExternalProject_Add(miniwdk
+	GIT_REPOSITORY https://github.com/Paxxi/miniwdk
+	GIT_TAG 6f3dc9cba0e9879b7b4e20f8caabb89178c2aba2
+	GIT_SHALLOW ON
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+add_dependency_project_package(miniwdk 10.0.18362 ANY)
 
 ExternalProject_Add(crossguid
 	GIT_REPOSITORY https://github.com/Paxxi/crossguid
@@ -571,7 +579,7 @@ if(NOT WINDOWS_STORE)
 ExternalProject_Add(swig
 	DEPENDS pcre winflexbison
 	GIT_REPOSITORY https://github.com/Paxxi/swig
-	GIT_TAG 1d5780a5d82c2414086af8bb952fbd38cf76a2ad
+	GIT_TAG 6648e55065829d55010a24b62eb254b36e40cbbc
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
