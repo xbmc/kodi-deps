@@ -95,7 +95,7 @@ endfunction()
 if(NOT WINDOWS_STORE)
 ExternalProject_Add(flatc
 	GIT_REPOSITORY https://github.com/Paxxi/flatbuffers
-	GIT_TAG af0184795f3b643f891f3d16bd9109079b3d1fcf
+	GIT_TAG ffb6b800354cbd6368da6bc6b8e937fa2d476ed2
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -222,21 +222,9 @@ ExternalProject_Add(crossguid
 )
 add_dependency_project_package(crossguid 0.2.2)
 
-if(NOT WINDOWS_STORE)
-ExternalProject_Add(easyhook
-	GIT_REPOSITORY https://github.com/Paxxi/EasyHook
-	GIT_TAG 7002f5b4487a924ef530b88811416a6ce5c123bf
-	GIT_SHALLOW ON
-	CMAKE_ARGS
-		${ADDITIONAL_ARGS}
-		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-)
-add_dependency_project_package(easyhook 2.7.6789.0)
-endif()
-
 ExternalProject_Add(flatbuffers
 	GIT_REPOSITORY https://github.com/Paxxi/flatbuffers
-	GIT_TAG af0184795f3b643f891f3d16bd9109079b3d1fcf
+	GIT_TAG ffb6b800354cbd6368da6bc6b8e937fa2d476ed2
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -410,6 +398,17 @@ add_custom_target(DependenciesRequiredDebug
 
 
 # Required, dyloaded deps
+if(NOT WINDOWS_STORE)
+ExternalProject_Add(detours
+	GIT_REPOSITORY https://github.com/Paxxi/Detours
+	GIT_TAG 50aee6ed2bce729ce90c57c8f88d1802e6edda85
+	GIT_SHALLOW ON
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+add_dependency_project_package(detours 64ec13)
+endif()
 
 ExternalProject_Add(libass
 	DEPENDS freetype libfribidi libiconv
@@ -592,7 +591,7 @@ endif()
 ExternalProject_Add(libaacs
 	DEPENDS libgcrypt libgpg-error winflexbison libiconv
 	GIT_REPOSITORY https://github.com/Paxxi/libaacs
-	GIT_TAG f52f6b07d302b00885f50de7de6a00fcc5d24191
+	GIT_TAG 73e359646f4fd5a689c77f066a3e78eed7a0157a
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -605,7 +604,7 @@ add_dependency_project_package(libaacs 0.9.0)
 ExternalProject_Add(libbdplus
 	DEPENDS libgcrypt libgpg-error libiconv uwp_compat
 	GIT_REPOSITORY https://github.com/Paxxi/libbdplus
-	GIT_TAG 810781623e2948052b3d47540b18448c75c6dba8
+	GIT_TAG c37157774aaaf5a1002474c17d966c4d0996b889
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -725,7 +724,7 @@ add_dependency_project_package(libwebp 1.0.3)
 ExternalProject_Add(mariadb-connector-c
 	DEPENDS openssl uwp_compat
 	GIT_REPOSITORY https://github.com/Paxxi/mariadb-connector-c
-	GIT_TAG 763a9872a7aa531365c476fec7ce2ba681a65835
+	GIT_TAG 30788c5b2624ace29063918d71e0625c32c2ee93
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -761,7 +760,7 @@ add_dependency_project_package(libffi 3.3.0)
 ExternalProject_Add(python
 	DEPENDS bzip2 openssl sqlite zlib expat libffi xz
 	GIT_REPOSITORY https://github.com/Paxxi/cpython
-	GIT_TAG aec2bf661c69b6315ae19ee55129751e9b99a491
+	GIT_TAG d53334ac7bc6856f389c4820e3aba850f2cd4488
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -789,7 +788,7 @@ add_dependency_project_package(libjpeg-turbo 2.0.3)
 ExternalProject_Add(pillow
 	DEPENDS freetype libjpeg-turbo python zlib
 	GIT_REPOSITORY https://github.com/Paxxi/pillow
-	GIT_TAG 330db77e29f434117c37a1c2f2ef9033ccc44c57
+	GIT_TAG 6d9a126b48ddb2d5be6a9eb8fc6b6a978aef144a
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -841,7 +840,7 @@ add_dependency_project_package(libudfread 1.0.0)
 ExternalProject_Add(libbluray
 	DEPENDS freetype libiconv libxml2 libudfread libaacs
 	GIT_REPOSITORY https://github.com/Paxxi/libbluray
-	GIT_TAG 0c734aa71d37e94b92c56ec11c2d6f2e92d0c4b5
+	GIT_TAG dc096e2171e732275b8b25a4f7ef0fed53a172bb
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}

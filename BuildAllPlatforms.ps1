@@ -7,8 +7,8 @@ Param(
     'bzip2',
     'crossguid',
     'curl',
+    'detours',
     'dnssd',
-    'easyhook',
     'expat',
     'flatc',
     'flatbuffers',
@@ -88,8 +88,8 @@ if ($env:JAVA_HOME -ne $jdkRegistryPath) {
 }
 
 $ExcludedFromUwp = @(
+  'detours',
   'dnssd',
-  'easyhook',
   'flatc',
   'libcec',
   'libplist',
@@ -100,7 +100,7 @@ $ExcludedFromUwp = @(
 
 if ($GenerateProjects) {
   foreach ($platform in $platforms) {
-    if ($Desktop -and ($platform -notmatch 'arm')) {
+    if ($Desktop -and ($platform -ne 'arm')) {
       $path = "$PsScriptRoot\Build\$platform"
       cmake -G "Visual Studio $VsVersion" -A $platform -Thost=x64 -DPATCH="C:\Program Files\Git\usr\bin\patch.exe" -S $PsScriptRoot -B $path
     }
@@ -120,7 +120,7 @@ $desktopPackages = $Packages
 $appPackages = [string[]]($Packages | Where-Object { $_ -notin $ExcludedFromUwp })
 
 foreach ($platform in $platforms) {
-  if ($Desktop -and ($platform -notmatch 'arm')) {
+  if ($Desktop -and ($platform -ne 'arm')) {
     $path = "$PsScriptRoot\Build\$platform"
     if ($Deb) {
       cmake --build $path --config Debug -t @desktopPackages $cleanFirst -- -m
