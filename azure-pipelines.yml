@@ -11,7 +11,7 @@ pool:
 
 jobs:
   - job: Build
-    displayName: Run BuildSetup.bat
+    displayName: Run DoRelease.ps1
     strategy:
       matrix:
         Win32:
@@ -35,7 +35,9 @@ jobs:
         arm64-uwp:
           BUILD_ARCH: arm64
           BUILD_PLATFORM: -App
-    steps:
-      - script: DoRelease.ps1 -Platforms $(BUILD_ARCH) $(BUILD_PLATFORM) -VsVersion $(VS_VERSION) -SdkVersion '$(SDK_VERSION)'
-        displayName: 'Run DoRelease.ps1'
+    steps: 
+      - task: PowerShell@2
+        inputs:
+          filePath: 'DoRelease.ps1'
+          arguments: '-Platforms $(BUILD_ARCH) $(BUILD_PLATFORM) -VsVersion $(VS_VERSION) -SdkVersion "$(SDK_VERSION)"'
 
