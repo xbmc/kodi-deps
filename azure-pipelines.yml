@@ -1,0 +1,41 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- work
+
+pool:
+  vmImage: 'windows-latest'
+
+jobs:
+  - job: Build
+    displayName: Run BuildSetup.bat
+    strategy:
+      matrix:
+        Win32:
+          BUILD_ARCH: win32
+          BUILD_PLATFORM: -Desktop
+        Win32-uwp:
+          BUILD_ARCH: win32
+          BUILD_PLATFORM: -App
+        x64:
+          BUILD_ARCH: x64
+          BUILD_PLATFORM: -Desktop
+        x64-uwp:
+          BUILD_ARCH: x64
+          BUILD_PLATFORM: -App
+        arm-uwp:
+          BUILD_ARCH: arm
+          BUILD_PLATFORM: -App
+        arm64:
+          BUILD_ARCH: arm64
+          BUILD_PLATFORM: -Desktop
+        arm64-uwp:
+          BUILD_ARCH: arm64
+          BUILD_PLATFORM: -App
+    steps:
+      - script: DoRelease.ps1 -Platforms $(BUILD_ARCH) $(BUILD_PLATFORM) -VsVersion $(VS_VERSION) -SdkVersion '$(SDK_VERSION)'
+        displayName: 'Run DoRelease.ps1'
+
