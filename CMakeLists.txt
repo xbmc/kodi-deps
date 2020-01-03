@@ -63,6 +63,11 @@ add_custom_target(zip)
 function(add_dependency_project_package name version)
 	# it's possible to pack dependency only if it was installed in separate folder
 	if(FOLDER_PER_TARGET)
+		set(hash_file "hashes")
+		if(WINDOWS_STORE)
+			set(hash_file "${hash_file}-win10")
+		endif()
+		set(hash_file "${hash_file}-$(Platform).txt")
 		set(dep_name "${name}-${version}")
 		string(TIMESTAMP date "%Y%m%d")
 		if(NOT ANY IN_LIST ARGN)
@@ -72,14 +77,17 @@ function(add_dependency_project_package name version)
 			set(dep_name "${dep_name}-$(Platform)-$(PlatformToolset)")
 		endif()
 		set(dep_name "${dep_name}-${date}")
+		file(TO_NATIVE_PATH "${PREFIX}/../${dep_name}.7z" zip_path)
 		file(TO_NATIVE_PATH "${PREFIX}/${dep_name}" COPY_DESTINATION)
+		file(TO_NATIVE_PATH "${PREFIX}/../${hash_file}" hash_path)
 
 		ExternalProject_Add_StepTargets(${name} zip)
 		ExternalProject_Add_Step(${name} zip
 			COMMENT "Packaging '${name}'"
 			COMMAND ${CMAKE_COMMAND} -E copy_directory "${name}" "${COPY_DESTINATION}"
-			COMMAND ${CMAKE_COMMAND} -E tar "cf" "${PREFIX}/../${dep_name}.7z" --format=7zip -- "${COPY_DESTINATION}"
+			COMMAND ${CMAKE_COMMAND} -E tar "cf" "${zip_path}" --format=7zip -- "${COPY_DESTINATION}"
 			COMMAND ${CMAKE_COMMAND} -E remove_directory "${COPY_DESTINATION}"
+			COMMAND ${CMAKE_COMMAND} -Dhash_path=${hash_path} -Ddep_name=${dep_name} -Dzip_path=${zip_path} -P ${CMAKE_SOURCE_DIR}/zip.cmake
 			WORKING_DIRECTORY ${PREFIX}
 			ALWAYS TRUE
 			EXCLUDE_FROM_MAIN TRUE
@@ -203,17 +211,17 @@ add_dependency_project_package(xz 5.2.4)
 
 ExternalProject_Add(miniwdk
 	GIT_REPOSITORY https://github.com/Paxxi/miniwdk
-	GIT_TAG 6f3dc9cba0e9879b7b4e20f8caabb89178c2aba2
+	GIT_TAG 16a2a0b7ce57c61485482a130fbbf1b0ed22673d
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
-add_dependency_project_package(miniwdk 10.0.18362 ANY)
+add_dependency_project_package(miniwdk 10.0.17763 ANY)
 
 ExternalProject_Add(crossguid
 	GIT_REPOSITORY https://github.com/Paxxi/crossguid
-	GIT_TAG 501320c7d43e232fbac11fe43741727a6e95754f
+	GIT_TAG a2e482f05e62a5b58575a71f0a348bd75b258f88
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -250,7 +258,7 @@ add_dependency_project_package(fmt 6.1.2)
 
 ExternalProject_Add(rapidjson
 	GIT_REPOSITORY https://github.com/Paxxi/rapidjson
-	GIT_TAG 908cba2b83105c5645f2fa4031c2b86e95b32f6f
+	GIT_TAG 4a8d7871ed0aaa3277135e99ce0d5b51e3cd7f28
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -263,7 +271,7 @@ add_dependency_project_package(rapidjson 1.1.0 ANY)
 
 ExternalProject_Add(freetype
 	GIT_REPOSITORY https://github.com/Paxxi/freetype2
-	GIT_TAG 897622e64653268200feb867163bb9536b4e4950
+	GIT_TAG c5832e61dbec993c84ca4996b0ad4f73d3794a98
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -317,7 +325,7 @@ add_dependency_project_package(lzo2 2.10)
 
 ExternalProject_Add(pcre
 	GIT_REPOSITORY https://github.com/Paxxi/pcre
-	GIT_TAG 3addcafbdc621cec9b15d35caa78b14fe993b0b9
+	GIT_TAG 84347095911601380e4ffbf7aad9c987d7b4f358
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -401,7 +409,7 @@ add_custom_target(DependenciesRequiredDebug
 if(NOT WINDOWS_STORE)
 ExternalProject_Add(detours
 	GIT_REPOSITORY https://github.com/Paxxi/Detours
-	GIT_TAG 50aee6ed2bce729ce90c57c8f88d1802e6edda85
+	GIT_TAG 195b39b960cd8106ceec90b3bf9c426bda034d12
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -413,7 +421,7 @@ endif()
 ExternalProject_Add(libass
 	DEPENDS freetype libfribidi libiconv
 	GIT_REPOSITORY https://github.com/Paxxi/libass
-	GIT_TAG 589761f828d38fb7099e3b859d6097f00bf68455
+	GIT_TAG 9494d215b532eafa8d7924f624057965517c0c0c
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -425,7 +433,7 @@ add_dependency_project_package(libass 0.14.0)
 
 ExternalProject_Add(brotli
 	GIT_REPOSITORY https://github.com/Paxxi/brotli
-	GIT_TAG 40b4519d55acc3ac76b2a6f573cca91ae2e12e45
+	GIT_TAG 6e8b092bc1b01ef5049645a160d8e2497b7272e6
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -578,7 +586,7 @@ if(NOT WINDOWS_STORE)
 ExternalProject_Add(swig
 	DEPENDS pcre winflexbison
 	GIT_REPOSITORY https://github.com/Paxxi/swig
-	GIT_TAG 6648e55065829d55010a24b62eb254b36e40cbbc
+	GIT_TAG 3928d124d79aee521d527cbf2cf0f1e0eb792738
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -663,7 +671,7 @@ if(NOT WINDOWS_STORE)
 ExternalProject_Add(libplist
 	DEPENDS libiconv libxml2
 	GIT_REPOSITORY https://github.com/Paxxi/libplist
-	GIT_TAG 36aeb3bb94bc5d25978ed212929e8e2adeba0257
+	GIT_TAG 80d48b2bbec8dfb0c81db2074dedfa5b92fb2593
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -760,7 +768,7 @@ add_dependency_project_package(libffi 3.3.0)
 ExternalProject_Add(python
 	DEPENDS bzip2 openssl sqlite zlib expat libffi xz
 	GIT_REPOSITORY https://github.com/Paxxi/cpython
-	GIT_TAG d53334ac7bc6856f389c4820e3aba850f2cd4488
+	GIT_TAG df45a3248236c7676f3c53444015889b8ea16057
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -771,7 +779,7 @@ add_dependency_project_package(python 3.7.5)
 
 ExternalProject_Add(libjpeg-turbo
 	GIT_REPOSITORY https://github.com/Paxxi/libjpeg-turbo
-	GIT_TAG 5f1f82cbe87427c0844cdaa91c9437aa8f08f6fd
+	GIT_TAG 38bff2bf9e3e183f06da5b02b5b69d8eecdf7335
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -788,7 +796,7 @@ add_dependency_project_package(libjpeg-turbo 2.0.3)
 ExternalProject_Add(pillow
 	DEPENDS freetype libjpeg-turbo python zlib
 	GIT_REPOSITORY https://github.com/Paxxi/pillow
-	GIT_TAG 6d9a126b48ddb2d5be6a9eb8fc6b6a978aef144a
+	GIT_TAG 7bba0ea4a992633fe99b28b39dcd45d4115c34b1
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -826,9 +834,43 @@ ExternalProject_Add(shairplay
 add_dependency_project_package(shairplay ce80e00)
 endif()
 
+ExternalProject_Add(libdvdcss
+	GIT_REPOSITORY https://github.com/Paxxi/libdvdcss
+	GIT_TAG 705a62756886ba5c3c08b79c9b6edafad004b8b7
+	GIT_SHALLOW ON
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+add_dependency_project_package(libdvdcss 1.4.2)
+
+ExternalProject_Add(libdvdread
+	DEPENDS libdvdcss
+	GIT_REPOSITORY https://github.com/Paxxi/libdvdread
+	GIT_TAG ff62ae1c6fb1c9a3a26a4fd5d653bce2991dd417
+	GIT_SHALLOW ON
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libdvdcss
+)
+add_dependency_project_package(libdvdread 6.0.2)
+
+ExternalProject_Add(libdvdnav
+	GIT_REPOSITORY https://github.com/Paxxi/libdvdnav
+	GIT_TAG 9f9e7c9d6b299692b72bacc0c3a4077109975369
+	GIT_SHALLOW ON
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libdvdcss%3B%3B${PREFIX}/libdvdread
+		-DBUILD_SHARED_LIBS:BOOL=ON
+)
+add_dependency_project_package(libdvdnav 6.0.1)
+
 ExternalProject_Add(libudfread
 	GIT_REPOSITORY https://github.com/Paxxi/libudfread
-	GIT_TAG 629abc253fc0ffc85ba873e1dfa487b05de808cc
+	GIT_TAG f3ff8ff8f3ea057e8b5497a6dc9b38eeecf97cea
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}

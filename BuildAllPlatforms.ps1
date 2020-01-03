@@ -23,6 +23,9 @@ Param(
     'libbluray',
     'libcdio',
     'libcec',
+    'libdvdcss',
+    'libdvdnav',
+    'libdvdread',
     'libffi',
     'libfribidi',
     'libgpg-error',
@@ -169,7 +172,7 @@ function Add-Hash {
   Push-Location "$PsScriptRoot\package\"
   get-childitem "*.7z" |
   Foreach-Object {
-    if ($_.Name -match $platform -and (($false -eq $App) -or ($_ -notmatch 'win10'))) {
+    if (($App -and $_.Name -match "win10-$platform") -or (($false -eq $App) -and ($_.Name -match $platform) -and ($_.Name -notmatch 'win10'))) {
       $hashandfile = (cmake -E sha512sum $_.Name) -split ' ';
       '"' + $hashandfile[2] + ':' + $hashandfile[0] + '"' | out-file $PSScriptRoot\package\hashes.txt -Append
     }
@@ -187,7 +190,7 @@ if ($Zip) {
   }
 
   foreach ($platform in $platforms) {
-    if ($Desktop -and ($platform -notmatch 'arm')) {
+    if ($Desktop -and ($platform -ne 'arm')) {
       $path = "$PsScriptRoot\Build\$platform"
 
       cmake --build $path --config RelWithDebInfo -t @desktopPackages -- -m
