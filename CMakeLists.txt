@@ -293,7 +293,7 @@ add_dependency_project_package(fstrcmp 0.7)
 ExternalProject_Add(libcdio
 	DEPENDS libiconv
 	GIT_REPOSITORY https://github.com/Paxxi/libcdio
-	GIT_TAG 1a0d301021805dd3fbe6b8a861ebaa916d532421
+	GIT_TAG 312d5b1ff684960095521be5e287eaeb5aaad4a5
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -808,7 +808,7 @@ add_dependency_project_package(pillow 6.2.1)
 ExternalProject_Add(pycryptodome
 	DEPENDS python
 	GIT_REPOSITORY https://github.com/Paxxi/pycryptodome
-	GIT_TAG 8d25489b7d0fd0a9e086331a20b4aa7175421076
+	GIT_TAG 789d3c3f2a45a1f649d708d86c605212d54cd9a4
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
