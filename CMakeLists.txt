@@ -548,10 +548,9 @@ endif()
 
 ExternalProject_Add(libgpg-error
 	DEPENDS libiconv
-	DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-	URL https://www.gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.36.tar.bz2
-	URL_HASH SHA256=babd98437208c163175c29453f8681094bcaf92968a15cafb1a276076b33c97c
-	PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+	GIT_REPOSITORY https://github.com/Paxxi/libgpg-error
+	GIT_TAG 36ba2419cd42ca3b16b45d317fecb531ab23e3e0
+	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
@@ -562,7 +561,7 @@ add_dependency_project_package(libgpg-error 1.36.0)
 ExternalProject_Add(libgcrypt
 	DEPENDS libgpg-error libiconv
 	GIT_REPOSITORY https://github.com/Paxxi/libgcrypt
-	GIT_TAG db592119e0e86ae1043b5c92f1e7a64c8c4759ca
+	GIT_TAG 7bb6e291fb112125d827cd1a75071ad4f6c3b704
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -599,7 +598,7 @@ endif()
 ExternalProject_Add(libaacs
 	DEPENDS libgcrypt libgpg-error winflexbison libiconv
 	GIT_REPOSITORY https://github.com/Paxxi/libaacs
-	GIT_TAG 73e359646f4fd5a689c77f066a3e78eed7a0157a
+	GIT_TAG 8fc07cd78e47f276fc7f19220409adb31ec9ccb4
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
