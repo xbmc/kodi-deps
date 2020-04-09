@@ -7,6 +7,7 @@ Param(
     'bzip2',
     'crossguid',
     'curl',
+    'dav1d',
     'detours',
     'dnssd',
     'expat',

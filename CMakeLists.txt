@@ -889,3 +889,13 @@ ExternalProject_Add(libbluray
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype%3B%3B${PREFIX}/libiconv%3B%3B${PREFIX}/libxml2%3B%3B${PREFIX}/libudfread
 )
 add_dependency_project_package(libbluray 1.1.2)
+
+ExternalProject_Add(dav1d
+	GIT_REPOSITORY https://github.com/Paxxi/dav1d
+	GIT_TAG 5c3f33573073fab2b4363172881b2b477e8a3f71
+	GIT_SHALLOW ON
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+add_dependency_project_package(dav1d 0.6.0)
