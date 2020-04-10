@@ -37,7 +37,7 @@ manually
 
 ## Build and release
 
-Run `DoRelease.ps1` in a powershell windows. It will clean any previous builds,
+Run `DoRelease.ps1 -App -Desktop` in a powershell window. It will clean any previous builds,
 build libraries that require a debug build in debug, build all libraries as
 RelWithDebInfo for every platform and then package them. It takes a while to run.
 
@@ -50,9 +50,24 @@ to be uploaded to ftp.
    - `DOWNLOAD_NAME`, `BUILD_COMMAND` is not needed in most cases and can be removed
    - If the package has dependencies add them at `DEPENDS` otherwise remove the line
      For every dependency you need to add `%3B%3B${PREFIX}/<DEPENDS-NAME>` at the end of `CMAKE_INSTALL_PREFIX`
+   - The prefered way is to point to a git repo with patches. The convention is to create a branch named kodi with the patches.
+    Using git repos is easier when iterating during development as cmake will fetch a new tag and regenerate the project. When using a patch, you have to manually delete the directory for cmake to
+    apply the patch again.
    - If the source code needs to be patched save the patch at `patches/<NAME>.diff` otherwise remove the line
    - Additionally cmake arguments can be added after `CMAKE_INSTALL_PREFIX`
 
+```
+ExternalProject_Add(<NAME>
+  DEPENDS <DEPENDS>
+  GIT_REPOSITORY <URL>
+  GIT_TAG <sha1>
+  GIT_SHALLOW ON
+  BUILD_COMMAND <BUILD-COMMAND>
+  CMAKE_ARGS
+    ${ADDITIONAL_ARGS}
+    -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+```
 ```
 ExternalProject_Add(<NAME>
   DOWNLOAD_NAME <DOWNLOAD_NAME>
