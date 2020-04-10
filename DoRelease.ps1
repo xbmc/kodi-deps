@@ -23,5 +23,5 @@ if ($false -eq $NoClean) {
   }
 }
 .\BuildAllPlatforms.ps1 -Platforms $Platforms -GenerateProjects -Desktop:$Desktop -App:$App -VsVersion $VsVersion -SdkVersion $SdkVersion
-.\BuildAllPlatforms.ps1 -Platforms $Platforms -Desktop:$Desktop -App:$App -Deb -Packages taglib, tinyxml, fmt, pcre, crossguid, lzo2, zlib, detours
+.\BuildAllPlatforms.ps1 -Platforms $Platforms -Desktop:$Desktop -App:$App -Deb -Packages taglib, tinyxml, fmt, pcre, crossguid, lzo2, zlib, detours, libudfread
 .\BuildAllPlatforms.ps1 -Platforms $Platforms -Desktop:$Desktop -App:$App -Rel -Zip

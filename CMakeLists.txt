@@ -869,7 +869,7 @@ add_dependency_project_package(libdvdnav 6.0.1)
 
 ExternalProject_Add(libudfread
 	GIT_REPOSITORY https://github.com/Paxxi/libudfread
-	GIT_TAG f3ff8ff8f3ea057e8b5497a6dc9b38eeecf97cea
+	GIT_TAG 2c554de7d26c3cf9a2ab23d7cb1cb130ca8da18f
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
