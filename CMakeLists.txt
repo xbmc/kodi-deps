@@ -899,3 +899,33 @@ ExternalProject_Add(dav1d
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
 add_dependency_project_package(dav1d 0.6.0)
+
+ExternalProject_Add(GoogleTest
+	GIT_REPOSITORY https://github.com/Google/GoogleTest
+	GIT_TAG 703bd9caab50b139428cea1aaff9974ebee5742e
+	GIT_SHALLOW ON
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-Dgtest_force_shared_crt:BOOL=ON
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+add_dependency_project_package(GoogleTest 1.10.0)
+
+ExternalProject_Add(spdlog
+	DEPENDS fmt
+	GIT_REPOSITORY file:///c:/code/spdlog
+	GIT_TAG 1c1c236080d2f17ba2a99a1e377f41bc28e24cea
+	GIT_SHALLOW ON
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DSPDLOG_BUILD_EXAMPLE:BOOL=OFF
+		-DSPDLOG_BUILD_TESTS:BOOL=OFF
+		-DSPDLOG_INSTALL:BOOL=ON
+		-DSPDLOG_FMT_EXTERNAL:BOOL=ON
+		-DSPDLOG_WCHAR_SUPPORT:BOOL=ON
+		-DSPDLOG_WCHAR_FILENAMES:BOOL=ON
+		-DSPDLOG_NO_THREAD_ID:BOOL=ON
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/fmt
+)
+add_dependency_project_package(spdlog 1.5.0)
