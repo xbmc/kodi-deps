@@ -869,7 +869,7 @@ add_dependency_project_package(libdvdnav 6.0.1)
 
 ExternalProject_Add(libudfread
 	GIT_REPOSITORY https://github.com/Paxxi/libudfread
-	GIT_TAG 2c554de7d26c3cf9a2ab23d7cb1cb130ca8da18f
+	GIT_TAG f2cd5a7ee6eb8d6b3c769df1be5f3899528227a0
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -913,7 +913,7 @@ add_dependency_project_package(GoogleTest 1.10.0)
 
 ExternalProject_Add(spdlog
 	DEPENDS fmt
-	GIT_REPOSITORY file:///c:/code/spdlog
+	GIT_REPOSITORY https://github.com/Paxxi/spdlog
 	GIT_TAG 1c1c236080d2f17ba2a99a1e377f41bc28e24cea
 	GIT_SHALLOW ON
 	CMAKE_ARGS
