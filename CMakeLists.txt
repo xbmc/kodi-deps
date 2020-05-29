@@ -892,13 +892,13 @@ add_dependency_project_package(libbluray 1.1.2)
 
 ExternalProject_Add(dav1d
 	GIT_REPOSITORY https://github.com/Paxxi/dav1d
-	GIT_TAG 5c3f33573073fab2b4363172881b2b477e8a3f71
+	GIT_TAG 81bb50ec4cec4ddc26c41e13fc341c07ea4c4319
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
-add_dependency_project_package(dav1d 0.6.0)
+add_dependency_project_package(dav1d 0.7.0)
 
 ExternalProject_Add(GoogleTest
 	GIT_REPOSITORY https://github.com/Google/GoogleTest
