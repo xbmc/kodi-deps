@@ -632,7 +632,7 @@ add_dependency_project_package(libmicrohttpd 0.9.69)
 
 ExternalProject_Add(libnfs
 	GIT_REPOSITORY https://github.com/Paxxi/libnfs
-	GIT_TAG 9b6f9cb05c753e223c8e4555ca8d6508f9f00312
+	GIT_TAG 532ccf756d15b15b5f4ef1ba61708a6805a17804
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -869,13 +869,13 @@ add_dependency_project_package(libdvdnav 6.0.1)
 
 ExternalProject_Add(libudfread
 	GIT_REPOSITORY https://github.com/Paxxi/libudfread
-	GIT_TAG f2cd5a7ee6eb8d6b3c769df1be5f3899528227a0
+	GIT_TAG 1ddad2a47985bbf03288ef898f8de8e2c9eaffe0
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
-add_dependency_project_package(libudfread 1.0.0)
+add_dependency_project_package(libudfread 1.1.0)
 
 
 ExternalProject_Add(libbluray
