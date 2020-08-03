@@ -350,7 +350,7 @@ ExternalProject_Add(sqlite
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DBUILD_SHARED_LIBS:BOOL=ON
+		-DBUILD_SHARED_LIBS:BOOL=OFF
 )
 add_dependency_project_package(sqlite 3300100)
 
@@ -767,14 +767,14 @@ add_dependency_project_package(libffi 3.3.0)
 ExternalProject_Add(python
 	DEPENDS bzip2 openssl sqlite zlib expat libffi xz
 	GIT_REPOSITORY https://github.com/Paxxi/cpython
-	GIT_TAG df45a3248236c7676f3c53444015889b8ea16057
+	GIT_TAG e7d0085c92747cf41af968b8e8f1c3dc4c5e1ae4
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/bzip2%3B%3B${PREFIX}/openssl%3B%3B${PREFIX}/sqlite%3B%3B${PREFIX}/zlib%3B%3B${PREFIX}/libffi%3B%3B${PREFIX}/xz%3B%3B${PREFIX}/expat
 )
-add_dependency_project_package(python 3.7.5)
+add_dependency_project_package(python 3.8.5)
 
 ExternalProject_Add(libjpeg-turbo
 	GIT_REPOSITORY https://github.com/Paxxi/libjpeg-turbo
