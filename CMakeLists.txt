@@ -313,6 +313,17 @@ ExternalProject_Add(libfribidi
 )
 add_dependency_project_package(libfribidi 1.0.8)
 
+ExternalProject_Add(harfbuzz
+	GIT_REPOSITORY https://github.com/Paxxi/harfbuzz
+	GIT_TAG bcd28eaf3339b6b6762a7914ee7a9e734dccfa42
+	GIT_SHALLOW ON
+	CMAKE_ARGS
+		${ADDITIONAL_ARGS}
+		-DHB_HAVE_DIRECTWRITE=ON
+		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+)
+add_dependency_project_package(harfbuzz 2.8.0)
+
 ExternalProject_Add(lzo2
 	GIT_REPOSITORY https://github.com/Paxxi/lzo2
 	GIT_TAG c04ee89a9b8c48b7a2661b3dbf79257453510c5a
@@ -419,17 +430,17 @@ add_dependency_project_package(detours 64ec13)
 endif()
 
 ExternalProject_Add(libass
-	DEPENDS freetype libfribidi libiconv
+	DEPENDS freetype libfribidi libiconv harfbuzz
 	GIT_REPOSITORY https://github.com/Paxxi/libass
-	GIT_TAG 9494d215b532eafa8d7924f624057965517c0c0c
+	GIT_TAG a45647925ffb39b07fc7a8bc862fca8483a10b08
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype%3B%3B${PREFIX}/libfribidi%3B%3B${PREFIX}/libiconv
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype%3B%3B${PREFIX}/libfribidi%3B%3B${PREFIX}/libiconv%3B%3B${PREFIX}/harfbuzz
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
-add_dependency_project_package(libass 0.14.0)
+add_dependency_project_package(libass 0.15.0)
 
 ExternalProject_Add(brotli
 	GIT_REPOSITORY https://github.com/Paxxi/brotli

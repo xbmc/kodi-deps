@@ -18,6 +18,7 @@ Param(
     'fstrcmp',
     'giflib',
     'GoogleTest',
+    'harfbuzz',
     'lcms2',
     'libaacs',
     'libass',
