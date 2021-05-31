@@ -314,13 +314,16 @@ ExternalProject_Add(libfribidi
 add_dependency_project_package(libfribidi 1.0.8)
 
 ExternalProject_Add(harfbuzz
+	DEPENDS freetype
 	GIT_REPOSITORY https://github.com/Paxxi/harfbuzz
 	GIT_TAG bcd28eaf3339b6b6762a7914ee7a9e734dccfa42
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DHB_HAVE_DIRECTWRITE=ON
+		-DHB_HAVE_FREETYPE=ON
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype
 )
 add_dependency_project_package(harfbuzz 2.8.0)
 
