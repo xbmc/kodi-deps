@@ -9,7 +9,6 @@ Param(
   [string] $SdkVersion = '10.0.18362.0',
   [ValidateSet(15, 16)]
   [int] $VsVersion = 16,
-  [Parameter()]
   [ValidateSet(
     'brotli',
     'bzip2',
@@ -88,9 +87,13 @@ if ($false -eq $NoClean) {
     Remove-Item -Recurse -Force $packagePath
   }
 }
-$shouldBuildAsDebug = 'taglib', 'tinyxml', 'fmt', 'pcre', 'crossguid', 'lzo2', 'zlib', 'detours', 'libudfread', 'GoogleTest', 'harfbuzz'
 
-$debugPackages = $Packages | Where-Object -In $shouldBuildAsDebug
+$shouldBuildAsDebug = 'taglib', 'tinyxml', 'fmt', 'pcre', 'crossguid', 'lzo2', 'zlib', 'detours', 'libudfread', 'GoogleTest', 'harfbuzz'
+if (-not $Packages) {
+  $Packages = $shouldBuildAsDebug
+}
+
+$debugPackages = $Packages | Where-Object { $_ -In $shouldBuildAsDebug }
 .\BuildAllPlatforms.ps1 -Platforms $Platforms -GenerateProjects -Desktop:$Desktop -App:$App -VsVersion $VsVersion -SdkVersion $SdkVersion
 if ($debugPackages) {
   .\BuildAllPlatforms.ps1 -Platforms $Platforms -Desktop:$Desktop -App:$App -Deb -Packages $debugPackages
