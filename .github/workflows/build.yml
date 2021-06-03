@@ -28,4 +28,4 @@ jobs:
 
     - name: Build
       # Build your program with the given configuration
-      run: .\DoRelease.ps1 -Platforms {{ matrix.arch }} {{ matrix.platform }} -VsVersion {{ env.VS_VERSION }} -SdkVersion {{ env.SDK_VERSION }}
+      run: .\DoRelease.ps1 -Platforms ${{ matrix.arch }} ${{ matrix.platform }} -VsVersion ${{ env.VS_VERSION }} -SdkVersion ${{ env.SDK_VERSION }}
