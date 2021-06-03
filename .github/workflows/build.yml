@@ -1,0 +1,35 @@
+name: Build
+
+on:
+  push:
+    branches: [ work ]
+  pull_request:
+    branches: [ work ]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  VS_VERSION: 16
+  SDK_VERSION: '10.0.18362.0'
+
+jobs:
+  strategy:
+    matrix:
+      arch: [win32, x64, arm, arm64]
+      platform: [-App, -Desktop]
+  build:
+    # The CMake configure and build commands are platform agnostic and should work equally
+    # well on Windows or Mac.  You can convert this to a matrix build if you need
+    # cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Strawberry Perl
+      # Perl included with git does not work when building openssl
+      run: choco install -y StrawberryPerl
+
+    - name: Build
+      # Build your program with the given configuration
+      run: .\DoRelease.ps1 -Platforms {{ matrix.arch }} {{ matrix.platform }} -VsVersion {{ env.VS_VERSION }} -SdkVersion {{ env.SDK_VERSION }}
