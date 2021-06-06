@@ -211,13 +211,13 @@ add_dependency_project_package(xz 5.2.4)
 
 ExternalProject_Add(miniwdk
 	GIT_REPOSITORY https://github.com/Paxxi/miniwdk
-	GIT_TAG 1d7f30f881a21dc620c7d0a6019c6c20e74fa608
+	GIT_TAG 2561ff58d73f16c4ee4beb6e25fa9c49026da115
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
 		-DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
-add_dependency_project_package(miniwdk 10.0.17763 ANY)
+add_dependency_project_package(miniwdk 10.0.18362 ANY)
 
 ExternalProject_Add(crossguid
 	GIT_REPOSITORY https://github.com/Paxxi/crossguid
@@ -436,7 +436,7 @@ endif()
 ExternalProject_Add(libass
 	DEPENDS freetype libfribidi libiconv harfbuzz
 	GIT_REPOSITORY https://github.com/Paxxi/libass
-	GIT_TAG a45647925ffb39b07fc7a8bc862fca8483a10b08
+	GIT_TAG d912e64e6b66777fc633c1e2ad5fd5dcceaa3c8e
 	GIT_SHALLOW ON
 	CMAKE_ARGS
 		${ADDITIONAL_ARGS}
@@ -444,7 +444,7 @@ ExternalProject_Add(libass
 		-DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype%3B%3B${PREFIX}/libfribidi%3B%3B${PREFIX}/libiconv%3B%3B${PREFIX}/harfbuzz
 		-DBUILD_SHARED_LIBS:BOOL=ON
 )
-add_dependency_project_package(libass 0.15.0)
+add_dependency_project_package(libass 0.15.1)
 
 ExternalProject_Add(brotli
 	GIT_REPOSITORY https://github.com/Paxxi/brotli

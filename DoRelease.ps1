@@ -86,6 +86,7 @@ if ($false -eq $NoClean) {
   if (Test-Path $packagePath) {
     Remove-Item -Recurse -Force $packagePath
   }
+  .\BuildAllPlatforms.ps1 -Platforms $Platforms -GenerateProjects -Desktop:$Desktop -App:$App -VsVersion $VsVersion -SdkVersion $SdkVersion
 }
 
 $shouldBuildAsDebug = 'taglib', 'tinyxml', 'fmt', 'pcre', 'crossguid', 'lzo2', 'zlib', 'detours', 'libudfread', 'GoogleTest', 'harfbuzz'
@@ -94,7 +95,6 @@ if (-not $Packages) {
 }
 
 $debugPackages = $Packages | Where-Object { $_ -In $shouldBuildAsDebug }
-.\BuildAllPlatforms.ps1 -Platforms $Platforms -GenerateProjects -Desktop:$Desktop -App:$App -VsVersion $VsVersion -SdkVersion $SdkVersion
 if ($debugPackages) {
   .\BuildAllPlatforms.ps1 -Platforms $Platforms -Desktop:$Desktop -App:$App -Deb -Packages $debugPackages
 }
