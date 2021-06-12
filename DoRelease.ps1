@@ -89,7 +89,7 @@ if ($false -eq $NoClean) {
   .\BuildAllPlatforms.ps1 -Platforms $Platforms -GenerateProjects -Desktop:$Desktop -App:$App -VsVersion $VsVersion -SdkVersion $SdkVersion
 }
 
-$shouldBuildAsDebug = 'taglib', 'tinyxml', 'fmt', 'pcre', 'crossguid', 'lzo2', 'zlib', 'detours', 'libudfread', 'GoogleTest', 'harfbuzz'
+$shouldBuildAsDebug = 'taglib', 'tinyxml', 'fmt', 'pcre', 'crossguid', 'lzo2', 'zlib', 'detours', 'libudfread', 'GoogleTest'
 if (-not $Packages) {
   $Packages = $shouldBuildAsDebug
 }

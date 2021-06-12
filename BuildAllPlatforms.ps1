@@ -75,7 +75,7 @@ Param(
   [ValidateSet( 'arm', 'win32', 'x64', 'arm64' )]
   [string[]] $Platforms = @( 'arm', 'win32', 'x64', 'arm64' ),
   [ValidateSet('10.0.17763.0', '10.0.18362.0')]
-  [string] $SdkVersion = '10.0.17763.0',
+  [string] $SdkVersion = '10.0.18362.0',
   [ValidateSet(15, 16)]
   [int] $VsVersion = 16,
   [switch] $Zip = $false
@@ -126,6 +126,9 @@ $cleanFirst
 if ($Rebuild) {
   $cleanFirst = "--clean-first"
 }
+#if (-not $Packages) {
+#  $Packages = @("ALL_BUILD")
+#}
 $desktopPackages = $Packages
 $appPackages = [string[]]($Packages | Where-Object { $_ -notin $ExcludedFromUwp })
 
@@ -133,7 +136,7 @@ foreach ($platform in $platforms) {
   if ($Desktop -and ($platform -ne 'arm')) {
     $path = "$PsScriptRoot\Build\$platform"
     if ($Deb) {
-      cmake --build $path --config Debug -t @desktopPackages $cleanFirst -- -m
+      cmake --build $path --config Debug -t @desktopPackages $cleanFirst --parallel -- -m
       if ($LASTEXITCODE -ne 0) {
         Write-Error "Some packages failed to build, $desktopPackages"
         return;
@@ -141,7 +144,7 @@ foreach ($platform in $platforms) {
     }
 
     if ($Rel) {
-      cmake --build $path --config RelWithDebInfo -t @desktopPackages $cleanFirst -- -m
+      cmake --build $path --config RelWithDebInfo -t @desktopPackages $cleanFirst --parallel -- -m
       if ($LASTEXITCODE -ne 0) {
         Write-Error "Some packages failed to build, $desktopPackages"
         return;
@@ -152,7 +155,7 @@ foreach ($platform in $platforms) {
   if ($App) {
     $storePath = "$PsScriptRoot\Build\win10-$Platform"
     if ($Deb) {
-      cmake --build $storePath --config Debug -t @appPackages $cleanFirst -- -m
+      cmake --build $storePath --config Debug -t @appPackages $cleanFirst --parallel -- -m
       if ($LASTEXITCODE -ne 0) {
         Write-Error "Some packages failed to build, $appPackages"
         return;
@@ -160,7 +163,7 @@ foreach ($platform in $platforms) {
     }
 
     if ($Rel) {
-      cmake --build $storePath --config RelWithDebInfo -t @appPackages $cleanFirst -- -m
+      cmake --build $storePath --config RelWithDebInfo -t @appPackages $cleanFirst --parallel -- -m
       if ($LASTEXITCODE -ne 0) {
         Write-Error "Some packages failed to build, $appPackages"
         return;
