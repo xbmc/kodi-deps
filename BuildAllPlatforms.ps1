@@ -63,9 +63,11 @@ Param(
     'winflexbison',
     'xz',
     'zlib',
-    'uwp_compat'
+    'uwp_compat',
+    'DependenciesRequired',
+    'DependenciesRequiredDebug'
   )]
-  [string[]] $Packages = @(),
+  [string[]] $Packages = @('DependenciesRequired'),
   [switch] $GenerateProjects,
   [switch] $Rel = $false,
   [switch] $Deb = $false,
@@ -126,9 +128,7 @@ $cleanFirst
 if ($Rebuild) {
   $cleanFirst = "--clean-first"
 }
-#if (-not $Packages) {
-#  $Packages = @("ALL_BUILD")
-#}
+
 $desktopPackages = $Packages
 $appPackages = [string[]]($Packages | Where-Object { $_ -notin $ExcludedFromUwp })
 
