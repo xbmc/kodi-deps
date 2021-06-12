@@ -59,7 +59,7 @@ endif()
 
 include(ExternalProject)
 
-add_custom_target(zip)
+add_custom_target(DependenciesRequired-zip)
 function(add_dependency_project_package name version)
     # it's possible to pack dependency only if it was installed in separate folder
     if(FOLDER_PER_TARGET)
@@ -93,7 +93,7 @@ function(add_dependency_project_package name version)
             EXCLUDE_FROM_MAIN TRUE
         )
         ExternalProject_Add_StepDependencies(${name} zip ${name})
-        add_dependencies(zip ${name}-zip)
+        add_dependencies(DependenciesRequired-zip ${name}-zip)
     endif()
 endfunction()
 
