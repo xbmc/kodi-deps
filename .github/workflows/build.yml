@@ -34,9 +34,9 @@ jobs:
       run: .\DoRelease.ps1 -Platforms ${{ matrix.arch }} ${{ matrix.platform }} -VsVersion ${{ env.VS_VERSION }} -SdkVersion "${{ env.SDK_VERSION }}"
 
     - name: Archive artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: Upload dependencies
-          path: |
-            package/*.7z
-            package/hashes-*.txt
+      uses: actions/upload-artifact@v2
+      with:
+        name: Upload dependencies
+        path: |
+          package/*.7z
+          package/hashes-*.txt
