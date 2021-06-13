@@ -27,7 +27,7 @@ jobs:
 
     - name: Install Strawberry Perl
       # Perl included with git does not work when building openssl
-      run: choco install -y StrawberryPerl
+      run: choco install -y StrawberryPerl nasm
 
     - name: Build
       # Build your program with the given configuration

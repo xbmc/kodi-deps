@@ -673,6 +673,7 @@ ExternalProject_Add(giflib
 add_dependency_project_package(giflib 5.2.1)
 
 ExternalProject_Add(libpng
+    DEPENDS zlib
     GIT_REPOSITORY https://github.com/Paxxi/libpng
     GIT_TAG e49a9a21ddbd39f84b7819f78317b60c89c9b0e8
     GIT_SHALLOW ON
@@ -931,9 +932,9 @@ add_custom_target(DependenciesRequired
         libbdplus
         libbluray
         libcdio
-        libdvdcss
-        libdvdnav
-        libdvdread
+        # libdvdcss
+        # libdvdnav
+        # libdvdread
         libffi
         libfribidi
         libgpg-error
