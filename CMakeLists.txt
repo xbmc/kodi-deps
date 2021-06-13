@@ -872,7 +872,7 @@ add_dependency_project_package(libbluray 1.2.1)
 
 ExternalProject_Add(dav1d
     GIT_REPOSITORY https://github.com/Paxxi/dav1d
-    GIT_TAG f9bc65341ee4118439b55081ef6d91ac8f3b5ecb
+    GIT_TAG d3dea2705a9cb64939a8336eef0b7ea98ff71f64
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}

@@ -17,6 +17,9 @@ jobs:
       matrix:
         arch: [win32, x64, arm, arm64]
         platform: [-App, -Desktop]
+        exclude:
+          - arch: arm
+            platform: -Desktop
     runs-on: windows-latest
 
     steps:
@@ -29,3 +32,11 @@ jobs:
     - name: Build
       # Build your program with the given configuration
       run: .\DoRelease.ps1 -Platforms ${{ matrix.arch }} ${{ matrix.platform }} -VsVersion ${{ env.VS_VERSION }} -SdkVersion "${{ env.SDK_VERSION }}"
+
+    - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Upload dependencies
+          path: |
+            package/*.7z
+            package/hashes-*.txt
