@@ -184,7 +184,7 @@ function Add-Hash {
   Foreach-Object {
     if (($App -and $_.Name -match "win10-$platform") -or (($false -eq $App) -and ($_.Name -match $platform) -and ($_.Name -notmatch 'win10'))) {
       $hashandfile = (cmake -E sha512sum $_.Name) -split ' ';
-      '"' + $hashandfile[2] + ':' + $hashandfile[0] + '"' | out-file $PSScriptRoot\package\hashes.txt -Append
+      '"' + $hashandfile[2] + ':' + $hashandfile[0] + '"' | out-file $PSScriptRoot\package\hashes.txt -Append -encoding utf8
     }
   }
   Pop-Location
@@ -204,7 +204,7 @@ if ($Zip) {
     if ($Desktop -and ($platform -ne 'arm')) {
       $path = "$PsScriptRoot\Build\$platform"
 
-      cmake --build $path --config RelWithDebInfo -t @desktopPackages -- -m
+      cmake --build $path --config RelWithDebInfo -t @desktopPackages --parallel -- -m
       if ($LASTEXITCODE -ne 0) {
         Write-Error "Some packages failed to package"
         return;
@@ -214,7 +214,7 @@ if ($Zip) {
 
     if ($App) {
       $storePath = "$PsScriptRoot\Build\win10-$Platform"
-      cmake --build $storePath --config RelWithDebInfo -t @appPackages -- -m
+      cmake --build $storePath --config RelWithDebInfo -t @appPackages --parallel -- -m
       if ($LASTEXITCODE -ne 0) {
         Write-Error "Some packages failed to package"
         return;

@@ -12,6 +12,8 @@ Param(
 )
 $ErrorActionPreference = 'Stop'
 
+$Generate = -not $NoClean
+
 if ($false -eq $NoClean) {
   $buildPath = Join-Path $PSScriptRoot -ChildPath 'Build'
   $packagePath = Join-Path $PSScriptRoot -ChildPath 'package'
@@ -21,8 +23,7 @@ if ($false -eq $NoClean) {
   if (Test-Path $packagePath) {
     Remove-Item -Recurse -Force $packagePath
   }
-  .\BuildAllPlatforms.ps1 -Platforms $Platforms -GenerateProjects -Desktop:$Desktop -App:$App -VsVersion $VsVersion -SdkVersion $SdkVersion
 }
 
-.\BuildAllPlatforms.ps1 -Platforms $Platforms -Desktop:$Desktop -App:$App -Deb -Packages 'DependenciesRequiredDebug'
+.\BuildAllPlatforms.ps1 -Platforms $Platforms -Desktop:$Desktop -App:$App -Deb -Packages 'DependenciesRequiredDebug' -GenerateProjects:$Generate
 .\BuildAllPlatforms.ps1 -Platforms $Platforms -Desktop:$Desktop -App:$App -Rel -Zip -Packages 'DependenciesRequired'

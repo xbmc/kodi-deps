@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.4)
 
 project(KodiDependencies LANGUAGES C)
 
+cmake_policy(SET CMP0114 NEW)
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 option(FOLDER_PER_TARGET "install dependencies in separate folders" ON)
@@ -81,9 +83,9 @@ function(add_dependency_project_package name version)
         file(TO_NATIVE_PATH "${PREFIX}/${dep_name}" COPY_DESTINATION)
         file(TO_NATIVE_PATH "${PREFIX}/../${hash_file}" hash_path)
 
-        ExternalProject_Add_StepTargets(${name} zip)
         ExternalProject_Add_Step(${name} zip
             COMMENT "Packaging '${name}'"
+            DEPENDEES ${name}
             COMMAND ${CMAKE_COMMAND} -E copy_directory "${name}" "${COPY_DESTINATION}"
             COMMAND ${CMAKE_COMMAND} -E tar "cf" "${zip_path}" --format=7zip -- "${COPY_DESTINATION}"
             COMMAND ${CMAKE_COMMAND} -E remove_directory "${COPY_DESTINATION}"
@@ -92,7 +94,8 @@ function(add_dependency_project_package name version)
             ALWAYS TRUE
             EXCLUDE_FROM_MAIN TRUE
         )
-        ExternalProject_Add_StepDependencies(${name} zip ${name})
+        ExternalProject_Add_StepTargets(${name} zip)
+        # ExternalProject_Add_StepDependencies(${name} zip ${name})
         add_dependencies(DependenciesRequired-zip ${name}-zip)
     endif()
 endfunction()
@@ -217,7 +220,8 @@ ExternalProject_Add(miniwdk
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
-add_dependency_project_package(miniwdk 10.0.18362 ANY)
+# Causes miniwdk zip target to be added and it can't be built on github
+#add_dependency_project_package(miniwdk 10.0.18362 ANY)
 
 ExternalProject_Add(crossguid
     GIT_REPOSITORY https://github.com/Paxxi/crossguid
@@ -837,6 +841,7 @@ ExternalProject_Add(libdvdread
 add_dependency_project_package(libdvdread 6.0.2)
 
 ExternalProject_Add(libdvdnav
+    DEPENDS libdvdcss libdvdread
     GIT_REPOSITORY https://github.com/Paxxi/libdvdnav
     GIT_TAG 9f9e7c9d6b299692b72bacc0c3a4077109975369
     GIT_SHALLOW ON
@@ -932,9 +937,9 @@ add_custom_target(DependenciesRequired
         libbdplus
         libbluray
         libcdio
-        # libdvdcss
-        # libdvdnav
-        # libdvdread
+        libdvdcss
+        libdvdnav
+        libdvdread
         libffi
         libfribidi
         libgpg-error
@@ -950,7 +955,7 @@ add_custom_target(DependenciesRequired
         libxslt
         lzo2
         mariadb-connector-c
-        miniwdk
+        #miniwdk # WDK is not installed on github hosted runners
         nghttp2
         openssl
         pcre
