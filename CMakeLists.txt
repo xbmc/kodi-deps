@@ -679,7 +679,7 @@ add_dependency_project_package(giflib 5.2.1)
 ExternalProject_Add(libpng
     DEPENDS zlib
     GIT_REPOSITORY https://github.com/Paxxi/libpng
-    GIT_TAG e49a9a21ddbd39f84b7819f78317b60c89c9b0e8
+    GIT_TAG b6910d90aa4b0c9c7a18fc7d140cd5ed405f278e
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
@@ -716,7 +716,7 @@ add_dependency_project_package(libwebp 1.0.3)
 ExternalProject_Add(mariadb-connector-c
     DEPENDS openssl uwp_compat
     GIT_REPOSITORY https://github.com/Paxxi/mariadb-connector-c
-    GIT_TAG 30788c5b2624ace29063918d71e0625c32c2ee93
+    GIT_TAG f26c0be86e7f534996f62646f9015da504515d11
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
