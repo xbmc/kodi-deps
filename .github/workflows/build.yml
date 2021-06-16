@@ -14,7 +14,7 @@ env:
 jobs:
   build:
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         arch: [win32, x64, arm, arm64]
         platform: [-App, -Desktop]
@@ -37,7 +37,7 @@ jobs:
     - name: Archive artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: Upload dependencies
+        name: Kodi dependencies
         path: |
           package/*.7z
           package/hashes-*.txt

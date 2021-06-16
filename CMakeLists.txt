@@ -526,6 +526,7 @@ ExternalProject_Add(libcec
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/platform
+        -DSKIP_PYTHON_WRAPPER=ON
 )
 add_dependency_project_package(libcec 4.0.4)
 endif()
