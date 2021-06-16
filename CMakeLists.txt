@@ -519,7 +519,7 @@ add_dependency_project_package(platform 2.1.0)
 ExternalProject_Add(libcec
     DEPENDS platform
     GIT_REPOSITORY https://github.com/Paxxi/libcec
-    GIT_TAG 59ab401c5a89e9ea20269b4e4747240632665811
+    GIT_TAG 914ad6788372460856591854bf35731f697b7f05
     GIT_SHALLOW ON
     GIT_SUBMODULES
     CMAKE_ARGS
