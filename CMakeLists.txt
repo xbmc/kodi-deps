@@ -133,16 +133,14 @@ add_dependency_project_package(uwp_compat 0.1)
 
 
 ExternalProject_Add(bzip2
-    DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://mirrors.kodi.tv/build-deps/sources/bzip2-1.0.6.tar.gz
-    URL_HASH SHA256=a2848f34fcd5d6cf47def00461fcb528a0484d8edef8208d6d2e2909dc61d9cd
-    PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
-    UPDATE_DISCONNECTED ON
+    GIT_REPOSITORY https://github.com/Paxxi/bzip2
+    GIT_TAG 6aba9bd98f1c67c9266a15884695ca04b7633445
+    GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
-add_dependency_project_package(bzip2 1.0.6)
+add_dependency_project_package(bzip2 1.0.8)
 
 ExternalProject_Add(expat
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
