@@ -1,0 +1,43 @@
+name: Build
+
+on:
+  push:
+    branches: [ externalProject ]
+  pull_request:
+    branches: [ externalProject ]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  VS_VERSION: 16
+  SDK_VERSION: '10.0.18362.0'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        arch: [win32, x64, arm, arm64]
+        platform: [-App, -Desktop]
+        exclude:
+          - arch: arm
+            platform: -Desktop
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Strawberry Perl
+      # Perl included with git does not work when building openssl
+      run: choco install -y StrawberryPerl nasm
+
+    - name: Build
+      # Build your program with the given configuration
+      run: .\DoRelease.ps1 -Platforms ${{ matrix.arch }} ${{ matrix.platform }} -VsVersion ${{ env.VS_VERSION }} -SdkVersion "${{ env.SDK_VERSION }}"
+
+    - name: Archive artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: Kodi dependencies
+        path: |
+          package/*.7z
+          package/hashes-*.txt
