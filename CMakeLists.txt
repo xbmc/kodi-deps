@@ -106,7 +106,7 @@ endfunction()
 if(NOT WINDOWS_STORE)
 ExternalProject_Add(flatc
     GIT_REPOSITORY https://github.com/Paxxi/flatbuffers
-    GIT_TAG ffb6b800354cbd6368da6bc6b8e937fa2d476ed2
+    GIT_TAG 46d447759eb599ed7ea8a2ab297db6ac40e2bbd1
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
@@ -115,7 +115,7 @@ ExternalProject_Add(flatc
         -DFLATBUFFERS_BUILD_FLATLIB:BOOL=OFF
         -DFLATBUFFERS_BUILD_TESTS:BOOL=OFF
 )
-add_dependency_project_package(flatc 1.11.0)
+add_dependency_project_package(flatc 2.0.0)
 endif()
 
 # dependencies required by others
@@ -236,7 +236,7 @@ add_dependency_project_package(crossguid 0.2.2)
 
 ExternalProject_Add(flatbuffers
     GIT_REPOSITORY https://github.com/Paxxi/flatbuffers
-    GIT_TAG ffb6b800354cbd6368da6bc6b8e937fa2d476ed2
+    GIT_TAG 46d447759eb599ed7ea8a2ab297db6ac40e2bbd1
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
@@ -246,7 +246,7 @@ ExternalProject_Add(flatbuffers
         -DFLATBUFFERS_BUILD_FLATLIB:BOOL=OFF
         -DFLATBUFFERS_BUILD_TESTS:BOOL=OFF
 )
-add_dependency_project_package(flatbuffers 1.11.0 ANY)
+add_dependency_project_package(flatbuffers 2.0.0)
 
 ExternalProject_Add(fmt
     GIT_REPOSITORY https://github.com/Paxxi/fmt
