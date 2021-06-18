@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    branches: [ work ]
+    branches: [ externalProject ]
   pull_request:
-    branches: [ work ]
+    branches: [ externalProject ]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
