@@ -410,7 +410,7 @@ endif()
 ExternalProject_Add(libass
     DEPENDS freetype libfribidi libiconv harfbuzz
     GIT_REPOSITORY https://github.com/Paxxi/libass
-    GIT_TAG 46cb70c1751067291df2df387bfea96d9dc3aa99
+    GIT_TAG b67b3ef9c6b78dc67de3ccfbb75674bf2730eef0
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
