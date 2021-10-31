@@ -7,6 +7,7 @@ Param(
     'bzip2',
     'crossguid',
     'curl',
+    'date',
     'dav1d',
     'detours',
     'dnssd',
@@ -75,7 +76,7 @@ Param(
   [switch] $Desktop = $false,
   [switch] $App = $false,
   [ValidateSet( 'arm', 'win32', 'x64', 'arm64' )]
-  [string[]] $Platforms = @( 'arm', 'win32', 'x64', 'arm64' ),
+  [string[]] $Platforms = @( 'win32', 'x64', 'arm64' ),
   [ValidateSet('10.0.17763.0', '10.0.18362.0')]
   [string] $SdkVersion = '10.0.18362.0',
   [ValidateSet(15, 16)]
@@ -172,24 +173,6 @@ foreach ($platform in $platforms) {
   }
 }
 
-function Add-Hash {
-  [CmdletBinding()]
-  Param (
-    [string]$Platform,
-    [switch]$App
-  )
-
-  Push-Location "$PsScriptRoot\package\"
-  get-childitem "*.7z" |
-  Foreach-Object {
-    if (($App -and $_.Name -match "win10-$platform") -or (($false -eq $App) -and ($_.Name -match $platform) -and ($_.Name -notmatch 'win10'))) {
-      $hashandfile = (cmake -E sha512sum $_.Name) -split ' ';
-      '"' + $hashandfile[2] + ':' + $hashandfile[0] + '"' | out-file $PSScriptRoot\package\hashes.txt -Append -encoding utf8
-    }
-  }
-  Pop-Location
-}
-
 if ($Zip) {
   if ($desktopPackages.Count -gt 0) {
     $desktopPackages = [string[]]($desktopPackages | foreach-Object { "$_-zip" })
@@ -209,7 +192,6 @@ if ($Zip) {
         Write-Error "Some packages failed to package"
         return;
       }
-      Add-Hash -Platform $platform
     }
 
     if ($App) {
@@ -219,7 +201,6 @@ if ($Zip) {
         Write-Error "Some packages failed to package"
         return;
       }
-      Add-Hash -Platform $platform -App
     }
   }
 }

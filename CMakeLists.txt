@@ -79,7 +79,7 @@ function(add_dependency_project_package name version)
             set(dep_name "${dep_name}-$(Platform)-$(PlatformToolset)")
         endif()
         set(dep_name "${dep_name}-${date}")
-        file(TO_NATIVE_PATH "${PREFIX}/../${dep_name}.7z" zip_path)
+        file(TO_NATIVE_PATH "${PREFIX}/../${dep_name}" zip_path)
         file(TO_NATIVE_PATH "${PREFIX}/${dep_name}" COPY_DESTINATION)
         file(TO_NATIVE_PATH "${PREFIX}/../${hash_file}" hash_path)
 
@@ -87,7 +87,7 @@ function(add_dependency_project_package name version)
             COMMENT "Packaging '${name}'"
             DEPENDEES ${name}
             COMMAND ${CMAKE_COMMAND} -E copy_directory "${name}" "${COPY_DESTINATION}"
-            COMMAND ${CMAKE_COMMAND} -E tar "cf" "${zip_path}" --format=7zip -- "${COPY_DESTINATION}"
+            COMMAND ${CMAKE_COMMAND} -E tar "cf" "${zip_path}.7z" --format=7zip -- "${COPY_DESTINATION}"
             COMMAND ${CMAKE_COMMAND} -E remove_directory "${COPY_DESTINATION}"
             COMMAND ${CMAKE_COMMAND} -Dhash_path=${hash_path} -Ddep_name=${dep_name} -Dzip_path=${zip_path} -P ${CMAKE_SOURCE_DIR}/zip.cmake
             WORKING_DIRECTORY ${PREFIX}
@@ -915,12 +915,31 @@ ExternalProject_Add(spdlog
 )
 add_dependency_project_package(spdlog 1.5.0)
 
+ExternalProject_Add(date
+    GIT_REPOSITORY https://github.com/Paxxi/date
+    GIT_TAG e9943526c2ba23746b3fe4fb0522be85b1efcd00
+    GIT_SHALLOW ON
+    CMAKE_ARGS
+        ${ADDITIONAL_ARGS}
+        -DUSE_SYSTEM_TZ_DB:BOOL=OFF
+        -DUSE_TZ_DB_IN_DOT:BOOL=OFF
+        -DBUILD_SHARED_LIBS:BOOL=OFF
+        -DENABLE_DATE_TESTING:BOOL=OFF
+        -DDISABLE_STRING_VIEW:BOOL=ON
+        -DBUILD_TZ_LIB:BOOL=ON
+        -DMANUAL_TZ_DB:BOOL=ON
+        -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+        -DCMAKE_PREFIX_PATH:PATH=${PREFIX}
+)
+add_dependency_project_package(date 3.0.1)
+
 add_custom_target(DependenciesRequired
     DEPENDS
         brotli
         bzip2
         crossguid
         curl
+        date
         dav1d
         expat
         flatbuffers
@@ -975,6 +994,7 @@ add_custom_target(DependenciesRequired
 add_custom_target(DependenciesRequiredDebug
     DEPENDS
         crossguid
+        date
         detours
         fmt
         GoogleTest
