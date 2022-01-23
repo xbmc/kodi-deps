@@ -854,26 +854,26 @@ add_dependency_project_package(libdvdnav 6.0.1)
 
 ExternalProject_Add(libudfread
     GIT_REPOSITORY https://github.com/Paxxi/libudfread
-    GIT_TAG 1ddad2a47985bbf03288ef898f8de8e2c9eaffe0
+    GIT_TAG 29fcdb5280e5d1778786795b594ec9fc60bf75da
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
-add_dependency_project_package(libudfread 1.1.0)
+add_dependency_project_package(libudfread 1.1.2)
 
 
 ExternalProject_Add(libbluray
     DEPENDS freetype libiconv libxml2 libudfread libaacs
     GIT_REPOSITORY https://github.com/Paxxi/libbluray
-    GIT_TAG 9523a1d927afa720c28a34d3966196e0507c131d
+    GIT_TAG 7d5976b6587169b60f83d4ff84d5ecbd2e6ad929
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype%3B%3B${PREFIX}/libiconv%3B%3B${PREFIX}/libxml2%3B%3B${PREFIX}/libudfread
 )
-add_dependency_project_package(libbluray 1.2.1)
+add_dependency_project_package(libbluray 1.3.0)
 
 ExternalProject_Add(dav1d
     GIT_REPOSITORY https://github.com/Paxxi/dav1d
