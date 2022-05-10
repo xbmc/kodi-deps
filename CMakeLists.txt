@@ -223,7 +223,7 @@ ExternalProject_Add(miniwdk
 
 ExternalProject_Add(crossguid
     GIT_REPOSITORY https://github.com/Paxxi/crossguid
-    GIT_TAG a2e482f05e62a5b58575a71f0a348bd75b258f88
+    GIT_TAG 76116f6794a5c582a8b38b8e02651b8065d81c39
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
