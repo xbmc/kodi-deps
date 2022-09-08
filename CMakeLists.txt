@@ -739,7 +739,7 @@ add_dependency_project_package(mariadb-connector-c 3.1.6)
 
 ExternalProject_Add(libffi
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://github.com/libffi/libffi/archive/v3.3-rc1.tar.gz
+    URL https://github.com/libffi/libffi/archive/refs/tags/v3.3-rc1.tar.gz
     URL_HASH SHA256=87cbd612fa20f8eb7b91a3e996c5032b813644deee6c2d96724b50752296737e
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
