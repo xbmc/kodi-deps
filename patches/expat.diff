@@ -2,8 +2,8 @@
 index 3417b69..7925ba1 100644
 --- a/expat/CMakeLists.txt
 +++ b/expat/CMakeLists.txt
-@@ -304,7 +304,8 @@ endif(NOT WIN32)
- expat_install(TARGETS ${_EXPAT_TARGET} EXPORT expat
+@@ -490,7 +490,8 @@ endif(NOT WIN32)
+ expat_install(TARGETS expat EXPORT expat
                        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
                        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 -                      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
@@ -12,7 +12,7 @@ index 3417b69..7925ba1 100644
  
  expat_install(FILES lib/expat.h lib/expat_external.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
  
-@@ -530,13 +531,13 @@ expat_install(
+@@ -807,13 +807,13 @@ expat_install(
          ${CMAKE_CURRENT_BINARY_DIR}/cmake/expat-config.cmake
          ${CMAKE_CURRENT_BINARY_DIR}/cmake/expat-config-version.cmake
      DESTINATION

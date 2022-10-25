@@ -115,7 +115,7 @@ diff --git a/Configurations/10-main.conf b/Configurations/10-main.conf
 index 3c4299d264..c5915a8561 100644
 --- a/Configurations/10-main.conf
 +++ b/Configurations/10-main.conf
-@@ -1287,7 +1287,7 @@ my %targets = (
+@@ -1309,7 +1309,7 @@ my %targets = (
      },
      "VC-WIN64I" => {
          inherit_from     => [ "VC-WIN64-common", asm("ia64_asm"),
@@ -124,7 +124,7 @@ index 3c4299d264..c5915a8561 100644
          AS               => "ias",
          ASFLAGS          => "-d debug",
          asoutflag        => "-o ",
-@@ -1299,7 +1299,7 @@ my %targets = (
+@@ -1321,7 +1321,7 @@ my %targets = (
      },
      "VC-WIN64A" => {
          inherit_from     => [ "VC-WIN64-common", asm("x86_64_asm"),
@@ -133,15 +133,15 @@ index 3c4299d264..c5915a8561 100644
          AS               => sub { vc_win64a_info()->{AS} },
          ASFLAGS          => sub { vc_win64a_info()->{ASFLAGS} },
          asoutflag        => sub { vc_win64a_info()->{asoutflag} },
-@@ -1312,7 +1312,7 @@ my %targets = (
+@@ -1334,7 +1334,7 @@ my %targets = (
      },
      "VC-WIN32" => {
          inherit_from     => [ "VC-noCE-common", asm("x86_asm"),
 -                              sub { $disabled{shared} ? () : "uplink_common" } ],
 +                              sub { $disabled{uplink} ? () : "uplink_common" } ],
-         CFLAGS           => add("/WX"),
          AS               => sub { vc_win32_info()->{AS} },
          ASFLAGS          => sub { vc_win32_info()->{ASFLAGS} },
+         asoutflag        => sub { vc_win32_info()->{asoutflag} },
 diff --git a/Configurations/50-win-onecore.conf b/Configurations/50-win-onecore.conf
 index d478f42b0f..9ce0f6870b 100644
 --- a/Configurations/50-win-onecore.conf
@@ -227,7 +227,7 @@ index 5a699836f3..859b9f4ad9 100755
  # enable-weak-ssl-ciphers
  #               Enable weak ciphers that are disabled by default.
  # 386           generate 80386 code in assembly modules
-@@ -407,6 +408,7 @@ my @disablables = (
+@@ -430,6 +431,7 @@ my @disablables = (
      "ubsan",
      "ui-console",
      "unit-test",
@@ -235,20 +235,20 @@ index 5a699836f3..859b9f4ad9 100755
      "whirlpool",
      "weak-ssl-ciphers",
      "zlib",
-@@ -1118,6 +1118,8 @@ foreach my $feature (@{$target{enable}}) {
+@@ -1135,6 +1135,8 @@ foreach my $feature (@{$target{enable}}) {
          delete $disabled{$feature};
      }
  }
 +# If uplink_arch isn't defined, disable uplink
 +$disabled{uplink} = 'no uplink_arch' unless (defined $target{uplink_arch});
-
+ disable();                      # Run a cascade now
+ 
  $target{CXXFLAGS}//=$target{CFLAGS} if $target{CXX};
- $target{cxxflags}//=$target{cflags} if $target{CXX};
 diff --git a/INSTALL b/INSTALL
 index 2119cbae9e..51a7cd2f0b 100644
 --- a/INSTALL
 +++ b/INSTALL
-@@ -540,6 +540,9 @@
+@@ -544,6 +544,9 @@
                     Enable additional unit test APIs. This should not typically
                     be used in production deployments.
  
