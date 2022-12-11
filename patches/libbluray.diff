@@ -1,0 +1,963 @@
+--- /dev/null
++++ b/CMakeLists.txt
+@@ -0,0 +1,291 @@
++cmake_minimum_required(VERSION 3.0)
++
++set(BLURAY_VERSION_MAJOR 1)
++set(BLURAY_VERSION_MINOR 3)
++set(BLURAY_VERSION_MICRO 2)
++
++project(libbluray VERSION ${BLURAY_VERSION_MAJOR}.${BLURAY_VERSION_MINOR}.${BLURAY_VERSION_MICRO} LANGUAGES C)
++
++configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bluray-version.h.in
++               ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bluray-version.h)
++
++find_package(freetype 2.6 REQUIRED NO_MODULE)
++find_package(iconv 1 REQUIRED NO_MODULE)
++find_package(libxml2 2.9 REQUIRED NO_MODULE)
++find_package(libudfread 1.1.2 REQUIRED NO_MODULE)
++
++if(MSVC)
++  set(CMAKE_DEBUG_POSTFIX "d")
++endif()
++
++set(SRCS
++  ${CMAKE_CURRENT_BINARY_DIR}/config.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/libbluray.def
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/dir_win32.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/dirs_win32.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/dirs.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/dl_win32.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/dl.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/file_win32.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/file.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/file.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/filesystem.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/filesystem.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/mount.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/mount.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdj.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdj.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdjo_data.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdjo_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/bdjo_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/bdjo.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/bdjo.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/java_awt_BDFontMetrics.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/java_awt_BDFontMetrics.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/java_awt_BDGraphics.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/java_awt_BDGraphics.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/org_videolan_Libbluray.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/org_videolan_Libbluray.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/org_videolan_Logger.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/org_videolan_Logger.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/register_native.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/register_native.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/util.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/native/util.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/bdid_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/bdid_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/bdmv_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/bdmv_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/bdparse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/clpi_data.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/clpi_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/clpi_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/extdata_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/extdata_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/index_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/index_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/meta_data.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/meta_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/meta_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/mpls_data.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/mpls_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/mpls_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/navigation.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/navigation.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/sound_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/sound_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/uo_mask_table.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/uo_mask.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/uo_mask.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bluray_internal.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bluray-version.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bluray.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bluray.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/graphics_controller.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/graphics_controller.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/graphics_processor.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/graphics_processor.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/hdmv_pids.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/ig_decode.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/ig_decode.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/ig.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/m2ts_demux.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/m2ts_demux.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/m2ts_filter.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/m2ts_filter.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/overlay.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/pes_buffer.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/pes_buffer.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/pg_decode.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/pg_decode.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/pg.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/rle.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/rle.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/textst_decode.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/textst_decode.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/textst_render.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/textst_render.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/textst.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/aacs.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/aacs.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/bdplus.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/bdplus.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/dec.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/dec.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/disc.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/disc.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/enc_info.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/properties.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/properties.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/udf_fs.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/disc/udf_fs.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/hdmv/hdmv_insn.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/hdmv/hdmv_vm.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/hdmv/hdmv_vm.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/hdmv/mobj_data.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/hdmv/mobj_parse.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/hdmv/mobj_parse.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/hdmv/mobj_print.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/hdmv/mobj_print.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/keys.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/player_settings.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/register.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/register.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/array.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/array.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/attributes.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/bits.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/bits.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/event_queue.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/event_queue.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/log_control.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/logging.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/logging.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/macro.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/mutex.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/mutex.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/refcnt.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/refcnt.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/strutl.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/strutl.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/time.c
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/time.h
++)
++
++
++# BD-J
++
++if(NOT WINDOWS_STORE)
++  find_package(JNI)
++  if (JNI_FOUND)
++    include_directories("${JAVA_INCLUDE_PATH}")
++    include_directories("${JAVA_INCLUDE_PATH2}")
++    set(HAVE_JNI_H 1)
++  else()
++    message( FATAL_ERROR "JNI not found." )
++  endif()
++
++  find_package(Java COMPONENTS Development)
++  if (JAVA_FOUND)
++    get_filename_component(_JDK_HOME "${Java_JAVA_EXECUTABLE}" PATH)
++    get_filename_component(_JDK_HOME "${_JDK_HOME}/.." ABSOLUTE)
++    message("JDK_HOME=${_JDK_HOME}")
++  else()
++    message( FATAL_ERROR "JNI not found." )
++  endif()
++endif(NOT WINDOWS_STORE)
++
++add_library(libbluray SHARED ${SRCS})
++target_link_libraries(libbluray PRIVATE freetype::freetype iconv::iconv libxml2::libxml2 libudfread::libudfread)
++set_target_properties(libbluray
++  PROPERTIES
++    LINK_FLAGS "/DEF:\"libbluray.def\""
++    PDB_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
++    PDB_NAME libbluray
++    PDB_NAME_DEBUG libblurayd
++)
++
++target_compile_definitions(libbluray
++  PRIVATE
++    HAVE_CONFIG_H
++    _CRT_SECURE_NO_WARNINGS
++)
++target_link_options(libbluray
++  PRIVATE
++    /INCREMENTAL:NO
++    /debug:full
++)
++if(WINDOWS_STORE)
++  target_compile_definitions(libbluray
++    PRIVATE
++      MS_APP
++  )
++endif()
++target_include_directories(libbluray
++  PRIVATE
++  $<BUILD_INTERFACE:.;cmake;src;src/libbluray;${CMAKE_CURRENT_BINARY_DIR}>
++  INTERFACE
++  $<INSTALL_INTERFACE:include/libbluray>
++)
++
++if(NOT WINDOWS_STORE)
++  target_link_libraries(libbluray
++    PRIVATE
++      shell32.lib
++      advapi32.lib
++      gdi32.lib
++  )
++  if (EXISTS $ENV{ANT_HOME})
++  set(ANT_CMD $ENV{ANT_HOME}/bin/ant)
++  set(ANT_BUILD ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/build.xml)
++    # STRING(REGEX REPLACE "/" "\\\\" ANT_BUILD "${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdj/build.xml")
++    message("ANT command: ${ANT_CMD} -f ${ANT_BUILD}")
++    add_custom_target (ANT
++      COMMENT "compiling libbluray.jar"
++      COMMAND
++          ${ANT_CMD} -f "${ANT_BUILD}"
++                    -Ddist="${CMAKE_CURRENT_BINARY_DIR}"
++                    -Dsrc_awt=:java-j2se
++                    -Dversion="j2se-${libbluray_VERSION}"
++    )
++    add_dependencies(libbluray ANT)
++  else()
++    message( FATAL_ERROR "ANT path not set, can't compile libbluray.jar")
++  endif()
++endif(NOT WINDOWS_STORE)
++
++set(HAVE_FT2 1)
++set(HAVE_LIBXML2 1)
++CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cm ${CMAKE_CURRENT_BINARY_DIR}/config.h)
++
++include(CMakePackageConfigHelpers)
++write_basic_package_version_file(
++  ${CMAKE_CURRENT_BINARY_DIR}/libbluray-config-version.cmake
++  VERSION ${libbluray_VERSION}
++  COMPATIBILITY AnyNewerVersion
++)
++
++install(TARGETS libbluray EXPORT libbluray
++  RUNTIME DESTINATION bin
++  ARCHIVE DESTINATION lib
++  LIBRARY DESTINATION lib)
++
++
++install(FILES
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bluray-version.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/file/filesystem.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bluray.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/decoders/overlay.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/keys.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/player_settings.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/util/log_control.h
++  ${CMAKE_CURRENT_SOURCE_DIR}/src/libbluray/bdnav/meta_data.h
++  DESTINATION include/libbluray)
++
++install(FILES
++  $<TARGET_PDB_FILE:libbluray>
++  DESTINATION lib
++)
++
++if(NOT WINDOWS_STORE)
++  install(FILES
++    ${CMAKE_CURRENT_BINARY_DIR}/libbluray-j2se-${libbluray_VERSION}.jar
++    ${CMAKE_CURRENT_BINARY_DIR}/libbluray-awt-j2se-${libbluray_VERSION}.jar
++    DESTINATION bin)
++endif(NOT WINDOWS_STORE)
++
++install(EXPORT libbluray
++  FILE
++    libbluray.cmake
++  NAMESPACE
++    libbluray::
++  DESTINATION
++    lib/cmake/libbluray
++)
++install(
++  FILES
++    cmake/libbluray-config.cmake
++    ${CMAKE_CURRENT_BINARY_DIR}/libbluray-config-version.cmake
++  DESTINATION
++    lib/cmake/libbluray
++)
+diff --git a/cmake/libbluray-config.cmake b/cmake/libbluray-config.cmake
+new file mode 100644
+index 00000000..28fdf11e
+--- /dev/null
++++ b/cmake/libbluray-config.cmake
+@@ -0,0 +1 @@
++include(${CMAKE_CURRENT_LIST_DIR}/libbluray.cmake)
+diff --git a/cmake/libbluray.def b/cmake/libbluray.def
+new file mode 100644
+index 00000000..2beec836
+--- /dev/null
++++ b/cmake/libbluray.def
+@@ -0,0 +1,68 @@
++LIBRARY "libbluray.dll"
++
++EXPORTS
++       bd_chapter_pos
++       bd_close
++       bd_free_bdjo
++       bd_free_clpi
++       bd_free_mobj
++       bd_free_mpls
++       bd_free_title_info
++       bd_get_clpi
++       bd_get_current_angle
++       bd_get_current_chapter
++       bd_get_current_title
++       bd_get_debug_mask
++       bd_get_disc_info
++       bd_get_event
++       bd_get_main_title
++       bd_get_meta
++       bd_get_meta_file
++       bd_get_playlist_info
++       bd_get_sound_effect
++       bd_get_title_info
++       bd_get_title_size
++       bd_get_titles
++       bd_get_version
++       bd_init
++       bd_menu_call
++       bd_mouse_select
++       bd_open
++       bd_open_disc
++       bd_open_files
++       bd_open_stream
++       bd_play
++       bd_play_title
++       bd_read
++       bd_read_bdjo
++       bd_read_clpi
++       bd_read_ext
++       bd_read_file
++       bd_read_mobj
++       bd_read_mpls
++       bd_read_skip_still
++       bd_register_argb_overlay_proc
++       bd_register_dir
++       bd_register_file
++       bd_register_overlay_proc
++       bd_seamless_angle_change
++       bd_seek
++       bd_seek_chapter
++       bd_seek_mark
++       bd_seek_playitem
++       bd_seek_time
++       bd_select_angle
++       bd_select_playlist
++       bd_select_stream
++       bd_select_title
++       bd_set_debug_handler
++       bd_set_debug_mask
++       bd_set_player_setting
++       bd_set_player_setting_str
++       bd_set_rate
++       bd_set_scr
++       bd_start_bdj
++       bd_stop_bdj
++       bd_tell
++       bd_tell_time
++       bd_user_input
+diff --git a/config.h.cm b/config.h.cm
+new file mode 100644
+index 00000000..e3d92fc1
+--- /dev/null
++++ b/config.h.cm
+@@ -0,0 +1,61 @@
++
++/* Define to 1 if using libbluray J2ME stack */
++#cmakedefine HAVE_BDJ_J2ME
++
++/* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
++   */
++#cmakedefine HAVE_DIRENT_H 1
++
++/* Define to 1 if you have the <strings.h> header file. */
++#cmakedefine HAVE_STRINGS_H
++
++/* Define to 1 if you have the <fcntl.h> header file. */
++#define HAVE_FCNTL_H 1
++
++/* Define to 1 if libxml2 is to be used for metadata parsing */
++#cmakedefine HAVE_LIBXML2
++
++/* Define to 1 if you have the <mntent.h> header file. */
++#cmakedefine HAVE_MNTENT_H
++
++/* Define to 1 if you have the <pthread.h> header file. */
++#cmakedefine HAVE_PTHREAD_H
++
++/* Define this if you have FreeType2 library */
++#cmakedefine HAVE_FT2
++
++/* Define this if you have fontconfig library */
++#cmakedefine HAVE_FONTCONFIG
++
++/* Define to 1 if you have the <jni.h> header file. */
++#define HAVE_JNI_H ${HAVE_JNI_H}
++
++/* "Defines the architecture of the java vm." */
++#cmakedefine JAVA_ARCH
++
++/* "" */
++#define JDK_HOME "${_JDK_HOME}"
++
++/* Name of package */
++#define PACKAGE "libbluray"
++
++/* Define to the address where bug reports for this package should be sent. */
++#define PACKAGE_BUGREPORT "http://www.videolan.org/developers/libbluray.html"
++
++/* Define to the full name of this package. */
++#define PACKAGE_NAME "libbluray"
++
++/* Define to the full name and version of this package. */
++#define PACKAGE_STRING "libbluray @libbluray_VERSION@"
++
++/* Define to the one symbol short name of this package. */
++#define PACKAGE_TARNAME "libbluray"
++
++/* Define to the home page for this package. */
++#define PACKAGE_URL ""
++
++/* Define to the version of this package. */
++#define PACKAGE_VERSION "@libbluray_VERSION@"
++
++/* Version number of package */
++#define VERSION "@libbluray_VERSION@"
+diff --git a/src/file/dirs_win32.c b/src/file/dirs_win32.c
+index e165feac..35139ec1 100644
+--- a/src/file/dirs_win32.c
++++ b/src/file/dirs_win32.c
+@@ -36,6 +36,9 @@
+ 
+ char *win32_get_font_dir(const char *font_file)
+ {
++#ifdef MS_APP
++	return NULL;
++#else
+     wchar_t wdir[MAX_PATH];
+     if (S_OK != SHGetFolderPathW(NULL, CSIDL_FONTS, NULL, SHGFP_TYPE_CURRENT, wdir)) {
+         int lenght = GetWindowsDirectoryW(wdir, MAX_PATH);
+@@ -58,6 +61,7 @@ char *win32_get_font_dir(const char *font_file)
+         strcpy(path + len, font_file);
+     }
+     return path;
++#endif
+ }
+ 
+ char *file_get_config_home(void)
+@@ -67,6 +71,9 @@ char *file_get_config_home(void)
+ 
+ char *file_get_data_home(void)
+ {
++#ifdef MS_APP
++	return NULL;
++#else
+     wchar_t wdir[MAX_PATH];
+ 
+     /* Get the "Application Data" folder for the user */
+@@ -82,6 +89,7 @@ char *file_get_data_home(void)
+ 
+     BD_DEBUG(DBG_FILE, "Can't find user configuration directory !\n");
+     return NULL;
++#endif
+ }
+ 
+ char *file_get_cache_home(void)
+@@ -91,6 +99,9 @@ char *file_get_cache_home(void)
+ 
+ const char *file_get_config_system(const char *dir)
+ {
++#ifdef MS_APP
++	return NULL;
++#else
+     static char *appdir = NULL;
+     wchar_t wdir[MAX_PATH];
+ 
+@@ -119,4 +130,5 @@ const char *file_get_config_system(const char *dir)
+     }
+ 
+     return dir;
++#endif
+ }
+diff --git a/src/file/dl_win32.c b/src/file/dl_win32.c
+index 6155ad6a..bf1dc532 100644
+--- a/src/file/dl_win32.c
++++ b/src/file/dl_win32.c
+@@ -78,13 +78,17 @@ void *dl_dlopen(const char *path, const char *version)
+     }
+ 
+ #if (_WIN32_WINNT < _WIN32_WINNT_WIN8)
+-    if (GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")),
+-                       "SetDefaultDllDirectories") != NULL)
++	if (GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")),
++		"SetDefaultDllDirectories") != NULL)
+ #endif
++#ifdef MS_APP
++	result = LoadPackagedLibrary(wname, 0);
++#else
+         flags = LOAD_LIBRARY_SEARCH_APPLICATION_DIR |
+                 LOAD_LIBRARY_SEARCH_SYSTEM32;
+ 
+     result = LoadLibraryExW(wname, NULL, flags);
++#endif
+ 
+     if (!result) {
+         char buf[128];
+@@ -129,11 +133,15 @@ const char *dl_get_path(void)
+         HMODULE hModule;
+         wchar_t wpath[MAX_PATH];
+ 
++#ifdef MS_APP
++		DWORD dw = GetModuleFileNameW(NULL, wpath, MAX_PATH);
++#else
+         if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+                               GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                               (LPCTSTR)&dl_get_path, &hModule)) {
+ 
+             DWORD dw = GetModuleFileNameW(hModule, wpath, MAX_PATH);
++#endif
+             if (dw > 0 && dw < MAX_PATH) {
+ 
+                 if (WideCharToMultiByte(CP_UTF8, 0, wpath, -1, path, MAX_PATH, NULL, NULL)) {
+@@ -141,7 +149,9 @@ const char *dl_get_path(void)
+                     lib_path = path;
+                 }
+             }
++#ifndef MS_APP
+         }
++#endif
+ 
+         if (lib_path) {
+             /* cut library name from path */
+diff --git a/src/libbluray/bdj/bdj.c b/src/libbluray/bdj/bdj.c
+index 1cb1bfeb..7addff39 100644
+--- a/src/libbluray/bdj/bdj.c
++++ b/src/libbluray/bdj/bdj.c
+@@ -22,6 +22,7 @@
+ #include "config.h"
+ #endif
+ 
++#ifndef MS_APP
+ #include "bdj.h"
+ 
+ #include "native/register_native.h"
+@@ -446,6 +447,12 @@ static void *_load_jvm(const char **p_java_home, const char *app_java_home)
+     if (java_home) {
+         BD_DEBUG(DBG_BDJ, "Using JAVA_HOME '%s'\n", java_home);
+         *p_java_home = java_home;
++#if defined(_WIN32) && !defined(HAVE_BDJ_J2ME)
++        handle = _load_jvm_win32(p_java_home);
++        if (handle) {
++            return handle;
++        }
++#endif
+         return _jvm_dlopen_a(java_home, jvm_dir, num_jvm_dir, jvm_lib);
+     }
+ 
+@@ -1198,3 +1205,4 @@ int bdj_process_event(BDJAVA *bdjava, unsigned ev, unsigned param)
+ 
+     return result;
+ }
++#endif
+diff --git a/src/libbluray/bdj/build.xml b/src/libbluray/bdj/build.xml
+index 1753779e..83840bd8 100644
+--- a/src/libbluray/bdj/build.xml
++++ b/src/libbluray/bdj/build.xml
+@@ -10,8 +10,8 @@
+     <property name="src_asm" value="../../../contrib/asm/src/"/>
+     <property name="bootclasspath" value=""/>
+     <property name="version" value=""/>
+-    <property name="java_version_asm" value="1.5"/>
+-    <property name="java_version_bdj" value="1.4"/>
++    <property name="java_version_asm" value="1.6"/>
++    <property name="java_version_bdj" value="1.6"/>
+ 
+     <target name="init">
+         <tstamp/>
+diff --git a/src/libbluray/bdj/java-j2se/java/awt/peer/BDFramePeer.java b/src/libbluray/bdj/java-j2se/java/awt/peer/BDFramePeer.java
+index 87895de7..91663b04 100644
+--- a/src/libbluray/bdj/java-j2se/java/awt/peer/BDFramePeer.java
++++ b/src/libbluray/bdj/java-j2se/java/awt/peer/BDFramePeer.java
+@@ -174,12 +174,12 @@ public class BDFramePeer extends BDComponentPeer implements FramePeer
+     }
+ 
+     /* Java >= 9 */
+-    public boolean requestFocus(Component c/*lightweightChild*/, boolean a/*temporary*/,
+-                                boolean b/*focusedWindowChangeAllowed*/, long l/*time*/,
+-                                java.awt.event.FocusEvent.Cause cause
+-                                ) {
+-        return requestFocusHelper(c, a, b, l);
+-    }
++    // public boolean requestFocus(Component c/*lightweightChild*/, boolean a/*temporary*/,
++    //                             boolean b/*focusedWindowChangeAllowed*/, long l/*time*/,
++    //                             java.awt.event.FocusEvent.Cause cause
++    //                             ) {
++    //     return requestFocusHelper(c, a, b, l);
++    // }
+ 
+     /* Java < 9 */
+     public boolean requestFocus(Component c, boolean a, boolean b, long l, sun.awt.CausedFocusEvent.Cause d) {
+diff --git a/src/libbluray/bdj/java/java/io/BDFileSystem.java b/src/libbluray/bdj/java/java/io/BDFileSystem.java
+index fabe57bc..a45feede 100644
+--- a/src/libbluray/bdj/java/java/io/BDFileSystem.java
++++ b/src/libbluray/bdj/java/java/io/BDFileSystem.java
+@@ -428,4 +428,8 @@ public abstract class BDFileSystem extends FileSystem {
+     public int hashCode(File f) {
+         return fs.hashCode(f);
+     }
++
++    public int getNameMax(String path) {
++        return 260;
++    }
+ }
+diff --git a/src/libbluray/bdj/native/bdjo.c b/src/libbluray/bdj/native/bdjo.c
+index 87396950..deff0283 100644
+--- a/src/libbluray/bdj/native/bdjo.c
++++ b/src/libbluray/bdj/native/bdjo.c
+@@ -27,6 +27,7 @@
+ #include "config.h"
+ #endif
+ 
++#ifndef MS_APP
+ #include "bdjo.h"
+ 
+ #include "util.h"
+@@ -242,3 +243,4 @@ jobject bdjo_make_jobj(JNIEnv* env, const BDJO *p)
+ 
+     return result;
+ }
++#endif
+diff --git a/src/libbluray/bdj/native/bdjo.h b/src/libbluray/bdj/native/bdjo.h
+index 997347fe..1bfae86e 100644
+--- a/src/libbluray/bdj/native/bdjo.h
++++ b/src/libbluray/bdj/native/bdjo.h
+@@ -20,6 +20,7 @@
+ #ifndef BDJO_H_
+ #define BDJO_H_
+ 
++#ifndef MS_APP
+ #include "util/attributes.h"
+ 
+ #include <jni.h>
+@@ -34,4 +35,5 @@ struct bdjo_data;
+ 
+ BD_PRIVATE jobject bdjo_make_jobj(JNIEnv* env, const struct bdjo_data *bdjo);
+ 
++#endif
+ #endif /* BDJO_H_ */
+diff --git a/src/libbluray/bdj/native/java_awt_BDFontMetrics.c b/src/libbluray/bdj/native/java_awt_BDFontMetrics.c
+index f0cd090a..296c020c 100644
+--- a/src/libbluray/bdj/native/java_awt_BDFontMetrics.c
++++ b/src/libbluray/bdj/native/java_awt_BDFontMetrics.c
+@@ -21,6 +21,7 @@
+ #include "config.h"
+ #endif
+ 
++#ifndef MS_APP
+ #include <jni.h>
+ 
+ #include "util.h"
+@@ -568,3 +569,4 @@ Java_java_awt_BDFontMetrics_methods[] =
+ BD_PRIVATE CPP_EXTERN const int
+ Java_java_awt_BDFontMetrics_methods_count =
+     sizeof(Java_java_awt_BDFontMetrics_methods)/sizeof(Java_java_awt_BDFontMetrics_methods[0]);
++#endif
+diff --git a/src/libbluray/bdj/native/java_awt_BDGraphics.c b/src/libbluray/bdj/native/java_awt_BDGraphics.c
+index 7fb9e0c1..d41a4a24 100644
+--- a/src/libbluray/bdj/native/java_awt_BDGraphics.c
++++ b/src/libbluray/bdj/native/java_awt_BDGraphics.c
+@@ -21,6 +21,7 @@
+ #include "config.h"
+ #endif
+ 
++#ifndef MS_APP
+ #include "util/logging.h"
+ 
+ #include <jni.h>
+@@ -110,3 +111,4 @@ Java_java_awt_BDGraphics_methods[] =
+ BD_PRIVATE CPP_EXTERN const int
+ Java_java_awt_BDGraphics_methods_count =
+      sizeof(Java_java_awt_BDGraphics_methods)/sizeof(Java_java_awt_BDGraphics_methods[0]);
++#endif
+diff --git a/src/libbluray/bdj/native/org_videolan_Libbluray.c b/src/libbluray/bdj/native/org_videolan_Libbluray.c
+index e33365e3..f11256aa 100644
+--- a/src/libbluray/bdj/native/org_videolan_Libbluray.c
++++ b/src/libbluray/bdj/native/org_videolan_Libbluray.c
+@@ -22,6 +22,7 @@
+ #include "config.h"
+ #endif
+ 
++#ifndef MS_APP
+ #include "bdjo.h"
+ #include "util.h"
+ 
+@@ -742,3 +743,4 @@ BD_PRIVATE CPP_EXTERN const int
+ Java_org_videolan_Libbluray_methods_count =
+     sizeof(Java_org_videolan_Libbluray_methods)/sizeof(Java_org_videolan_Libbluray_methods[0]);
+ 
++#endif
+diff --git a/src/libbluray/bdj/native/org_videolan_Libbluray.h b/src/libbluray/bdj/native/org_videolan_Libbluray.h
+index d75d5ca8..9842d360 100644
+--- a/src/libbluray/bdj/native/org_videolan_Libbluray.h
++++ b/src/libbluray/bdj/native/org_videolan_Libbluray.h
+@@ -1,3 +1,4 @@
++#ifndef MS_APP
+ /* DO NOT EDIT THIS FILE - it is machine generated */
+ #include <jni.h>
+ /* Header for class org_videolan_Libbluray */
+@@ -257,3 +258,4 @@ JNIEXPORT void JNICALL Java_org_videolan_Libbluray_updateGraphicN
+ }
+ #endif
+ #endif
++#endif
+diff --git a/src/libbluray/bdj/native/org_videolan_Logger.c b/src/libbluray/bdj/native/org_videolan_Logger.c
+index 6b309dbd..a9790be1 100644
+--- a/src/libbluray/bdj/native/org_videolan_Logger.c
++++ b/src/libbluray/bdj/native/org_videolan_Logger.c
+@@ -21,6 +21,7 @@
+ #include "config.h"
+ #endif
+ 
++#ifndef MS_APP
+ #include "util/logging.h"
+ 
+ #include <jni.h>
+@@ -86,3 +87,4 @@ Java_org_videolan_Logger_methods[] =
+ BD_PRIVATE CPP_EXTERN const int
+ Java_org_videolan_Logger_methods_count =
+      sizeof(Java_org_videolan_Logger_methods)/sizeof(Java_org_videolan_Logger_methods[0]);
++#endif
+diff --git a/src/libbluray/bdj/native/register_native.c b/src/libbluray/bdj/native/register_native.c
+index dc6ebb19..b247c7a9 100644
+--- a/src/libbluray/bdj/native/register_native.c
++++ b/src/libbluray/bdj/native/register_native.c
+@@ -21,6 +21,7 @@
+ #include "config.h"
+ #endif
+ 
++#ifndef MS_APP
+ #include "register_native.h"
+ 
+ #include "util/logging.h"
+@@ -130,3 +131,4 @@ void bdj_unregister_native_methods(JNIEnv *env)
+     _unregister_methods(env, "org/videolan/Libbluray");
+     _unregister_methods(env, "org/videolan/Logger");
+ }
++#endif
+diff --git a/src/libbluray/bdj/native/register_native.h b/src/libbluray/bdj/native/register_native.h
+index 10773841..713a4858 100644
+--- a/src/libbluray/bdj/native/register_native.h
++++ b/src/libbluray/bdj/native/register_native.h
+@@ -22,9 +22,11 @@
+ 
+ #include "util/attributes.h"
+ 
++#ifndef MS_APP
+ #include <jni.h>
+ 
+ BD_PRIVATE int bdj_register_native_methods(JNIEnv *env);
+ BD_PRIVATE void bdj_unregister_native_methods(JNIEnv *env);
++#endif
+ 
+ #endif /* _REGISTER_NATIVE_H_ */
+diff --git a/src/libbluray/bdj/native/util.c b/src/libbluray/bdj/native/util.c
+index a4371a2c..65bdacdf 100644
+--- a/src/libbluray/bdj/native/util.c
++++ b/src/libbluray/bdj/native/util.c
+@@ -22,6 +22,7 @@
+ #include "config.h"
+ #endif
+ 
++#ifndef MS_APP
+ #include "util.h"
+ 
+ #include "util/logging.h"
+@@ -76,3 +77,4 @@ jobjectArray bdj_make_array(JNIEnv* env, const char* name, int count)
+ 
+     return arr;
+ }
++#endif
+diff --git a/src/libbluray/bdj/native/util.h b/src/libbluray/bdj/native/util.h
+index 96146dd6..e7b48e3c 100644
+--- a/src/libbluray/bdj/native/util.h
++++ b/src/libbluray/bdj/native/util.h
+@@ -22,6 +22,7 @@
+ 
+ #include "util/attributes.h"
+ 
++#ifndef MS_APP
+ #include <jni.h>
+ 
+ // makes an object from the specified class name and constructor signature
+@@ -29,5 +30,6 @@ BD_PRIVATE jobject bdj_make_object(JNIEnv* env, const char* name, const char* si
+ 
+ // makes an array for the specified class name, all elements are initialized to null
+ BD_PRIVATE jobjectArray bdj_make_array(JNIEnv* env, const char* name, int count);
++#endif
+ 
+ #endif
+diff --git a/src/libbluray/bdnav/meta_parse.c b/src/libbluray/bdnav/meta_parse.c
+index d45be33c..1fc30a06 100644
+--- a/src/libbluray/bdnav/meta_parse.c
++++ b/src/libbluray/bdnav/meta_parse.c
+@@ -46,6 +46,10 @@
+ #include <libxml/tree.h>
+ #endif
+ 
++#ifdef _WIN32
++#define strncasecmp _strnicmp
++#endif
++
+ #define DEFAULT_LANGUAGE  "eng"
+ 
+ 
+diff --git a/src/libbluray/bluray.c b/src/libbluray/bluray.c
+index c4273c0b..215e0352 100644
+--- a/src/libbluray/bluray.c
++++ b/src/libbluray/bluray.c
+@@ -957,7 +957,7 @@ static void _check_bdj(BLURAY *bd)
+ {
+     if (!bd->disc_info.bdj_handled) {
+         if (!bd->disc || bd->disc_info.bdj_detected) {
+-
++#ifndef MS_APP
+             /* Check if jvm + jar can be loaded ? */
+             switch (bdj_jvm_available(&bd->bdj_config)) {
+                 case BDJ_CHECK_OK:
+@@ -968,6 +968,7 @@ static void _check_bdj(BLURAY *bd)
+                     /* fall thru */
+                 default:;
+             }
++#endif
+         }
+     }
+ }
+@@ -1416,6 +1417,7 @@ void bd_bdj_osd_cb(BLURAY *bd, const unsigned *img, int w, int h,
+  * BD-J
+  */
+ 
++#ifndef MS_APP
+ static int _start_bdj(BLURAY *bd, unsigned title)
+ {
+     if (bd->bdjava == NULL) {
+@@ -1428,30 +1430,37 @@ static int _start_bdj(BLURAY *bd, unsigned title)
+ 
+     return !bdj_process_event(bd->bdjava, BDJ_EVENT_START, title);
+ }
++#endif
+ 
+ static int _bdj_event(BLURAY *bd, unsigned ev, unsigned param)
+ {
++#ifndef MS_APP
+     if (bd->bdjava != NULL) {
+         return bdj_process_event(bd->bdjava, ev, param);
+     }
++#endif
+     return -1;
+ }
+ 
+ static void _stop_bdj(BLURAY *bd)
+ {
++#ifndef MS_APP
+     if (bd->bdjava != NULL) {
+         bdj_process_event(bd->bdjava, BDJ_EVENT_STOP, 0);
+         _queue_event(bd, BD_EVENT_STILL, 0);
+         _queue_event(bd, BD_EVENT_KEY_INTEREST_TABLE, 0);
+     }
++#endif
+ }
+ 
+ static void _close_bdj(BLURAY *bd)
+ {
++#ifndef MS_APP
+     if (bd->bdjava != NULL) {
+         bdj_close(bd->bdjava);
+         bd->bdjava = NULL;
+     }
++#endif
+ }
+ 
+ /*
+@@ -1577,7 +1586,9 @@ void bd_close(BLURAY *bd)
+         return;
+     }
+ 
++#ifndef MS_APP
+     _close_bdj(bd);
++#endif
+ 
+     _close_m2ts(&bd->st0);
+     _close_preload(&bd->st_ig);
+@@ -1595,7 +1606,9 @@ void bd_close(BLURAY *bd)
+ 
+     event_queue_destroy(&bd->event_queue);
+     array_free((void**)&bd->titles);
++#ifndef MS_APP
+     bdj_config_cleanup(&bd->bdj_config);
++#endif
+ 
+     disc_close(&bd->disc);
+ 
+@@ -3007,6 +3020,9 @@ void bd_select_stream(BLURAY *bd, uint32_t stream_type, uint32_t stream_id, uint
+ 
+ int bd_start_bdj(BLURAY *bd, const char *start_object)
+ {
++#ifdef MS_APP
++	return 0;
++#else
+     const BLURAY_TITLE *t;
+     unsigned int title_num = atoi(start_object);
+     unsigned ii;
+@@ -3037,13 +3053,16 @@ int bd_start_bdj(BLURAY *bd, const char *start_object)
+     }
+ 
+     return 0;
++#endif
+  }
+ 
+ void bd_stop_bdj(BLURAY *bd)
+ {
++#ifndef MS_APP
+     bd_mutex_lock(&bd->mutex);
+     _close_bdj(bd);
+     bd_mutex_unlock(&bd->mutex);
++#endif
+ }
+ 
+ /*
+@@ -3273,6 +3292,10 @@ static void _queue_initial_psr_events(BLURAY *bd)
+ 
+ static int _play_bdj(BLURAY *bd, unsigned title)
+ {
++#ifdef MS_APP
++	BD_DEBUG(DBG_BLURAY | DBG_CRIT, "Can't play BD-J title %d\n", title);
++	return -1;
++#else
+     int result;
+ 
+     bd->title_type = title_bdj;
+@@ -3285,6 +3308,7 @@ static int _play_bdj(BLURAY *bd, unsigned title)
+     }
+ 
+     return result;
++#endif
+ }
+ 
+ static int _play_hdmv(BLURAY *bd, unsigned id_ref)

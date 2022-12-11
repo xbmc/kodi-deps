@@ -865,9 +865,10 @@ add_dependency_project_package(libudfread 1.1.2)
 
 ExternalProject_Add(libbluray
     DEPENDS freetype libiconv libxml2 libudfread libaacs
-    GIT_REPOSITORY https://github.com/Paxxi/libbluray
-    GIT_TAG 05b3d0937a20974b6b0586d5dec822d2d26fe15f
+    GIT_REPOSITORY https://code.videolan.org/videolan/libbluray.git
+    GIT_TAG 8e501bcab48b402653be3ca8ec103217098eb477
     GIT_SHALLOW ON
+    PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
