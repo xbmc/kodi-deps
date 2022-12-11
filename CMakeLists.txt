@@ -481,7 +481,7 @@ if(NOT WINDOWS_STORE)
 ExternalProject_Add(dnssd
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
     URL https://opensource.apple.com/tarballs/mDNSResponder/mDNSResponder-878.260.1.tar.gz
-    URL_HASH SHA256=3cc71582e8eee469c2de8ecae1d769e7f32b3468dfb7f2ca77f1dee1f30a7d1e
+    URL_HASH SHA256=d6ba7bdfa06bee1255a67ac0a4fff92f48255360f8326ade92efe66d85068e1d
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
