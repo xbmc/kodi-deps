@@ -853,9 +853,10 @@ ExternalProject_Add(libdvdnav
 add_dependency_project_package(libdvdnav 6.0.1)
 
 ExternalProject_Add(libudfread
-    GIT_REPOSITORY https://github.com/Paxxi/libudfread
-    GIT_TAG 29fcdb5280e5d1778786795b594ec9fc60bf75da
+    GIT_REPOSITORY https://code.videolan.org/videolan/libudfread.git
+    GIT_TAG a35513813819efadca82c4b90edbe1407b1b9e05
     GIT_SHALLOW ON
+    PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
