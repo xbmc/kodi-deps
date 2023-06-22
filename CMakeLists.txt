@@ -409,8 +409,8 @@ endif()
 
 ExternalProject_Add(libass
     DEPENDS freetype libfribidi libiconv harfbuzz
-    GIT_REPOSITORY https://github.com/Paxxi/libass
-    GIT_TAG d9d4e118ce59c7aee2a54d8d5785664addd704dc
+    GIT_REPOSITORY https://github.com/xbmc/libass
+    GIT_TAG 3f188ca5bbcb6605c59dfa5731c01cd1273a6d6a
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
@@ -418,7 +418,7 @@ ExternalProject_Add(libass
         -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype%3B%3B${PREFIX}/libfribidi%3B%3B${PREFIX}/libiconv%3B%3B${PREFIX}/harfbuzz
         -DBUILD_SHARED_LIBS:BOOL=ON
 )
-add_dependency_project_package(libass 0.15.2)
+add_dependency_project_package(libass 0.17.1)
 
 ExternalProject_Add(brotli
     GIT_REPOSITORY https://github.com/Paxxi/brotli
