@@ -936,6 +936,31 @@ ExternalProject_Add(date
 )
 add_dependency_project_package(date 3.0.1)
 
+ExternalProject_Add(exiv2
+    DEPENDS libiconv expat zlib
+    GIT_REPOSITORY https://github.com/Exiv2/exiv2
+    GIT_TAG v0.28.1
+    GIT_SHALLOW ON
+    PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
+    CMAKE_ARGS
+        ${ADDITIONAL_ARGS}
+        -DBUILD_SHARED_LIBS:BOOL=OFF
+        -DEXIV2_ENABLE_WEBREADY:BOOL=OFF
+        -DEXIV2_ENABLE_XMP:BOOL=OFF
+        -DEXIV2_ENABLE_CURL:BOOL=OFF
+        -DEXIV2_ENABLE_NLS:BOOL=OFF
+        -DEXIV2_BUILD_SAMPLES:BOOL=OFF
+        -DEXIV2_BUILD_UNIT_TESTS:BOOL=OFF
+        -DEXIV2_ENABLE_VIDEO:BOOL=OFF
+        -DEXIV2_ENABLE_BMFF:BOOL=OFF
+        -DEXIV2_ENABLE_BROTLI:BOOL=OFF
+        -DEXIV2_ENABLE_INIH:BOOL=OFF
+        -DEXIV2_BUILD_EXIV2_COMMAND:BOOL=OFF
+        -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
+        -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/zlib
+)
+add_dependency_project_package(exiv2 0.28.1)
+
 add_custom_target(DependenciesRequired
     DEPENDS
         brotli
@@ -944,6 +969,7 @@ add_custom_target(DependenciesRequired
         curl
         date
         dav1d
+        exiv2
         expat
         flatbuffers
         fmt

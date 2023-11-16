@@ -1,0 +1,294 @@
+From 789bb99be8591ee8948774ab2a362b114cfa5069 Mon Sep 17 00:00:00 2001
+From: Miguel Borges de Freitas <92enen@gmail.com>
+Date: Thu, 16 Nov 2023 22:18:07 +0000
+Subject: [PATCH] no-std-filesystem
+
+---
+ app/actions.cpp              | 14 +++++++++++++-
+ cmake/findDependencies.cmake |  2 +-
+ src/basicio.cpp              |  8 ++++++++
+ src/futils.cpp               |  8 ++++++++
+ src/makernote_int.cpp        |  5 +++++
+ src/version.cpp              | 13 +------------
+ 6 files changed, 36 insertions(+), 14 deletions(-)
+
+diff --git a/app/actions.cpp b/app/actions.cpp
+index 7678a5dfa..14afbf1cb 100644
+--- a/app/actions.cpp
++++ b/app/actions.cpp
+@@ -45,6 +45,7 @@
+   } while (false)
+ #endif
+ 
++#ifndef NO_STD_FILESYSTEM
+ #if __has_include(<filesystem>)
+ #include <filesystem>
+ namespace fs = std::filesystem;
+@@ -52,6 +53,7 @@ namespace fs = std::filesystem;
+ #include <experimental/filesystem>
+ namespace fs = std::experimental::filesystem;
+ #endif
++#endif
+ 
+ // *****************************************************************************
+ // local declarations
+@@ -233,6 +235,7 @@ int Print::run(const std::string& path) {
+ }
+ 
+ int Print::printSummary() {
++#ifndef NO_STD_FILESYSTEM
+   if (!Exiv2::fileExists(path_)) {
+     std::cerr << path_ << ": " << _("Failed to open the file\n");
+     return -1;
+@@ -301,7 +304,7 @@ int Print::printSummary() {
+   printTag(exifData, "Exif.Photo.UserComment", _("Exif comment"));
+ 
+   std::cout << std::endl;
+-
++#endif
+   return 0;
+ }  // Print::printSummary
+ 
+@@ -1677,11 +1680,13 @@ std::string temporaryPath() {
+ #else
+   pid_t pid = ::getpid();
+ #endif
++#ifndef NO_STD_FILESYSTEM
+   /// \todo check if we can use std::tmpnam
+   auto p = fs::temp_directory_path() / (Exiv2::toString(pid) + "_" + std::to_string(count));
+   if (fs::exists(p)) {
+     fs::remove(p);
+   }
++#endif
+ 
+   return p.string();
+ }
+@@ -1807,8 +1812,10 @@ int metacopy(const std::string& source, const std::string& tgt, Exiv2::ImageType
+   }
+ 
+   // delete temporary target
++#ifndef NO_STD_FILESYSTEM
+   if (bStdout)
+     fs::remove(target.c_str());
++#endif
+ 
+   return rc;
+ }  // metacopy
+@@ -1822,6 +1829,7 @@ void replace(std::string& text, const std::string& searchText, const std::string
+ }
+ 
+ int renameFile(std::string& newPath, const tm* tm) {
++#ifndef NO_STD_FILESYSTEM
+   auto p = fs::path(newPath);
+   std::string path = newPath;
+   auto oldFsPath = fs::path(path);
+@@ -1895,10 +1903,12 @@ int renameFile(std::string& newPath, const tm* tm) {
+   }
+ 
+   fs::rename(path, newPath);
++#endif
+   return 0;
+ }
+ 
+ std::string newFilePath(const std::string& path, const std::string& ext) {
++#ifndef NO_STD_FILESYSTEM
+   auto p = fs::path(path);
+   auto directory = fs::path(Params::instance().directory_);
+   if (directory.empty())
+@@ -1906,6 +1916,8 @@ std::string newFilePath(const std::string& path, const std::string& ext) {
+   if (Exiv2::fileProtocol(path) != Exiv2::pFile)
+     directory.clear();  // use current directory for remote files
+   return (directory / (p.stem().string() + ext)).string();
++#endif
++  return "";
+ }
+ 
+ int dontOverwrite(const std::string& path) {
+diff --git a/cmake/findDependencies.cmake b/cmake/findDependencies.cmake
+index 5ee481d1c..93f6b110a 100644
+--- a/cmake/findDependencies.cmake
++++ b/cmake/findDependencies.cmake
+@@ -35,7 +35,7 @@ if (NOT Python3_Interpreter_FOUND)
+     message(WARNING "Python3 was not found. Python tests under the 'tests' folder will not be executed")
+ endif()
+ 
+-find_package(Filesystem COMPONENTS Experimental Final REQUIRED)
++add_definitions(-DNO_STD_FILESYSTEM)
+ 
+ # don't use Frameworks on the Mac (#966)
+ if (APPLE)
+diff --git a/src/basicio.cpp b/src/basicio.cpp
+index 1986622b3..640b5ed7a 100644
+--- a/src/basicio.cpp
++++ b/src/basicio.cpp
+@@ -42,6 +42,7 @@ using mode_t = unsigned short;
+ #include <windows.h>
+ #endif
+ 
++#ifndef NO_STD_FILESYSTEM
+ #if __has_include(<filesystem>)
+ #include <filesystem>
+ namespace fs = std::filesystem;
+@@ -49,6 +50,7 @@ namespace fs = std::filesystem;
+ #include <experimental/filesystem>
+ namespace fs = std::experimental::filesystem;
+ #endif
++#endif
+ 
+ // *****************************************************************************
+ // class member definitions
+@@ -344,6 +346,7 @@ size_t FileIo::write(BasicIo& src) {
+ }
+ 
+ void FileIo::transfer(BasicIo& src) {
++#ifndef NO_STD_FILESYSTEM
+   const bool wasOpen = (p_->fp_ != nullptr);
+   const std::string lastMode(p_->openMode_);
+ 
+@@ -443,6 +446,7 @@ void FileIo::transfer(BasicIo& src) {
+   if (error() || src.error()) {
+     throw Error(ErrorCode::kerTransferFailed, path(), strError());
+   }
++#endif
+ }  // FileIo::transfer
+ 
+ int FileIo::putb(byte data) {
+@@ -923,13 +927,16 @@ XPathIo::XPathIo(const std::string& orgPath) : FileIo(XPathIo::writeDataToFile(o
+ }
+ 
+ XPathIo::~XPathIo() {
++#ifndef NO_STD_FILESYSTEM
+   if (isTemp_ && !fs::remove(tempFilePath_)) {
+     // error when removing file
+     // printf ("Warning: Unable to remove the temp file %s.\n", tempFilePath_.c_str());
+   }
++#endif
+ }
+ 
+ void XPathIo::transfer(BasicIo& src) {
++#ifndef NO_STD_FILESYSTEM
+   if (isTemp_) {
+     // replace temp path to gent path.
+     auto currentPath = path();
+@@ -942,6 +949,7 @@ void XPathIo::transfer(BasicIo& src) {
+     // call super class method
+     FileIo::transfer(src);
+   }
++#endif
+ }
+ 
+ std::string XPathIo::writeDataToFile(const std::string& orgPath) {
+diff --git a/src/futils.cpp b/src/futils.cpp
+index c746838d5..9ac253554 100644
+--- a/src/futils.cpp
++++ b/src/futils.cpp
+@@ -15,6 +15,7 @@
+ #include <sstream>
+ #include <stdexcept>
+ 
++#ifndef NO_STD_FILESYSTEM
+ #if __has_include(<filesystem>)
+ #include <filesystem>
+ namespace fs = std::filesystem;
+@@ -22,6 +23,7 @@ namespace fs = std::filesystem;
+ #include <experimental/filesystem>
+ namespace fs = std::experimental::filesystem;
+ #endif
++#endif
+ 
+ #if defined(_WIN32)
+ // clang-format off
+@@ -227,10 +229,13 @@ Protocol fileProtocol(const std::string& path) {
+ }  // fileProtocol
+ 
+ bool fileExists(const std::string& path) {
++#ifndef NO_STD_FILESYSTEM
+   if (fileProtocol(path) != pFile) {
+     return true;
+   }
+   return fs::exists(path);
++#endif
++  return false;
+ }
+ 
+ std::string strError() {
+@@ -340,6 +345,7 @@ Uri Uri::Parse(const std::string& uri) {
+ }
+ 
+ std::string getProcessPath() {
++#ifndef NO_STD_FILESYSTEM
+ #if defined(__FreeBSD__)
+   std::string ret("unknown");
+   unsigned int n;
+@@ -381,5 +387,7 @@ std::string getProcessPath() {
+     return "unknown";
+   }
+ #endif
++#endif
++  return "";
+ }
+ }  // namespace Exiv2
+diff --git a/src/makernote_int.cpp b/src/makernote_int.cpp
+index 0d2e0443f..7651dfe65 100644
+--- a/src/makernote_int.cpp
++++ b/src/makernote_int.cpp
+@@ -18,6 +18,7 @@
+ #include <array>
+ #include <iostream>
+ 
++#ifndef NO_STD_FILESYSTEM
+ #if __has_include(<filesystem>)
+ #include <filesystem>
+ namespace fs = std::filesystem;
+@@ -25,6 +26,7 @@ namespace fs = std::filesystem;
+ #include <experimental/filesystem>
+ namespace fs = std::experimental::filesystem;
+ #endif
++#endif
+ 
+ #if !defined(_WIN32)
+ #include <pwd.h>
+@@ -62,6 +64,7 @@ namespace Exiv2::Internal {
+ // If not found in cwd, we return the default path
+ // which is the user profile path on win and the home dir on linux
+ std::string getExiv2ConfigPath() {
++#ifndef NO_STD_FILESYSTEM
+ #ifdef _WIN32
+   std::string inifile("exiv2.ini");
+ #else
+@@ -83,6 +86,8 @@ std::string getExiv2ConfigPath() {
+   currentPath = std::string(pw ? pw->pw_dir : "");
+ #endif
+   return (currentPath / inifile).string();
++#endif
++  return "";
+ }
+ 
+ std::string readExiv2Config([[maybe_unused]] const std::string& section, [[maybe_unused]] const std::string& value,
+diff --git a/src/version.cpp b/src/version.cpp
+index 7e8c0b98a..07f9d7516 100644
+--- a/src/version.cpp
++++ b/src/version.cpp
+@@ -121,18 +121,7 @@ static std::vector<std::string> getLoadedLibraries() {
+   std::set<std::string> paths;
+   std::string path;
+ 
+-#if defined(_WIN32) || defined(__CYGWIN__)
+-  // enumerate loaded libraries and determine path to executable
+-  HMODULE handles[200];
+-  DWORD cbNeeded;
+-  if (EnumProcessModules(GetCurrentProcess(), handles, static_cast<DWORD>(std::size(handles)), &cbNeeded)) {
+-    char szFilename[_MAX_PATH];
+-    for (DWORD h = 0; h < cbNeeded / sizeof(handles[0]); h++) {
+-      GetModuleFileNameA(handles[h], szFilename, static_cast<DWORD>(std::size(szFilename)));
+-      pushPath(szFilename, libs, paths);
+-    }
+-  }
+-#elif defined(__APPLE__)
++#if defined(__APPLE__)
+   // man 3 dyld
+   uint32_t count = _dyld_image_count();
+   for (uint32_t image = 0; image < count; image++) {
+-- 
+2.39.3 (Apple Git-145)
+
