@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        arch: [win32, x64, arm]
+        arch: [win32, x64, arm, arm64]
         platform: [-App, -Desktop]
         exclude:
           - arch: arm
