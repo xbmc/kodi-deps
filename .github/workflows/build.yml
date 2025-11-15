@@ -36,10 +36,6 @@ jobs:
         choco install nasm ${{ matrix.platform.arch == 'win32' && '--x86' || '' }}
         "C:\Program Files${{ matrix.platform.arch == 'win32' && ' (x86)' || '' }}\NASM" | Out-File -FilePath "$env:GITHUB_PATH" -Append
 
-    - name: Install CMake v3.28.3
-      # libbluray fails to build with CMake 3.29.0
-      run: choco install -y CMake --version 3.28.3 --force
-
     - name: Build
       # Build your program with the given configuration
       run: .\DoRelease.ps1 -Platforms ${{ matrix.arch }} ${{ matrix.platform }} -VsVersion ${{ env.VS_VERSION }} -SdkVersion "${{ env.SDK_VERSION }}"

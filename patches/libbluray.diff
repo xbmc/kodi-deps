@@ -1,7 +1,7 @@
 --- /dev/null
 +++ b/CMakeLists.txt
 @@ -0,0 +1,291 @@
-+cmake_minimum_required(VERSION 3.0)
++cmake_minimum_required(VERSION 3.15)
 +
 +set(BLURAY_VERSION_MAJOR 1)
 +set(BLURAY_VERSION_MINOR 3)
