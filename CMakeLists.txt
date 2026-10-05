@@ -145,14 +145,14 @@ add_dependency_project_package(libiconv 1.19)
 
 ExternalProject_Add(openssl
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://www.openssl.org/source/openssl-3.5.8.tar.gz
-    URL_HASH SHA256=a8f84a39918ec6415ce765d9b429d313ba97b8143169c172e734b9514464f5b2
+    URL https://www.openssl.org/source/openssl-3.5.9.tar.gz
+    URL_HASH SHA256=603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
-add_dependency_project_package(openssl 3.5.8)
+add_dependency_project_package(openssl 3.5.9)
 
 ExternalProject_Add(zlib
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -475,14 +475,14 @@ add_dependency_project_package(zstd 1.5.7)
 ExternalProject_Add(python
     DEPENDS bzip2 openssl sqlite zlib expat libffi xz zstd
     GIT_REPOSITORY https://github.com/thexai/cpython
-    GIT_TAG 44c9b4bf99579f5afa1800fd0b21e0c031b54a38
+    GIT_TAG a3800500314c04cc4f195a5dbf1eb8dc821acfd9
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/bzip2%3B%3B${PREFIX}/openssl%3B%3B${PREFIX}/sqlite%3B%3B${PREFIX}/zlib%3B%3B${PREFIX}/libffi%3B%3B${PREFIX}/xz%3B%3B${PREFIX}/expat%3B%3B${PREFIX}/zstd
 )
-add_dependency_project_package(python 3.14.7)
+add_dependency_project_package(python 3.14.8)
 
 ExternalProject_Add(libjpeg-turbo
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
