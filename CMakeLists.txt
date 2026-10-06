@@ -133,7 +133,7 @@ add_dependency_project_package(expat 2.8.5)
 
 ExternalProject_Add(libiconv
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://ftp.gnu.org/gnu/libiconv/libiconv-1.19.tar.gz
+    URL https://mirrors.kodi.tv/build-deps/sources/libiconv-1.19.tar.gz
     URL_HASH SHA256=88dd96a8c0464eca144fc791ae60cd31cd8ee78321e67397e25fc095c4a19aa6
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
