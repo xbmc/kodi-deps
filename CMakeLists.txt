@@ -516,7 +516,7 @@ add_dependency_project_package(pillow 12.3.0)
 ExternalProject_Add(pycryptodome
     DEPENDS python
     GIT_REPOSITORY https://github.com/thexai/pycryptodome
-    GIT_TAG 3801f6a9614724b7965352068bf6d4643a171707
+    GIT_TAG 3202b1ebca41bc6a2aec6dfb970d476461da7d48
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
@@ -525,7 +525,7 @@ ExternalProject_Add(pycryptodome
         -DBUILD_SHARED_LIBS:BOOL=ON
         -DSEPARATE_NAMESPACE:BOOL=ON
 )
-add_dependency_project_package(pycryptodome 3.23.0)
+add_dependency_project_package(pycryptodome 3.24.0)
 
 if(NOT WINDOWS_STORE)
 ExternalProject_Add(shairplay
