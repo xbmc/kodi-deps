@@ -14,6 +14,7 @@ Param(
     'libaacs',
     'libbdplus',
     'libcdio',
+    'libdovi',
     'libffi',
     'libfribidi',
     'libgpg-error',
