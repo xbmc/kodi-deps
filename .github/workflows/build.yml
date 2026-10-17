@@ -28,6 +28,23 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
+    - name: Setup Rust
+      if: matrix.arch == 'x64' && matrix.platform == '-App'
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+        rustflags: ""
+
+    - name: Install Rust nightly and rust-src
+      if: matrix.arch == 'x64' && matrix.platform == '-App'
+      run: rustup toolchain install nightly --component rust-src
+
+    - name: Install cargo-c
+      if: matrix.arch == 'x64' && matrix.platform == '-App'
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-c
+
     - name: Install Strawberry Perl
       # Perl included with git does not work when building openssl
       run: choco install -y StrawberryPerl

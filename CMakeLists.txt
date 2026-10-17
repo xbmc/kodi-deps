@@ -61,6 +61,28 @@ endif()
 
 include(ExternalProject)
 
+if(WINDOWS_STORE)
+    # rust & cargo is only needed for libdovi on UWP build at present
+    find_program(CARGO_EXECUTABLE cargo)
+
+    if(NOT CARGO_EXECUTABLE)
+        message(FATAL_ERROR "Cargo is required to build libdovi")
+    endif()
+
+    execute_process(
+        COMMAND ${CARGO_EXECUTABLE} cbuild --help
+        RESULT_VARIABLE CARGO_CBUILD_RESULT
+        OUTPUT_QUIET
+        ERROR_QUIET
+    )
+
+    if(NOT CARGO_CBUILD_RESULT EQUAL 0)
+        message(FATAL_ERROR
+            "libdovi requires cargo-c. Install it with "
+            "'cargo install cargo-c' and ensure 'cargo cbuild' is available.")
+    endif()
+endif()
+
 add_custom_target(DependenciesRequired-zip)
 function(add_dependency_project_package name version)
     # it's possible to pack dependency only if it was installed in separate folder
@@ -542,6 +564,37 @@ ExternalProject_Add(shairplay
 add_dependency_project_package(shairplay 096b61a)
 endif()
 
+if(WINDOWS_STORE AND CARGO_EXECUTABLE)
+file(WRITE "${CMAKE_BINARY_DIR}/libdovi-cargo-config.toml"
+    "[unstable]\nbuild-std = [\"std\", \"panic_abort\"]\n"
+)
+
+ExternalProject_Add(libdovi
+    DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+    URL https://github.com/quietvoid/dovi_tool/archive/refs/tags/libdovi-3.3.2.tar.gz
+    URL_HASH SHA256=8ccb1922d7dbb57bc4f2c15c10b90c462f7a5f292efe317c116db923728dd3f1
+    SOURCE_SUBDIR dolby_vision
+    CONFIGURE_COMMAND
+        ${CMAKE_COMMAND} -E make_directory <SOURCE_DIR>/dolby_vision/.cargo
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_BINARY_DIR}/libdovi-cargo-config.toml"
+            <SOURCE_DIR>/dolby_vision/.cargo/config.toml
+    BUILD_COMMAND
+        ${CARGO_EXECUTABLE} +nightly cbuild
+        --release
+        --features capi
+        --target x86_64-uwp-windows-msvc
+    INSTALL_COMMAND
+        ${CARGO_EXECUTABLE} +nightly cinstall
+        --release
+        --features capi
+        --target x86_64-uwp-windows-msvc
+        --prefix "${INSTALL_PREFIX}"
+    BUILD_IN_SOURCE TRUE
+)
+add_dependency_project_package(libdovi 3.3.2)
+endif()
+
 add_custom_target(DependenciesRequired
     DEPENDS
         bzip2
@@ -574,6 +627,10 @@ add_custom_target(DependenciesRequired
         zlib
         zstd
 )
+
+if(WINDOWS_STORE AND CARGO_EXECUTABLE)
+    add_dependencies(DependenciesRequired libdovi)
+endif()
 
 add_custom_target(DependenciesRequiredDebug
     DEPENDS
