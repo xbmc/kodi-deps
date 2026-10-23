@@ -138,8 +138,8 @@ add_dependency_project_package(bzip2 1.0.8)
 
 ExternalProject_Add(expat
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://github.com/libexpat/libexpat/archive/R_2_8_5.tar.gz
-    URL_HASH SHA256=fd022c541a189bd5bee042a22188351b31e39b9389c2525fa98c28bd05c9ef21
+    URL https://github.com/libexpat/libexpat/archive/R_2_9_0.tar.gz
+    URL_HASH SHA256=6e8ce7b52ebbaa423c59becc7cf1e6875c42e49228c062ac8123c10e700cec27
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     SOURCE_SUBDIR expat
     CMAKE_ARGS
@@ -151,7 +151,7 @@ ExternalProject_Add(expat
         -DEXPAT_BUILD_TOOLS:BOOL=OFF
         -DEXPAT_SHARED_LIBS:BOOL=OFF
 )
-add_dependency_project_package(expat 2.8.5)
+add_dependency_project_package(expat 2.9.0)
 
 ExternalProject_Add(libiconv
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -497,14 +497,14 @@ add_dependency_project_package(zstd 1.5.7)
 ExternalProject_Add(python
     DEPENDS bzip2 openssl sqlite zlib expat libffi xz zstd
     GIT_REPOSITORY https://github.com/thexai/cpython
-    GIT_TAG a3800500314c04cc4f195a5dbf1eb8dc821acfd9
+    GIT_TAG 138e240fdae5ffcd2c7df65e06a0a3f1b2fda399
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/bzip2%3B%3B${PREFIX}/openssl%3B%3B${PREFIX}/sqlite%3B%3B${PREFIX}/zlib%3B%3B${PREFIX}/libffi%3B%3B${PREFIX}/xz%3B%3B${PREFIX}/expat%3B%3B${PREFIX}/zstd
 )
-add_dependency_project_package(python 3.14.8)
+add_dependency_project_package(python 3.14.9)
 
 ExternalProject_Add(libjpeg-turbo
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
