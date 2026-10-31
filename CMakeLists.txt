@@ -497,14 +497,14 @@ add_dependency_project_package(zstd 1.5.7)
 ExternalProject_Add(python
     DEPENDS bzip2 openssl sqlite zlib expat libffi xz zstd
     GIT_REPOSITORY https://github.com/thexai/cpython
-    GIT_TAG 138e240fdae5ffcd2c7df65e06a0a3f1b2fda399
+    GIT_TAG a2affaf47cdd69e51f814bbfbb7e6436a4bc5303
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/bzip2%3B%3B${PREFIX}/openssl%3B%3B${PREFIX}/sqlite%3B%3B${PREFIX}/zlib%3B%3B${PREFIX}/libffi%3B%3B${PREFIX}/xz%3B%3B${PREFIX}/expat%3B%3B${PREFIX}/zstd
 )
-add_dependency_project_package(python 3.14.9)
+add_dependency_project_package(python 3.14.10)
 
 ExternalProject_Add(libjpeg-turbo
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
