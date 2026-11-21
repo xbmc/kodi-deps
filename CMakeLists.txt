@@ -347,8 +347,8 @@ add_dependency_project_package(winflexbison 2.5.25)
 ExternalProject_Add(libaacs
     DEPENDS libgcrypt libgpg-error winflexbison libiconv
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://download.videolan.org/pub/videolan/libaacs/0.11.1/libaacs-0.11.1.tar.bz2
-    URL_HASH SHA256=a88aa0ebe4c98a77f7aeffd92ab3ef64ac548c6b822e8248a8b926725bea0a39
+    URL https://download.videolan.org/pub/videolan/libaacs/0.12.0/libaacs-0.12.0.tar.bz2
+    URL_HASH SHA256=1996673a9fc45ee4a364c66ffa84756629bf3923e52346c7358b71becb8e4419
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
@@ -356,7 +356,7 @@ ExternalProject_Add(libaacs
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgcrypt%3B%3B${PREFIX}/libgpg-error%3B%3B${PREFIX}/winflexbison%3B%3B${PREFIX}/libiconv
 )
-add_dependency_project_package(libaacs 0.11.1)
+add_dependency_project_package(libaacs 0.12.0)
 
 ExternalProject_Add(libbdplus
     DEPENDS libgcrypt libgpg-error libiconv
