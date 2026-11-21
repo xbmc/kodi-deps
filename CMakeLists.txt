@@ -178,15 +178,15 @@ add_dependency_project_package(openssl 3.5.9)
 
 ExternalProject_Add(zlib
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://github.com/madler/zlib/releases/download/v1.3.2/zlib-1.3.2.tar.gz
-    URL_HASH SHA256=bb329a0a2cd0274d05519d61c667c062e06990d72e125ee2dfa8de64f0119d16
+    URL https://github.com/madler/zlib/releases/download/v1.4/zlib-1.4.tar.gz
+    URL_HASH SHA256=02dd159783677a749c04adbdd02b55b8a2bcc7e054f51b76b549199a916ad584
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DZLIB_BUILD_TESTING:BOOL=OFF
 )
-add_dependency_project_package(zlib 1.3.2)
+add_dependency_project_package(zlib 1.4)
 
 ExternalProject_Add(xz
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
