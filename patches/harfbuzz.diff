@@ -8,7 +8,7 @@ index 3ad5e433f..cda10c54f 100644
  project(harfbuzz)
  
  message(WARNING "The main build system for HarfBuzz is Meson. CMake build support is community-maintained and is not actively supported by HarfBuzz developers.")
-@@ -507,9 +507,7 @@ target_link_libraries(harfbuzz ${THIRD_PARTY_LIBS})
+@@ -620,9 +620,7 @@ target_link_libraries(harfbuzz ${THIRD_PARTY_LIBS})
  if (MINGW)
      target_compile_options(harfbuzz PRIVATE "-Wa,-mbig-obj")
  endif()
@@ -16,10 +16,10 @@ index 3ad5e433f..cda10c54f 100644
 -                           "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
 -                           "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/harfbuzz>")
 +target_include_directories(harfbuzz INTERFACE $<INSTALL_INTERFACE:include/harfbuzz>)
- set_target_properties(harfbuzz PROPERTIES VISIBILITY_INLINES_HIDDEN TRUE)
+ set_target_properties(harfbuzz PROPERTIES VISIBILITY_INLINES_HIDDEN ${HB_VISIBILITY_INLINES_HIDDEN})
  if (HB_HAVE_FREETYPE AND TARGET freetype)
    target_link_libraries(harfbuzz freetype)
-@@ -884,6 +882,24 @@ if (NOT SKIP_INSTALL_HEADERS AND NOT SKIP_INSTALL_ALL)
+@@ -1149,6 +1147,24 @@ if (NOT SKIP_INSTALL_HEADERS AND NOT SKIP_INSTALL_ALL)
    endif ()
  endif ()
  

@@ -240,19 +240,22 @@ add_dependency_project_package(fstrcmp 0.7)
 ExternalProject_Add(harfbuzz
     DEPENDS freetype
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://github.com/harfbuzz/harfbuzz/releases/download/12.3.2/harfbuzz-12.3.2.tar.xz
-    URL_HASH SHA256=6f6db164359a2da5a84ef826615b448b33e6306067ad829d85d5b0bf936f1bb8
+    URL https://github.com/harfbuzz/harfbuzz/releases/download/15.2.0/harfbuzz-15.2.0.tar.xz
+    URL_HASH SHA256=e2ec49090744383cdbe7df808c1cedaafba06a97be8dc4211fe546ba585f12cb
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DHB_HAVE_DIRECTWRITE:BOOL=ON
         -DHB_HAVE_FREETYPE:BOOL=ON
         -DHB_BUILD_SUBSET:BOOL=OFF
+        -DHB_BUILD_RASTER:BOOL=OFF
+        -DHB_BUILD_VECTOR:BOOL=OFF
+        -DHB_BUILD_GPU:BOOL=OFF
         -DBUILD_SHARED_LIBS:BOOL=ON
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype
 )
-add_dependency_project_package(harfbuzz 12.3.2)
+add_dependency_project_package(harfbuzz 15.2.0)
 
 ExternalProject_Add(sqlite
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
