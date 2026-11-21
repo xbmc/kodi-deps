@@ -138,8 +138,8 @@ add_dependency_project_package(bzip2 1.0.8)
 
 ExternalProject_Add(expat
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://github.com/libexpat/libexpat/archive/R_2_9_0.tar.gz
-    URL_HASH SHA256=6e8ce7b52ebbaa423c59becc7cf1e6875c42e49228c062ac8123c10e700cec27
+    URL https://github.com/libexpat/libexpat/archive/R_2_10_0.tar.gz
+    URL_HASH SHA256=b3644a12f62d7762b62c444f69d169ba0234f13138d0240244bca64cbe35286f
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     SOURCE_SUBDIR expat
     CMAKE_ARGS
@@ -151,7 +151,7 @@ ExternalProject_Add(expat
         -DEXPAT_BUILD_TOOLS:BOOL=OFF
         -DEXPAT_SHARED_LIBS:BOOL=OFF
 )
-add_dependency_project_package(expat 2.9.0)
+add_dependency_project_package(expat 2.10.0)
 
 ExternalProject_Add(libiconv
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
