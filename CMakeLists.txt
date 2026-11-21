@@ -155,15 +155,15 @@ add_dependency_project_package(expat 2.9.0)
 
 ExternalProject_Add(libiconv
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://mirrors.kodi.tv/build-deps/sources/libiconv-1.19.tar.gz
-    URL_HASH SHA256=88dd96a8c0464eca144fc791ae60cd31cd8ee78321e67397e25fc095c4a19aa6
+    URL https://mirrors.kodi.tv/build-deps/sources/libiconv-1.19.1.tar.gz
+    URL_HASH SHA256=9a06844846d664d7122161700c10a64480d7c7bcead3091925a785b38c91edab
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DBUILD_SHARED_LIBS:BOOL=OFF
 )
-add_dependency_project_package(libiconv 1.19)
+add_dependency_project_package(libiconv 1.19.1)
 
 ExternalProject_Add(openssl
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads

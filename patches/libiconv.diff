@@ -6,7 +6,7 @@ index 0000000..e680e1f
 @@ -0,0 +1,416 @@
 +cmake_minimum_required(VERSION 3.15)
 +
-+project(iconv VERSION 1.19 LANGUAGES C)
++project(iconv VERSION 1.19.1 LANGUAGES C)
 +
 +option(GENERATE_FILES "Generate files needed for the build" OFF)
 +
