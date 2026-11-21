@@ -13,18 +13,14 @@ Param(
     'harfbuzz',
     'libaacs',
     'libbdplus',
-    'libcdio',
     'libdovi',
     'libffi',
-    'libfribidi',
     'libgpg-error',
     'libgcrypt',
     'libjpeg-turbo',
     'libiconv',
-    'libplist',
     'libpng',
     'libwebp',
-    'libxml2',
     'miniwdk',
     'openssl',
     'python',
@@ -61,7 +57,6 @@ $ErrorActionPreference = "Stop"
 $ExcludedFromUwp = @(
   'detours',
   'dnssd',
-  'libplist',
   'shairplay'
 )
 

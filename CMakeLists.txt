@@ -237,30 +237,6 @@ ExternalProject_Add(fstrcmp
 )
 add_dependency_project_package(fstrcmp 0.7)
 
-ExternalProject_Add(libcdio
-    DEPENDS libiconv
-    DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://github.com/libcdio/libcdio/releases/download/2.3.0/libcdio-2.3.0.tar.bz2
-    URL_HASH SHA256=53e83d284667535a767fd2d31edad1a6701591960459df373a10f1f21e80a7ed
-    PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
-    CMAKE_ARGS
-        ${ADDITIONAL_ARGS}
-        -DBUILD_SHARED_LIBS:BOOL=ON
-        -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-        -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libiconv
-)
-add_dependency_project_package(libcdio 2.3.0)
-
-ExternalProject_Add(libfribidi
-    GIT_REPOSITORY https://github.com/thexai/fribidi
-    GIT_TAG 29ca7f90e6117ccc8159ac751a5e533329e04530
-    GIT_SHALLOW ON
-    CMAKE_ARGS
-        ${ADDITIONAL_ARGS}
-        -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-)
-add_dependency_project_package(libfribidi 1.0.8)
-
 ExternalProject_Add(harfbuzz
     DEPENDS freetype
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -391,37 +367,6 @@ ExternalProject_Add(libbdplus
         -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgcrypt%3B%3B${PREFIX}/libgpg-error%3B%3B${PREFIX}/libiconv
 )
 add_dependency_project_package(libbdplus 0.2.0)
-
-ExternalProject_Add(libxml2
-    DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://download.gnome.org/sources/libxml2/2.15/libxml2-2.15.1.tar.xz
-    URL_HASH SHA256=c008bac08fd5c7b4a87f7b8a71f283fa581d80d80ff8d2efd3b26224c39bc54c
-    PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
-    CMAKE_ARGS
-        ${ADDITIONAL_ARGS}
-        -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-        -DBUILD_SHARED_LIBS:BOOL=ON
-        -DLIBXML2_WITH_DEBUG:BOOL=OFF
-        -DLIBXML2_WITH_ICONV:BOOL=OFF
-        -DLIBXML2_WITH_MODULES:BOOL=OFF
-        -DLIBXML2_WITH_PROGRAMS:BOOL=OFF
-        -DLIBXML2_WITH_TESTS:BOOL=OFF
-)
-add_dependency_project_package(libxml2 2.15.1)
-
-if(NOT WINDOWS_STORE)
-ExternalProject_Add(libplist
-    DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://github.com/libimobiledevice/libplist/releases/download/2.7.0/libplist-2.7.0.tar.bz2
-    URL_HASH SHA256=7ac42301e896b1ebe3c654634780c82baa7cb70df8554e683ff89f7c2643eb8b
-    PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
-    CMAKE_ARGS
-        ${ADDITIONAL_ARGS}
-        -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-        -DBUILD_SHARED_LIBS:BOOL=ON
-)
-add_dependency_project_package(libplist 2.7.0)
-endif()
 
 ExternalProject_Add(giflib
     GIT_REPOSITORY https://github.com/Paxxi/giflib
@@ -605,16 +550,13 @@ add_custom_target(DependenciesRequired
         harfbuzz
         libaacs
         libbdplus
-        libcdio
         libffi
-        libfribidi
         libgpg-error
         libgcrypt
         libjpeg-turbo
         libiconv
         libpng
         libwebp
-        libxml2
         #miniwdk # WDK is not installed on github hosted runners
         openssl
         python
@@ -642,7 +584,6 @@ if(NOT WINDOWS_STORE)
 add_dependencies(DependenciesRequired
     detours
     dnssd
-    libplist
     shairplay
 )
 endif()
