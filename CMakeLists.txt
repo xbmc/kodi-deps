@@ -259,15 +259,15 @@ add_dependency_project_package(harfbuzz 15.2.0)
 
 ExternalProject_Add(sqlite
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://sqlite.org/2026/sqlite-amalgamation-3510300.zip
-    URL_HASH SHA256=acb1e6f5d832484bf6d32b681e858c38add8b2acdfd42ac5df24b8afb46552b4
+    URL https://sqlite.org/2026/sqlite-amalgamation-3540100.zip
+    URL_HASH SHA256=0a9c8e34352dad46006aa82836d5383bff9dc6bc9ce5a60553c05aa30e6ad1f9
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DBUILD_SHARED_LIBS:BOOL=ON
 )
-add_dependency_project_package(sqlite 3.51.3)
+add_dependency_project_package(sqlite 3.54.1)
 
 ExternalProject_Add(tinyxml
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
