@@ -335,14 +335,14 @@ add_dependency_project_package(libgcrypt 1.8.5)
 
 ExternalProject_Add(winflexbison
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://github.com/lexxmark/winflexbison/releases/download/v2.5.20/win_flex_bison-2.5.20.zip
-    URL_HASH SHA256=8d751f31eb8d79251d809f37bb0d853d72f58a21c5f672d5e31f35b4d97b31fe
+    URL https://github.com/lexxmark/winflexbison/releases/download/v2.5.25/win_flex_bison-2.5.25.zip
+    URL_HASH SHA256=8d324b62be33604b2c45ad1dd34ab93d722534448f55a16ca7292de32b6ac135
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/winflexbison.diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
-add_dependency_project_package(winflexbison 2.5.20)
+add_dependency_project_package(winflexbison 2.5.25)
 
 ExternalProject_Add(libaacs
     DEPENDS libgcrypt libgpg-error winflexbison libiconv
