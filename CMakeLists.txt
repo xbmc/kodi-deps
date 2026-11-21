@@ -474,14 +474,14 @@ add_dependency_project_package(libjpeg-turbo 3.2.1)
 ExternalProject_Add(pillow
     DEPENDS freetype libjpeg-turbo python zlib
     GIT_REPOSITORY https://github.com/thexai/Pillow
-    GIT_TAG 8bb646fbdfbb8d3e680e855fb263fb4b083e275a
+    GIT_TAG 4e119fcf6c9c0e44b0b8703d7e90fd149251b235
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype%3B%3B${PREFIX}/libjpeg-turbo%3B%3B${PREFIX}/python%3B%3B${PREFIX}/zlib
 )
-add_dependency_project_package(pillow 12.3.0)
+add_dependency_project_package(pillow 13.0.0)
 
 ExternalProject_Add(pycryptodome
     DEPENDS python
