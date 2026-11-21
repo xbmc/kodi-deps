@@ -456,8 +456,8 @@ add_dependency_project_package(python 3.14.10)
 
 ExternalProject_Add(libjpeg-turbo
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/3.2.0/libjpeg-turbo-3.2.0.tar.gz
-    URL_HASH SHA256=6f30092cef9fb839779646608f4ee14ae3cbac989c47fa05e841b0841f09878e
+    URL https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/3.2.1/libjpeg-turbo-3.2.1.tar.gz
+    URL_HASH SHA256=c27ad72a68da151177929aa969ae773a2da5ac2af9ce946079314fdac8cece7f
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
@@ -469,7 +469,7 @@ ExternalProject_Add(libjpeg-turbo
         -DWITH_CRT_DLL:BOOL=ON
         -DWITH_TOOLS:BOOL=OFF
 )
-add_dependency_project_package(libjpeg-turbo 3.2.0)
+add_dependency_project_package(libjpeg-turbo 3.2.1)
 
 ExternalProject_Add(pillow
     DEPENDS freetype libjpeg-turbo python zlib
