@@ -310,16 +310,15 @@ add_dependency_project_package(dnssd 2881.60.4)
 endif()
 
 ExternalProject_Add(libgpg-error
-    DEPENDS libiconv
-    GIT_REPOSITORY https://github.com/Paxxi/libgpg-error
-    GIT_TAG 36ba2419cd42ca3b16b45d317fecb531ab23e3e0
-    GIT_SHALLOW ON
+    DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+    URL https://gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.61.tar.bz2
+    URL_HASH SHA256=7a85413f2bc354f4f8aa832b718af122e48965e9e0eb9012ee659c13c6385c93
+    PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-        -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libiconv
 )
-add_dependency_project_package(libgpg-error 1.36.0)
+add_dependency_project_package(libgpg-error 1.61)
 
 ExternalProject_Add(libgcrypt
     DEPENDS libgpg-error libiconv
