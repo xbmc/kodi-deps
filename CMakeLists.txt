@@ -321,16 +321,17 @@ ExternalProject_Add(libgpg-error
 add_dependency_project_package(libgpg-error 1.61)
 
 ExternalProject_Add(libgcrypt
-    DEPENDS libgpg-error libiconv
-    GIT_REPOSITORY https://github.com/Paxxi/libgcrypt
-    GIT_TAG 7bb6e291fb112125d827cd1a75071ad4f6c3b704
-    GIT_SHALLOW ON
+    DEPENDS libgpg-error
+    DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+    URL https://gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.12.4.tar.bz2
+    URL_HASH SHA256=d77f68f48879510e79a2f65977ccc68981781ea0923e5bdffac2a193ea3d660e
+    PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-        -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgpg-error%3B%3B${PREFIX}/libiconv
+        -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgpg-error
 )
-add_dependency_project_package(libgcrypt 1.8.5)
+add_dependency_project_package(libgcrypt 1.12.4)
 
 ExternalProject_Add(winflexbison
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
