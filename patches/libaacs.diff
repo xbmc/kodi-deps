@@ -6,7 +6,7 @@ index 0000000..76b1c55
 @@ -0,0 +1,216 @@
 +cmake_minimum_required(VERSION 3.15)
 +
-+project(libaacs VERSION 0.11.1 LANGUAGES C)
++project(libaacs VERSION 0.12.0 LANGUAGES C)
 +
 +find_package(libgpg-error REQUIRED NO_MODULE)
 +find_package(libgcrypt REQUIRED NO_MODULE)
@@ -376,10 +376,10 @@ index 0000000..9f30c8c
 +    aacs_select_title
 +    aacs_set_fopen
 diff --git a/src/file/dirs_win32.c b/src/file/dirs_win32.c
-index 9f77a2e..66d7d09 100644
+index 9eb06cf..ce7679c 100644
 --- a/src/file/dirs_win32.c
 +++ b/src/file/dirs_win32.c
-@@ -28,8 +28,13 @@
+@@ -29,8 +29,13 @@
  #include <stdio.h>
  #include <string.h>
  
@@ -392,8 +392,8 @@ index 9f77a2e..66d7d09 100644
 +#endif
  #include <limits.h>
  
- 
-@@ -43,8 +48,12 @@ char *file_get_data_home(void)
+ static char *_wide_to_utf8(wchar_t *wide)
+@@ -65,8 +70,12 @@ char *file_get_data_home(void)
      wchar_t wdir[MAX_PATH];
  
      /* Get the "Application Data" folder for the user */
@@ -403,10 +403,10 @@ index 9f77a2e..66d7d09 100644
      if (S_OK == SHGetFolderPathW(NULL, CSIDL_APPDATA | CSIDL_FLAG_CREATE,
                                   NULL, SHGFP_TYPE_CURRENT, wdir)) {
 +#endif
-         int len = WideCharToMultiByte (CP_UTF8, 0, wdir, -1, NULL, 0, NULL, NULL);
-         char *appdir = malloc(len);
+         char *appdir = _wide_to_utf8(wdir);
          if (appdir) {
-@@ -64,6 +73,9 @@ char *file_get_cache_home(void)
+             return appdir;
+@@ -84,6 +93,9 @@ char *file_get_cache_home(void)
  
  const char *file_get_config_system(const char *dir)
  {
@@ -416,7 +416,7 @@ index 9f77a2e..66d7d09 100644
      static char *appdir = NULL;
      wchar_t wdir[MAX_PATH];
  
-@@ -92,4 +104,5 @@ const char *file_get_config_system(const char *dir)
+@@ -109,4 +121,5 @@ const char *file_get_config_system(const char *dir)
      }
  
      return dir;
@@ -437,7 +437,7 @@ index 15e6697..aef0a62 100644
  
  static void _file_close(AACS_FILE_H *file)
 diff --git a/src/file/mmc_device_win32.c b/src/file/mmc_device_win32.c
-index f78dd1c..71e6755 100644
+index 975a465..fbb4d1f 100644
 --- a/src/file/mmc_device_win32.c
 +++ b/src/file/mmc_device_win32.c
 @@ -28,8 +28,11 @@
@@ -453,7 +453,7 @@ index f78dd1c..71e6755 100644
  
  #include <stdlib.h>
  #include <string.h>
-@@ -131,6 +134,9 @@ int device_send_cmd(MMCDEV *dev, const uint8_t *cmd, uint8_t *buf, size_t tx, si
+@@ -127,6 +130,9 @@ int device_send_cmd(MMCDEV *dev, const uint8_t *cmd, uint8_t *buf, size_t tx, si
  
  MMCDEV *device_open(const char *path)
  {
@@ -463,7 +463,7 @@ index f78dd1c..71e6755 100644
      char    drive[] = { path[0], ':', '\\', 0 };
      char    volume[] = {'\\', '\\', '.', '\\', path[0], ':', 0};
      UINT    type;
-@@ -169,6 +175,7 @@ MMCDEV *device_open(const char *path)
+@@ -165,6 +171,7 @@ MMCDEV *device_open(const char *path)
  
      dev->fd = fd;
      return dev;
@@ -472,7 +472,7 @@ index f78dd1c..71e6755 100644
  
  void device_close(MMCDEV **pp)
 diff --git a/src/libaacs/crypto.c b/src/libaacs/crypto.c
-index ec3f6b2..3cc3557 100644
+index 4f812e9..1fc8337 100644
 --- a/src/libaacs/crypto.c
 +++ b/src/libaacs/crypto.c
 @@ -484,22 +484,26 @@ static gcry_error_t _aacs_sexp_hash(gcry_sexp_t *p_sexp_data,

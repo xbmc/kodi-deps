@@ -2,18 +2,18 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
 index e103c40..ac8b126 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -260,6 +260,17 @@ if(ZLIB_INSTALL)
+@@ -379,6 +379,17 @@ if(ZLIB_INSTALL)
              FILE ZLIB-static.cmake
              NAMESPACE ZLIB::
              DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/zlib)
 +
 +        if(MSVC)
 +            install(
-+              FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/zs.pdb
++              FILES ${PROJECT_BINARY_DIR}/RelWithDebInfo/libzs.pdb
 +              DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 +              CONFIGURATIONS RelWithDebInfo)
 +            install(
-+              FILES ${PROJECT_BINARY_DIR}/Debug/zsd.pdb
++              FILES ${PROJECT_BINARY_DIR}/Debug/libzsd.pdb
 +              DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 +              CONFIGURATIONS Debug)
 +        endif(MSVC)

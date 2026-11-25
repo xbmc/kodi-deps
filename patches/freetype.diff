@@ -2,7 +2,7 @@ diff --git a/CMakeLists.txt b/CMakeLists.txt
 index 9a9b1db9a..1302243af 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -495,10 +495,30 @@ target_compile_definitions(
+@@ -552,10 +552,30 @@ target_compile_definitions(
  if (WIN32)
    target_compile_definitions(
      freetype PRIVATE _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS)
@@ -33,7 +33,7 @@ index 9a9b1db9a..1302243af 100644
  else ()
    # Windows handles exports with DLL_EXPORT defined above.
    set_target_properties(freetype PROPERTIES
-@@ -655,6 +675,17 @@ if (NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL)
+@@ -735,6 +755,17 @@ if (NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL)
      DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
      COMPONENT pkgconfig)
  

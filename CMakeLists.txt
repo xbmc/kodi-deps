@@ -138,8 +138,8 @@ add_dependency_project_package(bzip2 1.0.8)
 
 ExternalProject_Add(expat
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://github.com/libexpat/libexpat/archive/R_2_9_0.tar.gz
-    URL_HASH SHA256=6e8ce7b52ebbaa423c59becc7cf1e6875c42e49228c062ac8123c10e700cec27
+    URL https://github.com/libexpat/libexpat/archive/R_2_10_0.tar.gz
+    URL_HASH SHA256=b3644a12f62d7762b62c444f69d169ba0234f13138d0240244bca64cbe35286f
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     SOURCE_SUBDIR expat
     CMAKE_ARGS
@@ -151,19 +151,19 @@ ExternalProject_Add(expat
         -DEXPAT_BUILD_TOOLS:BOOL=OFF
         -DEXPAT_SHARED_LIBS:BOOL=OFF
 )
-add_dependency_project_package(expat 2.9.0)
+add_dependency_project_package(expat 2.10.0)
 
 ExternalProject_Add(libiconv
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://mirrors.kodi.tv/build-deps/sources/libiconv-1.19.tar.gz
-    URL_HASH SHA256=88dd96a8c0464eca144fc791ae60cd31cd8ee78321e67397e25fc095c4a19aa6
+    URL https://mirrors.kodi.tv/build-deps/sources/libiconv-1.19.1.tar.gz
+    URL_HASH SHA256=9a06844846d664d7122161700c10a64480d7c7bcead3091925a785b38c91edab
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DBUILD_SHARED_LIBS:BOOL=OFF
 )
-add_dependency_project_package(libiconv 1.19)
+add_dependency_project_package(libiconv 1.19.1)
 
 ExternalProject_Add(openssl
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -178,20 +178,20 @@ add_dependency_project_package(openssl 3.5.9)
 
 ExternalProject_Add(zlib
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://github.com/madler/zlib/releases/download/v1.3.2/zlib-1.3.2.tar.gz
-    URL_HASH SHA256=bb329a0a2cd0274d05519d61c667c062e06990d72e125ee2dfa8de64f0119d16
+    URL https://github.com/madler/zlib/releases/download/v1.4/zlib-1.4.tar.gz
+    URL_HASH SHA256=02dd159783677a749c04adbdd02b55b8a2bcc7e054f51b76b549199a916ad584
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DZLIB_BUILD_TESTING:BOOL=OFF
 )
-add_dependency_project_package(zlib 1.3.2)
+add_dependency_project_package(zlib 1.4)
 
 ExternalProject_Add(xz
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://github.com/tukaani-project/xz/releases/download/v5.8.3/xz-5.8.3.tar.gz
-    URL_HASH SHA256=3d3a1b973af218114f4f889bbaa2f4c037deaae0c8e815eec381c3d546b974a0
+    URL https://github.com/tukaani-project/xz/releases/download/v5.8.4/xz-5.8.4.tar.gz
+    URL_HASH SHA256=0014c7886930454fe8bd4228665b51af55eeae560ea135c9c4cd33f55b2591d9
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
@@ -202,7 +202,7 @@ ExternalProject_Add(xz
         -DXZ_TOOL_LZMADEC:BOOL=OFF
         -DXZ_DOC:BOOL=OFF
 )
-add_dependency_project_package(xz 5.8.3)
+add_dependency_project_package(xz 5.8.4)
 
 ExternalProject_Add(miniwdk
     GIT_REPOSITORY https://github.com/Paxxi/miniwdk
@@ -217,14 +217,14 @@ ExternalProject_Add(miniwdk
 
 ExternalProject_Add(freetype
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://sourceforge.net/projects/freetype/files/freetype2/2.14.3/freetype-2.14.3.tar.xz
-    URL_HASH SHA256=36bc4f1cc413335368ee656c42afca65c5a3987e8768cc28cf11ba775e785a5f
+    URL https://sourceforge.net/projects/freetype/files/freetype2/2.15.0/freetype-2.15.0.tar.xz
+    URL_HASH SHA256=93cd47eb719c325107f2d3cf087d06299e944c3b48a40b55537302304dea1dd5
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
-add_dependency_project_package(freetype 2.14.3)
+add_dependency_project_package(freetype 2.15.0)
 
 ExternalProject_Add(fstrcmp
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -240,31 +240,34 @@ add_dependency_project_package(fstrcmp 0.7)
 ExternalProject_Add(harfbuzz
     DEPENDS freetype
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://github.com/harfbuzz/harfbuzz/releases/download/12.3.2/harfbuzz-12.3.2.tar.xz
-    URL_HASH SHA256=6f6db164359a2da5a84ef826615b448b33e6306067ad829d85d5b0bf936f1bb8
+    URL https://github.com/harfbuzz/harfbuzz/releases/download/15.2.0/harfbuzz-15.2.0.tar.xz
+    URL_HASH SHA256=e2ec49090744383cdbe7df808c1cedaafba06a97be8dc4211fe546ba585f12cb
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DHB_HAVE_DIRECTWRITE:BOOL=ON
         -DHB_HAVE_FREETYPE:BOOL=ON
         -DHB_BUILD_SUBSET:BOOL=OFF
+        -DHB_BUILD_RASTER:BOOL=OFF
+        -DHB_BUILD_VECTOR:BOOL=OFF
+        -DHB_BUILD_GPU:BOOL=OFF
         -DBUILD_SHARED_LIBS:BOOL=ON
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype
 )
-add_dependency_project_package(harfbuzz 12.3.2)
+add_dependency_project_package(harfbuzz 15.2.0)
 
 ExternalProject_Add(sqlite
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://sqlite.org/2026/sqlite-amalgamation-3510300.zip
-    URL_HASH SHA256=acb1e6f5d832484bf6d32b681e858c38add8b2acdfd42ac5df24b8afb46552b4
+    URL https://sqlite.org/2026/sqlite-amalgamation-3540100.zip
+    URL_HASH SHA256=0a9c8e34352dad46006aa82836d5383bff9dc6bc9ce5a60553c05aa30e6ad1f9
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DBUILD_SHARED_LIBS:BOOL=ON
 )
-add_dependency_project_package(sqlite 3.51.3)
+add_dependency_project_package(sqlite 3.54.1)
 
 ExternalProject_Add(tinyxml
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
@@ -307,45 +310,45 @@ add_dependency_project_package(dnssd 2881.60.4)
 endif()
 
 ExternalProject_Add(libgpg-error
-    DEPENDS libiconv
-    GIT_REPOSITORY https://github.com/Paxxi/libgpg-error
-    GIT_TAG 36ba2419cd42ca3b16b45d317fecb531ab23e3e0
-    GIT_SHALLOW ON
+    DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+    URL https://gnupg.org/ftp/gcrypt/libgpg-error/libgpg-error-1.61.tar.bz2
+    URL_HASH SHA256=7a85413f2bc354f4f8aa832b718af122e48965e9e0eb9012ee659c13c6385c93
+    PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-        -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libiconv
 )
-add_dependency_project_package(libgpg-error 1.36.0)
+add_dependency_project_package(libgpg-error 1.61)
 
 ExternalProject_Add(libgcrypt
-    DEPENDS libgpg-error libiconv
-    GIT_REPOSITORY https://github.com/Paxxi/libgcrypt
-    GIT_TAG 7bb6e291fb112125d827cd1a75071ad4f6c3b704
-    GIT_SHALLOW ON
+    DEPENDS libgpg-error
+    DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
+    URL https://gnupg.org/ftp/gcrypt/libgcrypt/libgcrypt-1.12.4.tar.bz2
+    URL_HASH SHA256=d77f68f48879510e79a2f65977ccc68981781ea0923e5bdffac2a193ea3d660e
+    PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
-        -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgpg-error%3B%3B${PREFIX}/libiconv
+        -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgpg-error
 )
-add_dependency_project_package(libgcrypt 1.8.5)
+add_dependency_project_package(libgcrypt 1.12.4)
 
 ExternalProject_Add(winflexbison
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://github.com/lexxmark/winflexbison/releases/download/v2.5.20/win_flex_bison-2.5.20.zip
-    URL_HASH SHA256=8d751f31eb8d79251d809f37bb0d853d72f58a21c5f672d5e31f35b4d97b31fe
+    URL https://github.com/lexxmark/winflexbison/releases/download/v2.5.25/win_flex_bison-2.5.25.zip
+    URL_HASH SHA256=8d324b62be33604b2c45ad1dd34ab93d722534448f55a16ca7292de32b6ac135
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/winflexbison.diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
 )
-add_dependency_project_package(winflexbison 2.5.20)
+add_dependency_project_package(winflexbison 2.5.25)
 
 ExternalProject_Add(libaacs
     DEPENDS libgcrypt libgpg-error winflexbison libiconv
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://download.videolan.org/pub/videolan/libaacs/0.11.1/libaacs-0.11.1.tar.bz2
-    URL_HASH SHA256=a88aa0ebe4c98a77f7aeffd92ab3ef64ac548c6b822e8248a8b926725bea0a39
+    URL https://download.videolan.org/pub/videolan/libaacs/0.12.0/libaacs-0.12.0.tar.bz2
+    URL_HASH SHA256=1996673a9fc45ee4a364c66ffa84756629bf3923e52346c7358b71becb8e4419
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
@@ -353,7 +356,7 @@ ExternalProject_Add(libaacs
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/libgcrypt%3B%3B${PREFIX}/libgpg-error%3B%3B${PREFIX}/winflexbison%3B%3B${PREFIX}/libiconv
 )
-add_dependency_project_package(libaacs 0.11.1)
+add_dependency_project_package(libaacs 0.12.0)
 
 ExternalProject_Add(libbdplus
     DEPENDS libgcrypt libgpg-error libiconv
@@ -442,19 +445,19 @@ add_dependency_project_package(zstd 1.5.7)
 ExternalProject_Add(python
     DEPENDS bzip2 openssl sqlite zlib expat libffi xz zstd
     GIT_REPOSITORY https://github.com/thexai/cpython
-    GIT_TAG 3f9ea616759ef8b24d3d1cc5b0cdcf7e29fc745a
+    GIT_TAG 4198213b71e46efb60c874dcabdc6d5ef35a936f
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/bzip2%3B%3B${PREFIX}/openssl%3B%3B${PREFIX}/sqlite%3B%3B${PREFIX}/zlib%3B%3B${PREFIX}/libffi%3B%3B${PREFIX}/xz%3B%3B${PREFIX}/expat%3B%3B${PREFIX}/zstd
 )
-add_dependency_project_package(python 3.14.10)
+add_dependency_project_package(python 3.15.2)
 
 ExternalProject_Add(libjpeg-turbo
     DOWNLOAD_DIR ${CMAKE_SOURCE_DIR}/downloads
-    URL https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/3.2.0/libjpeg-turbo-3.2.0.tar.gz
-    URL_HASH SHA256=6f30092cef9fb839779646608f4ee14ae3cbac989c47fa05e841b0841f09878e
+    URL https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/3.2.1/libjpeg-turbo-3.2.1.tar.gz
+    URL_HASH SHA256=c27ad72a68da151177929aa969ae773a2da5ac2af9ce946079314fdac8cece7f
     PATCH_COMMAND ${PATCH} -p1 -i ${CMAKE_SOURCE_DIR}/patches/$(TargetName).diff
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
@@ -466,24 +469,24 @@ ExternalProject_Add(libjpeg-turbo
         -DWITH_CRT_DLL:BOOL=ON
         -DWITH_TOOLS:BOOL=OFF
 )
-add_dependency_project_package(libjpeg-turbo 3.2.0)
+add_dependency_project_package(libjpeg-turbo 3.2.1)
 
 ExternalProject_Add(pillow
     DEPENDS freetype libjpeg-turbo python zlib
     GIT_REPOSITORY https://github.com/thexai/Pillow
-    GIT_TAG 8bb646fbdfbb8d3e680e855fb263fb4b083e275a
+    GIT_TAG 4e119fcf6c9c0e44b0b8703d7e90fd149251b235
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
         -DCMAKE_INSTALL_PREFIX:PATH=${INSTALL_PREFIX}
         -DCMAKE_PREFIX_PATH:PATH=${PREFIX}%3B%3B${PREFIX}/freetype%3B%3B${PREFIX}/libjpeg-turbo%3B%3B${PREFIX}/python%3B%3B${PREFIX}/zlib
 )
-add_dependency_project_package(pillow 12.3.0)
+add_dependency_project_package(pillow 13.0.0)
 
 ExternalProject_Add(pycryptodome
     DEPENDS python
     GIT_REPOSITORY https://github.com/thexai/pycryptodome
-    GIT_TAG 4e1008c5faa479b9a40c98b36498da7599351f9f
+    GIT_TAG 7895e1d78fa410711fa94c8b29ea543d5cbd6474
     GIT_SHALLOW ON
     CMAKE_ARGS
         ${ADDITIONAL_ARGS}
@@ -492,7 +495,7 @@ ExternalProject_Add(pycryptodome
         -DBUILD_SHARED_LIBS:BOOL=ON
         -DSEPARATE_NAMESPACE:BOOL=ON
 )
-add_dependency_project_package(pycryptodome 3.24.1)
+add_dependency_project_package(pycryptodome 4.5.0)
 
 if(NOT WINDOWS_STORE)
 ExternalProject_Add(shairplay
